@@ -12,29 +12,29 @@ tags: [new-version]
 
 # nlmixr2
 
-Over the past half year, a lot of changes have been happening behind the scenes, and the time has finally come to reveal them! `nlmixr2` will be the version in active development going forward, taking over from `nlmixr`, starting with the current CRAN version, 2.0.6. Our new home on GitHub is [here](https://www.github.com/nlmixr2/nlmixr2), and on CRAN, we're [here](https://cran.r-project.org/package=nlmixr2). 
+Over the past half year, a lot of changes have been happening behind the scenes, and the time has finally come to reveal them! <span style="color: #1f4e79;">`nlmixr2`</span> will be the version in active development going forward, taking over from <span style="color: #1f4e79;">`nlmixr`</span>, starting with the current CRAN version, 2.0.6. Our new home on GitHub is [here](https://www.github.com/nlmixr2/nlmixr2), and on CRAN, we're [here](https://cran.r-project.org/package=nlmixr2). 
 
 The reasons for the name and format change are many, but most importantly, we've taken this step to improve overall user experience and to help us maintain the project more effectively. 
 
 These are the things that have changed that you might notice...
 
-+ `nlmixr2` is now easier to install without the requirement of Python (okay, that’s been true for a while, but we’re still excited about it). `install.packages("nlmixr2")` is all that you need to do on most systems.
-+ Simulations are now easier with `nlmixr2` - you can directly use `nlmixr2` model objects for simulation without needing to rewrite using `rxode2` syntax (although you can still do this if you want).
++ <span style="color: #1f4e79;">`nlmixr2`</span> is now easier to install without the requirement of Python (okay, that’s been true for a while, but we’re still excited about it). <span style="color: #1f4e79;">`install.packages("nlmixr2")`</span> is all that you need to do on most systems.
++ Simulations are now easier with <span style="color: #1f4e79;">`nlmixr2`</span> - you can directly use <span style="color: #1f4e79;">`nlmixr2`</span> model objects for simulation without needing to rewrite using <span style="color: #1f4e79;">`rxode2`</span> syntax (although you can still do this if you want).
 + Automatic mu-referencing is done for SAEM models going forward.  We mu-reference for you!
-+ The big one: `nlmixr` has been split into several modular packages. `nlmixr2` is an umbrella package, wrapping up lower level packages `rxode2`, `nlmixr2est`, `nlmixr2extra`, `nlmixr2data`, `nlmixr2plot`, `lotri` and `PreciseSums`.
-  + `rxode2` is an R package for solving and simulating from ODE-based models. Models are converted to C to maximise speed and efficiency. `rxode2` is the beating heart of `nlmixr2`.
-  + `nlmixr2est` provides the core estimation routines for `nlmixr2`.
-  + `nlmixr2extra` provides the tools to help with common pharmacometric tasks like bootstrapping and covariate selection, amongst others.
-  + `nlmixr2plot` provides basic plotting support for `nlmixr2` models. You'd be better off using `xpose.nlmixr`, quite frankly, but it's here for legacy purposes. 
-  + `nlmixr2data` rolls up all the `nlmixr2` example datasets in once convenient place.
-  + `lotri` was developed to easily specify block-diagonal matrices with (lo)wer (tri)angular matrices. Think of it as having won the (badly spelled) lotri (or lottery). It's just that cool.
-  + `PreciseSums` brings a few algorithms for precise sums and products to R. They are ported from Python and NumPy for the most part.
++ The big one: <span style="color: #1f4e79;">`nlmixr`</span> has been split into several modular packages. <span style="color: #1f4e79;">`nlmixr2`</span> is an umbrella package, wrapping up lower level packages <span style="color: #1f4e79;">`rxode2`</span>, <span style="color: #1f4e79;">`nlmixr2est`</span>, <span style="color: #1f4e79;">`nlmixr2extra`</span>, <span style="color: #1f4e79;">`nlmixr2data`</span>, <span style="color: #1f4e79;">`nlmixr2plot`</span>, <span style="color: #1f4e79;">`lotri`</span> and <span style="color: #1f4e79;">`PreciseSums`</span>.
+  + <span style="color: #1f4e79;">`rxode2`</span> is an R package for solving and simulating from ODE-based models. Models are converted to C to maximise speed and efficiency. <span style="color: #1f4e79;">`rxode2`</span> is the beating heart of <span style="color: #1f4e79;">`nlmixr2`</span>.
+  + <span style="color: #1f4e79;">`nlmixr2est`</span> provides the core estimation routines for <span style="color: #1f4e79;">`nlmixr2`</span>.
+  + <span style="color: #1f4e79;">`nlmixr2extra`</span> provides the tools to help with common pharmacometric tasks like bootstrapping and covariate selection, amongst others.
+  + <span style="color: #1f4e79;">`nlmixr2plot`</span> provides basic plotting support for <span style="color: #1f4e79;">`nlmixr2`</span> models. You'd be better off using <span style="color: #1f4e79;">`xpose.nlmixr`</span>, quite frankly, but it's here for legacy purposes. 
+  + <span style="color: #1f4e79;">`nlmixr2data`</span> rolls up all the <span style="color: #1f4e79;">`nlmixr2`</span> example datasets in once convenient place.
+  + <span style="color: #1f4e79;">`lotri`</span> was developed to easily specify block-diagonal matrices with (lo)wer (tri)angular matrices. Think of it as having won the (badly spelled) lotri (or lottery). It's just that cool.
+  + <span style="color: #1f4e79;">`PreciseSums`</span> brings a few algorithms for precise sums and products to R. They are ported from Python and NumPy for the most part.
 
 # Dig in
 
 We have a lot of HOWTOs, example models, and other bits and pieces for getting started up at our core site, https://www.nlmixr.org. Go take a look. 
 
-We have some papers out as well - our tutorial from 2019 @Fidler2019 is getting a bit long in the tooth, but the core details are relevant. Rik published a comparison between the SAEM and FOCE algorithms around the same time @Schoemaker2019, and Matt had a paper on how `nlmixr` might be a useful tool for bridging statistics and pharmacometrics @Fidler2021. They're all worth your time.
+We have some papers out as well - our tutorial from 2019 @Fidler2019 is getting a bit long in the tooth, but the core details are relevant. Rik published a comparison between the SAEM and FOCE algorithms around the same time @Schoemaker2019, and Matt had a paper on how <span style="color: #1f4e79;">`nlmixr`</span> might be a useful tool for bridging statistics and pharmacometrics @Fidler2021. They're all worth your time.
 
 # The Development Team
 
