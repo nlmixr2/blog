@@ -1,43 +1,125 @@
-baseurl: /
-languageCode: en-us
-title: The nlmixr2 blog
-theme: hugo-lithium
+baseURL: /
+theme: hugo-apero
+languageCode: en
+title: nlmixr2
+author: the nlmixr2 Development Team
+copyright: ''
 googleAnalytics: ''
 disqusShortname: ''
+metaDataFormat: yaml
+footnoteReturnLinkContents: '&#8617;'
+paginate: 5
+preserveTaxonomyNames: yes
 ignoreFiles:
   - \.Rmd$
   - \.Rmarkdown$
   - _cache$
   - \.knit\.md$
   - \.utf8\.md$
-permalinks:
-  post: /:year/:month/:day/:slug/
-menu:
-  main:
-    - name: About
-      url: /about/
-    - name: GitHub
-      url: https://github.com/nlmixr2/nlmixr2
-    - name: Twitter
-      url: https://twitter.com/nlmixr
-params:
-  MathJaxCDN: //cdnjs.cloudflare.com/ajax/libs
-  MathJaxVersion: 2.7.5
-  description: A blog about all things nlmixr2.
-  favicon: favicon.ico
-  highlightjsCDN: //cdnjs.cloudflare.com/ajax/libs
-  highlightjsLang:
-    - r
-    - yaml
-  highlightjsTheme: github
-  highlightjsVersion: 9.12.0
-  logo:
-    alt: Logo
-    height: 50
-    url: logo.png
-    width: 50
+enableEmoji: yes
 markup:
   defaultMarkdownHandler: goldmark
   goldmark:
     renderer:
+      hardwraps: no
       unsafe: yes
+  highlight:
+    style: github
+  tableOfContents:
+    endLevel: 2
+    ordered: no
+    startLevel: 2
+params:
+  custom_theme: nlmixr-hex
+  customheadingFontFamily: Atkinson Hyperlegible
+  customtextFontFamily: Atkinson Hyperlegible
+  description: "nlmixr: open source nonlinear mixed-effects modeling for R."
+  favicon: /img/favicon.ico
+  headingFontFamily: sans-serif
+  logo: /img/nlmixr2_logo_final.png
+  mainSections:
+    - blog
+    - project
+    - talk
+  math:
+    renderer: katex
+  navallcaps: yes
+  orgLocal: Anywhere
+  orgName: the nlmixr2 Development Team
+  sharing_image: /img/nlmixr2.png
+  social:
+    - icon: github
+      icon_pack: fab
+      url: https://github.com/nlmixr2/nlmixr2
+    - icon: linkedin
+      icon_pack: fab
+      url: https://www.instagram.com/explore/tags/apero/
+    - icon: twitter
+      icon_pack: fab
+      url: https://twitter.com/hashtag/nlmixr
+    - icon: rss
+      icon_pack: fas
+      url: /blog/index.xml
+  socialInFooter: yes
+  socialInHeader: no
+  textFontFamily: sans-serif
+  theme: ""
+  twitter: nlmixr
+  utterances:
+    issue_term: pathname
+    label: 'comments :crystal_ball:'
+    repo_name: nlmixr2/blog
+    theme: boxy-light
+    use_utterances: yes
+taxonomies:
+  category: categories
+  series: series
+  tag: tags
+menu:
+  footer:
+    - name: License
+      title: License
+      url: /license/
+      weight: 1
+    - name: Contact
+      title: Contact form
+      url: /contact/
+      weight: 2
+    - name: Contributors
+      title: Contributors
+      url: /contributors/
+      weight: 3
+  header:
+    - name: Blog
+      title: Blog
+      url: /blog/
+      weight: 1
+    - name: Roadmap
+      title: Roadmap
+      url: /roadmap/
+      weight: 2
+    - name: Courses
+      title: Courses
+      url: /courses/
+      weight: 3
+privacy:
+  disqus:
+    disable: no
+  googleAnalytics:
+    anonymizeIP: yes
+    disable: no
+    respectDoNotTrack: yes
+  instagram:
+    disable: no
+    simple: yes
+  twitter:
+    disable: no
+    enableDNT: yes
+    simple: no
+  vimeo:
+    disable: no
+    enableDNT: yes
+    simple: yes
+  youtube:
+    disable: no
+    privacyEnhanced: yes

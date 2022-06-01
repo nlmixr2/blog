@@ -1,0 +1,57 @@
+---
+description: Our team!
+draft: false
+layout: standard
+show_title_as_headline: true
+title: The Development Team
+---
+
+Thank you to all the folks who have contributed both technical and creative skills to this project:
+
++ [Matt Fidler](https://www.linkedin.com/in/matthewfidler): our development lead, Matt is an Associate Director at [Novartis](https://www.novartis.com) and is based in Fort Worth, Texas.
+
++ [Bill Denney](https://www.linkedin.com/in/billdenney): Bill runs [Human Predictions](https://www.humanpredictions.com/) in Cambridge, Massachusetts and is a core developer.
+
++ [John Harrold](https://www.linkedin.com/in/johnmharrold): John is a core developer and is a Director of Clinical Pharmacology at [SeaGen](https://www.seagen.com/) in San Francisco, California.
+
++ [Richard Hooijmaijers](https://www.linkedin.com/in/richard-hooijmaijers-a5b1732a): Richard develops and maintains the Shiny-based GUI `shinyMixR` and is a PKPD consultant at [LAP&P](https://www.lapp.nl) in Tilburg, the Netherlands.
+
++ [Theodoros Papathanasiou](https://www.linkedin.com/in/theodorospapathanasiou): Theo is a core developer and spends his days as a Principal Pharmacometrics Scientist at [Novartis](https://www.novartis.com) in Basel, Switzerland.
+
++ [Rik Schoemaker](https://www.linkedin.com/in/rikschoemaker/): besides being an all-around legend, Rik supervises testing and is a partner at [Occams](https://www.occams.com/) in Amstelveen, the Netherlands.
+
++ [Mirjam Trame](https://www.linkedin.com/in/mirjam-trame-5775ab96/): Mirjam manages communications and coordinates courses and worksops, and is a Senior Director in Integrated Drug Development at [Certara](https://www.certara.com/) in Boston, Massachusetts.
+
++ [Justin Wilkins](https://www.linkedin.com/in/justinjwilkins/): Justin maintains the `xpose.nlmixr` interface package to xpose for graphical diagnostics, and helps with assorted documentation and testing; he's a partner at [Occams](https://www.occams.com/) and lives in Werl, Germany.
+
++ [Yuan Xiong](https://www.linkedin.com/in/yuanxiong/): Yuan is a core developer, and works in Clinical Pharmacology and Pharmacometrics at The Janssen Pharmaceutical Companies of [Johnson & Johnson](https://www.jnj.com) in Raritan, New Jersey.
+
++ [Huijuan Xu](https://www.linkedin.com/in/huijuan-xu-7224b091/): Huijuan is a core developer, and works as a Research Scientist in Scientific Computing at [Novartis](https://www.novartis.com) in Princeton, New Jersey.
+
+```{r map, echo=FALSE}
+library(leaflet)
+
+
+dat <- data.frame(
+  lat = c(51.5584,52.2942,32.7555,37.7749,42.3736,47.559,42.3601,51.5606,40.5695,40.3573),
+  long = c(7.9114,4.8420,-97.3308,-122.4194,-71.1097,7.5886,-71.0589,5.0919,-74.6329,-74.6672),
+  name = c("Justin Wilkins","Rik Schoemaker","Matt Fidler","John Harrold","Bill Denney","Theodoros Papathanasiou",
+           "Mirjam Trame","Richard Hooijmaijers","Yuan Xiong","Huijuan Xu"),
+  location = c("Werl, Germany","Amstelveen, The Netherlands","Fort Worth, Texas, USA","San Francisco, California, USA","Cambridge, Massachusetts, USA", "Basel, Switzerland", "Boston, Massachusetts, USA", "Tilburg, The Netherlands", "Raritan, New Jersey, USA","Princeton, New Jersey, USA"))
+
+m <- leaflet() %>%
+  addTiles() %>%  # Add default OpenStreetMap map tiles
+  addMarkers(data = dat,                                          
+                   lat = ~lat,                           
+                   lng = ~long,                          
+                   popup = paste0("<b>", dat$name, "</b><br>", 
+                                  dat$location),
+                   label = ~as.character(name))       
+m
+
+   
+
+
+
+```
+

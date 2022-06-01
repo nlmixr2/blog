@@ -1,2 +1,0 @@
-# blog
-The nlmixr blog
