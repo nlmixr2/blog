@@ -38,7 +38,7 @@ We have some papers out as well - our tutorial from 2019 @Fidler2019 is getting 
 
 # The Development Team
 
-Our development team, led by *Matt Fidler*, is spread across the world, with contributors based in the United States (Matt, *Bill Denney*, *John Harrold*, *Mirjam Trame*, *Yuan Xiong* and *Huijuan Xu*), The Netherlands (*Richard Hooijmaijers* and *Rik Schoemaker*), Germany (*Justin Wilkins*) and Switzerland (*Theodoros Papathanasiou*). 
+Our development team, led by <span style="color: #1f4e79;">Matt Fidler</span>, is spread across the world, with contributors based in the United States (Matt, <span style="color: #1f4e79;">Bill Denney</span>, <span style="color: #1f4e79;">John Harrold</span>, <span style="color: #1f4e79;">Mirjam Trame</span>, <span style="color: #1f4e79;">Yuan Xiong</span> and <span style="color: #1f4e79;">Huijuan Xu</span>), The Netherlands (<span style="color: #1f4e79;">Richard Hooijmaijers</span> and <span style="color: #1f4e79;">Rik Schoemaker</span>), Germany (<span style="color: #1f4e79;">Justin Wilkins</span>) and Switzerland (<span style="color: #1f4e79;">Theodoros Papathanasiou</span>). 
 
 ### References
 
