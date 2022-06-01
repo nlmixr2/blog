@@ -1,12 +1,17 @@
 ---
-title: "nlmixr2 is here"
-author: "the nlmixr2 Development Team"
-date: 2022-06-01T21:13:14-05:00
-categories: ["R"]
-tags: ["R Markdown", "plot", "regression"]
+title: nlmixr2 is here
+author: the nlmixr2 Development Team
+date: '2022-06-01'
+categories: [nlmixr2]
+tags: [new-version]
 ---
 
-## nlmixr2
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE)
+library(blogdown)
+```
+
+# nlmixr2
 
 Over the past half year, a lot of changes have been happening behind the scenes, and the time has finally come to reveal them! `nlmixr2` will be the version in active development going forward, taking over from `nlmixr`, starting with the current CRAN version, 2.0.6. Our new home on GitHub is [here](https://www.github.com/nlmixr2/nlmixr2), and on CRAN, we're [here](https://cran.r-project.org/package=nlmixr2). 
 
@@ -25,14 +30,10 @@ These are the things that have changed that you might notice...
 + `rxode2` can simulate directly from `nlmixr2` models now. 
 + SAEM models no longer require MU-referencing to work.
 
-## Dig in
+# Dig in
 
 We have a lot of HOWTOs, example models, and other bits and pieces for getting started up at our core site, https://www.nlmixr.org. Go take a look. 
 
-
-
-
-
-## The Development Team
+# The Development Team
 
 Our development team, led by *Matt Fidler*, is spread across the world, with contributors based in the United States (Matt, *Bill Denney*, *John Harrold*, *Mirjam Trame*, *Yuan Xiong* and *Huijuan Xu*), The Netherlands (*Richard Hooijmaijers* and *Rik Schoemaker*), Germany (*Justin Wilkins*) and Switzerland (*Theodoros Papathanasiou*). 

@@ -6,7 +6,7 @@
     <description>Recent content in nlmixr on nlmixr2</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Tue, 26 Jan 2021 00:00:00 +0000</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Wed, 01 Jun 2022 00:00:00 +0000</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Netlify</title>
       <link>/collection/day02/01-netlify/</link>
@@ -84,14 +84,13 @@ My content section is: collection  My layout is: single-series   part 2!     doe
     </item>
     
     <item>
-      <title>Hello R Markdown</title>
-      <link>/blog/2020-12-01-r-rmarkdown/</link>
-      <pubDate>Tue, 01 Dec 2020 21:13:14 -0500</pubDate>
+      <title>nlmixr2 is here</title>
+      <link>/blog/2022-06-01-nlmixr2-is-here/</link>
+      <pubDate>Wed, 01 Jun 2022 00:00:00 +0000</pubDate>
       
-      <guid>/blog/2020-12-01-r-rmarkdown/</guid>
-      <description>R MarkdownThis is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see http://rmarkdown.rstudio.com.
-You can embed an R code chunk like this:
-summary(cars)## speed dist ## Min. : 4.0 Min. : 2.00 ## 1st Qu.:12.0 1st Qu.: 26.00 ## Median :15.0 Median : 36.00 ## Mean :15.4 Mean : 42.98 ## 3rd Qu.</description>
+      <guid>/blog/2022-06-01-nlmixr2-is-here/</guid>
+      <description>knitr::opts_chunk$set(collapse = TRUE)library(blogdown)  nlmixr2   Over the past half year, a lot of changes have been happening behind the scenes, and the time has finally come to reveal them! nlmixr2 will be the version in active development going forward, taking over from nlmixr, starting with the current CRAN version, 2.0.6. Our new home on GitHub is here, and on CRAN, we&amp;rsquo;re here.
+The reasons for the name and format change are many, but most importantly, we&amp;rsquo;ve taken this step to improve overall user experience and to help us maintain the project more effectively.</description>
     </item>
     
     <item>
