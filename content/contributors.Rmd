@@ -6,7 +6,7 @@ show_title_as_headline: true
 title: The Development Team
 ---
 
-Thank you to all the folks who have contributed both technical and creative skills to this project:
+Thank you to all the folks who have contributed both technical and creative skills to this project, and just as much, their employers, who allow them the time to work with us:
 
 + [Matt Fidler](https://www.linkedin.com/in/matthewfidler): our development lead, Matt is an Associate Director at [Novartis](https://www.novartis.com) and is based in Fort Worth, Texas.
 

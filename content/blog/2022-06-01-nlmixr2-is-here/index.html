@@ -17,6 +17,9 @@ tags: [new-version]
 <p>The reasons for the name and format change are many, but most importantly, we’ve taken this step to improve overall user experience and to help us maintain the project more effectively.</p>
 <p>These are the things that have changed that you might notice…</p>
 <ul>
+<li><code>nlmixr2</code> is now easier to install without the requirement of Python (okay, that’s been true for a while, but we’re still excited about it). <code>install.packages("nlmixr2")</code> is all that you need to do on most systems.</li>
+<li>Simulations are now easier with <code>nlmixr2</code> - you can directly use <code>nlmixr2</code> model objects for simulation without needing to rewrite using <code>rxode2</code> syntax (although you can still do this if you want).</li>
+<li>Automatic mu-referencing is done for SAEM models going forward. We mu-reference for you!</li>
 <li>The big one: <code>nlmixr</code> has been split into several modular packages. <code>nlmixr2</code> is an umbrella package, wrapping up lower level packages <code>rxode2</code>, <code>nlmixr2est</code>, <code>nlmixr2extra</code>, <code>nlmixr2data</code>, <code>nlmixr2plot</code>, <code>lotri</code> and <code>PreciseSums</code>.
 <ul>
 <li><code>rxode2</code> is an R package for solving and simulating from ODE-based models. Models are converted to C to maximise speed and efficiency. <code>rxode2</code> is the beating heart of <code>nlmixr2</code>.</li>
@@ -27,8 +30,6 @@ tags: [new-version]
 <li><code>lotri</code> was developed to easily specify block-diagonal matrices with (lo)wer (tri)angular matrices. Think of it as having won the (badly spelled) lotri (or lottery). It’s just that cool.</li>
 <li><code>PreciseSums</code> brings a few algorithms for precise sums and products to R. They are ported from Python and NumPy for the most part.</li>
 </ul></li>
-<li><code>rxode2</code> can simulate directly from <code>nlmixr2</code> models now.</li>
-<li>SAEM models no longer require MU-referencing to work.</li>
 </ul>
 </div>
 <div id="dig-in" class="section level1">

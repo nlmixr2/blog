@@ -53,7 +53,7 @@ params:
       url: https://github.com/nlmixr2/nlmixr2
     - icon: linkedin
       icon_pack: fab
-      url: https://www.instagram.com/explore/tags/apero/
+      url: https://www.linkedin.com/groups/8621368/
     - icon: twitter
       icon_pack: fab
       url: https://twitter.com/hashtag/nlmixr
@@ -81,14 +81,10 @@ menu:
       title: License
       url: /license/
       weight: 1
-    - name: Contact
-      title: Contact form
-      url: /contact/
-      weight: 2
     - name: Contributors
       title: Contributors
       url: /contributors/
-      weight: 3
+      weight: 2
   header:
     - name: Blog
       title: Blog

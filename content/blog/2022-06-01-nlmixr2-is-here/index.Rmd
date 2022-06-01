@@ -18,6 +18,9 @@ The reasons for the name and format change are many, but most importantly, we've
 
 These are the things that have changed that you might notice...
 
++ `nlmixr2` is now easier to install without the requirement of Python (okay, that’s been true for a while, but we’re still excited about it). `install.packages("nlmixr2")` is all that you need to do on most systems.
++ Simulations are now easier with `nlmixr2` - you can directly use `nlmixr2` model objects for simulation without needing to rewrite using `rxode2` syntax (although you can still do this if you want).
++ Automatic mu-referencing is done for SAEM models going forward.  We mu-reference for you!
 + The big one: `nlmixr` has been split into several modular packages. `nlmixr2` is an umbrella package, wrapping up lower level packages `rxode2`, `nlmixr2est`, `nlmixr2extra`, `nlmixr2data`, `nlmixr2plot`, `lotri` and `PreciseSums`.
   + `rxode2` is an R package for solving and simulating from ODE-based models. Models are converted to C to maximise speed and efficiency. `rxode2` is the beating heart of `nlmixr2`.
   + `nlmixr2est` provides the core estimation routines for `nlmixr2`.
@@ -26,8 +29,6 @@ These are the things that have changed that you might notice...
   + `nlmixr2data` rolls up all the `nlmixr2` example datasets in once convenient place.
   + `lotri` was developed to easily specify block-diagonal matrices with (lo)wer (tri)angular matrices. Think of it as having won the (badly spelled) lotri (or lottery). It's just that cool.
   + `PreciseSums` brings a few algorithms for precise sums and products to R. They are ported from Python and NumPy for the most part.
-+ `rxode2` can simulate directly from `nlmixr2` models now. 
-+ SAEM models no longer require MU-referencing to work.
 
 # Dig in
 
