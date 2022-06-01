@@ -89,7 +89,7 @@ My content section is: collection  My layout is: single-series   part 2!     doe
       <pubDate>Wed, 01 Jun 2022 00:00:00 +0000</pubDate>
       
       <guid>/blog/2022-06-01-nlmixr2-is-here/</guid>
-      <description>knitr::opts_chunk$set(collapse = TRUE)library(blogdown)  nlmixr2   Over the past half year, a lot of changes have been happening behind the scenes, and the time has finally come to reveal them! nlmixr2 will be the version in active development going forward, taking over from nlmixr, starting with the current CRAN version, 2.0.6. Our new home on GitHub is here, and on CRAN, we&amp;rsquo;re here.
+      <description>nlmixr2   Over the past half year, a lot of changes have been happening behind the scenes, and the time has finally come to reveal them! nlmixr2 will be the version in active development going forward, taking over from nlmixr, starting with the current CRAN version, 2.0.6. Our new home on GitHub is here, and on CRAN, we&amp;rsquo;re here.
 The reasons for the name and format change are many, but most importantly, we&amp;rsquo;ve taken this step to improve overall user experience and to help us maintain the project more effectively.</description>
     </item>
     
