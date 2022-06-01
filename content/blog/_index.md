@@ -9,7 +9,7 @@ cascade:
     show_sidebar_adunit: false
     text_link_label: View recent posts
     text_link_url: /blog/
-description: "A place for the <span style="color: #1f4e79;">`nlmixr2`</span> dev team to pontificate about all sorts of things.\n"
+description: "A place for the `nlmixr2` dev team to pontificate about all sorts of things.\n"
 layout: list-sidebar
 show_author_byline: true
 show_button_links: false
