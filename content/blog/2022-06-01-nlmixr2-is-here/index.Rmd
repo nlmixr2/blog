@@ -2,8 +2,8 @@
 title: "nlmixr2 is here"
 author: "the nlmixr2 Development Team"
 date: 2022-06-01T21:13:14-05:00
-categories: ["nlmixr2"]
-tags: ["new-release"]
+categories: ["R"]
+tags: ["R Markdown", "plot", "regression"]
 ---
 
 ## nlmixr2
