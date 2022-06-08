@@ -6,7 +6,7 @@
     <description>Recent content in nlmixr on nlmixr2</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Wed, 01 Jun 2022 00:00:00 +0000</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Wed, 08 Jun 2022 00:00:00 +0000</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Netlify</title>
       <link>/collection/day02/01-netlify/</link>
@@ -85,12 +85,13 @@ My content section is: collection  My layout is: single-series   part 2!     doe
     
     <item>
       <title>nlmixr2 is here</title>
-      <link>/blog/2022-06-01-nlmixr2-is-here/</link>
-      <pubDate>Wed, 01 Jun 2022 00:00:00 +0000</pubDate>
+      <link>/blog/2022-06-08-nlmixr2-is-here/</link>
+      <pubDate>Wed, 08 Jun 2022 00:00:00 +0000</pubDate>
       
-      <guid>/blog/2022-06-01-nlmixr2-is-here/</guid>
-      <description>nlmixr2   Over the past half year, a lot of changes have been happening behind the scenes, and the time has finally come to reveal them! nlmixr2 will be the version in active development going forward, taking over from nlmixr, starting with the current CRAN version, 2.0.6. Our new home on GitHub is here, and on CRAN, we&amp;rsquo;re here.
-The reasons for the name and format change are many, but most importantly, we&amp;rsquo;ve taken this step to improve overall user experience and to help us maintain the project more effectively.</description>
+      <guid>/blog/2022-06-08-nlmixr2-is-here/</guid>
+      <description>Over the past half year, a lot of changes have been happening behind the scenes, and the time has finally come to reveal them!
+nlmixr2nlmixr2 will be the version in active development going forward, taking over from nlmixr, starting with the current CRAN version, 2.0.6. Our new home on GitHub is here, and on CRAN, we’re here.
+The reasons for the name and format change are many, but most importantly, we’ve taken this step to improve overall user experience and to help us maintain the project more effectively.</description>
     </item>
     
     <item>
@@ -126,8 +127,8 @@ Formspree requires a (free) account and new form to be set up. The link is made 
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>/license/</guid>
-      <description>My blog posts are released under a Creative Commons Attribution-ShareAlike 4.0 International License.
-  </description>
+      <description>Our blog posts are released under a Creative Commons Attribution-ShareAlike 4.0 International License.
+</description>
     </item>
     
     <item>
@@ -136,10 +137,9 @@ Formspree requires a (free) account and new form to be set up. The link is made 
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>/contributors/</guid>
-      <description>Thank you to all the folks who have contributed both technical and creative skills to this project:
+      <description>Thank you to all the folks who have contributed both technical and creative skills to this project, and just as much, their employers, who allow them the time to work with us:
 Matt Fidler: our development lead, Matt is an Associate Director at Novartis and is based in Fort Worth, Texas.
-Bill Denney: Bill runs Human Predictions in Cambridge, Massachusetts and is a core developer.
-John Harrold: John is a core developer and is a Director of Clinical Pharmacology at SeaGen in San Francisco, California.</description>
+Bill Denney: Bill runs Human Predictions in Cambridge, Massachusetts and is a core developer.</description>
     </item>
     
   </channel>
