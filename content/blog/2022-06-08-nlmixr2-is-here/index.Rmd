@@ -1,7 +1,8 @@
 ---
 title: nlmixr2 is here
-author: the nlmixr2 Development Team
-date: 2022-06-08
+author: 'the nlmixr2 Development Team'
+date: '2022-06-08'
+slug: []
 bibliography: [refs.bib]
 link-citations: true
 csl: vancouver.csl
