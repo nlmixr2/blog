@@ -1,7 +1,7 @@
 ---
 title: nlmixr2 is here
 author: the nlmixr2 Development Team
-date: '2022-06-01'
+date: '2022-06-08'
 bibliography: [refs.bib]
 link-citations: true
 csl: vancouver.csl
@@ -9,10 +9,11 @@ categories: [nlmixr2]
 tags: [new-version]
 ---
 
+Over the past half year, a lot of changes have been happening behind the scenes, and the time has finally come to reveal them! 
 
 # nlmixr2
 
-Over the past half year, a lot of changes have been happening behind the scenes, and the time has finally come to reveal them! <span style="color: #1f4e79;">`nlmixr2`</span> will be the version in active development going forward, taking over from <span style="color: #1f4e79;">`nlmixr`</span>, starting with the current CRAN version, 2.0.6. Our new home on GitHub is [here](https://www.github.com/nlmixr2/nlmixr2), and on CRAN, we're [here](https://cran.r-project.org/package=nlmixr2). 
+<span style="color: #1f4e79;">`nlmixr2`</span> will be the version in active development going forward, taking over from <span style="color: #1f4e79;">`nlmixr`</span>, starting with the current CRAN version, 2.0.6. Our new home on GitHub is [here](https://www.github.com/nlmixr2/nlmixr2), and on CRAN, we're [here](https://cran.r-project.org/package=nlmixr2). 
 
 The reasons for the name and format change are many, but most importantly, we've taken this step to improve overall user experience and to help us maintain the project more effectively. 
 
@@ -32,7 +33,7 @@ These are the things that have changed that you might notice...
 
 # Dig in
 
-We have a lot of HOWTOs, example models, and other bits and pieces for getting started up at our core site, https://www.nlmixr.org. Go take a look. 
+We have a lot of HOWTOs, example models, and other bits and pieces for getting started up at our core site, https://www.nlmixr2.org. Go take a look. 
 
 We have some papers out as well - our tutorial from 2019 @Fidler2019 is getting a bit long in the tooth, but the core details are relevant. Rik published a comparison between the SAEM and FOCE algorithms around the same time @Schoemaker2019, and Matt had a paper on how <span style="color: #1f4e79;">`nlmixr`</span> might be a useful tool for bridging statistics and pharmacometrics @Fidler2021. They're all worth your time.
 
