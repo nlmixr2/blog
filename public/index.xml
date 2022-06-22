@@ -2,27 +2,27 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>nlmixr on nlmixr2</title>
-    <link>/</link>
+    <link>https://blog.nlmixr.org/</link>
     <description>Recent content in nlmixr on nlmixr2</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Wed, 08 Jun 2022 00:00:00 +0000</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Wed, 08 Jun 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.nlmixr.org/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Netlify</title>
-      <link>/collection/day02/01-netlify/</link>
+      <link>https://blog.nlmixr.org/collection/day02/01-netlify/</link>
       <pubDate>Sat, 02 Jan 2021 00:00:00 +0000</pubDate>
       
-      <guid>/collection/day02/01-netlify/</guid>
+      <guid>https://blog.nlmixr.org/collection/day02/01-netlify/</guid>
       <description>So far, we&amp;rsquo;ve been leveraging GitHub Pages for publishing. This works great, but for blogdown we&amp;rsquo;ll start using Netlify. Let&amp;rsquo;s start RIGHT NOW with a site we&amp;rsquo;ve already built and published.
 Pre-requisites     Pick either your postcards site, or your distill site from day 01. Refresh your memory- which repository was it again?</description>
     </item>
     
     <item>
       <title>A GitHub profile</title>
-      <link>/collection/day01/01-github/</link>
+      <link>https://blog.nlmixr.org/collection/day01/01-github/</link>
       <pubDate>Fri, 01 Jan 2021 00:00:00 +0000</pubDate>
       
-      <guid>/collection/day01/01-github/</guid>
+      <guid>https://blog.nlmixr.org/collection/day01/01-github/</guid>
       <description>Profile      https://docs.github.com/en/github/setting-up-and-managing-your-github-profile/personalizing-your-profile
 Pin projects to profile      https://docs.github.com/en/github/setting-up-and-managing-your-github-profile/pinning-items-to-your-profile
 Profile README     This is new! Let&amp;rsquo;s do it:
@@ -31,20 +31,20 @@ Profile README     This is new! Let&amp;rsquo;s do it:
     
     <item>
       <title>Prework</title>
-      <link>/collection/prework/</link>
+      <link>https://blog.nlmixr.org/collection/prework/</link>
       <pubDate>Fri, 01 Jan 2021 00:00:00 +0000</pubDate>
       
-      <guid>/collection/prework/</guid>
+      <guid>https://blog.nlmixr.org/collection/prework/</guid>
       <description>Welcome to the Introducing Yourself Online workshop! We look forward to meeting you. Before attending the workshop, please complete the following prework.
 Set up RStudio Cloud     Sign up for a free RStudio Cloud account at https://rstudio.cloud/ before the workshop. I recommend logging in with an existing Google or GitHub account, if you have one (rather than creating a new account with another password you have to remember).</description>
     </item>
     
     <item>
       <title>A postcard</title>
-      <link>/collection/day01/02-postcards/</link>
+      <link>https://blog.nlmixr.org/collection/day01/02-postcards/</link>
       <pubDate>Sat, 02 Jan 2021 00:00:00 +0000</pubDate>
       
-      <guid>/collection/day01/02-postcards/</guid>
+      <guid>https://blog.nlmixr.org/collection/day01/02-postcards/</guid>
       <description>Pre-requisites     First, make sure you have the latest version of the postcards package installed from CRAN:
 install.packages(&amp;#34;postcards&amp;#34;) Restart your R session. If you use RStudio, use the menu item Session &amp;gt; Restart R or the associated keyboard shortcut:
  Ctrl + Shift + F10 (Windows and Linux) or Command + Shift + F10 (Mac OS).  packageVersion(&amp;#34;postcards&amp;#34;) [1] ‘0.2.0’  Create GitHub repo     Online.</description>
@@ -52,10 +52,10 @@ install.packages(&amp;#34;postcards&amp;#34;) Restart your R session. If you use
     
     <item>
       <title>Using blogdown</title>
-      <link>/collection/day02/02-blogdown/</link>
+      <link>https://blog.nlmixr.org/collection/day02/02-blogdown/</link>
       <pubDate>Fri, 01 Jan 2021 00:00:00 +0000</pubDate>
       
-      <guid>/collection/day02/02-blogdown/</guid>
+      <guid>https://blog.nlmixr.org/collection/day02/02-blogdown/</guid>
       <description>Pre-requisites     First, make sure you have the latest version of the blogdown package installed from CRAN:
 install.packages(&amp;#34;blogdoown&amp;#34;) Restart your R session. If you use RStudio, use the menu item Session &amp;gt; Restart R or the associated keyboard shortcut:
  Ctrl + Shift + F10 (Windows and Linux) or Command + Shift + F10 (Mac OS).  packageVersion(&amp;#34;blogdown&amp;#34;) [1] ‘1.0’  Create GitHub repo     Online.</description>
@@ -63,10 +63,10 @@ install.packages(&amp;#34;blogdoown&amp;#34;) Restart your R session. If you use
     
     <item>
       <title>A distill site</title>
-      <link>/collection/day01/03-distill/</link>
+      <link>https://blog.nlmixr.org/collection/day01/03-distill/</link>
       <pubDate>Sat, 02 Jan 2021 00:00:00 +0000</pubDate>
       
-      <guid>/collection/day01/03-distill/</guid>
+      <guid>https://blog.nlmixr.org/collection/day01/03-distill/</guid>
       <description>Pre-requisites     First, make sure you have the latest version of the distill package installed from CRAN:
 install.packages(&amp;quot;distill&amp;quot;)  Restart your R session. If you use RStudio, use the menu item Session &amp;gt; Restart R or the associated keyboard shortcut:
  Ctrl + Shift + F10 (Windows and Linux) or Command + Shift + F10 (Mac OS).  &amp;lt;!-- --&amp;gt; packageVersion(&amp;quot;distill&amp;quot;) [1] ‘1.2’  Create GitHub repo     Online.</description>
@@ -74,10 +74,10 @@ install.packages(&amp;quot;distill&amp;quot;)  Restart your R session. If you us
     
     <item>
       <title>Warm woolen mittens</title>
-      <link>/collection/day02/03-blogdown/</link>
+      <link>https://blog.nlmixr.org/collection/day02/03-blogdown/</link>
       <pubDate>Sat, 02 Jan 2021 00:00:00 +0000</pubDate>
       
-      <guid>/collection/day02/03-blogdown/</guid>
+      <guid>https://blog.nlmixr.org/collection/day02/03-blogdown/</guid>
       <description>Hi, I&#39;m the here-bot cat! Use me to find your way in your website.
 Here I am: content/collection\day02\03-blogdown\index.md  To remove me, delete this line inside that file: {{&amp;lt; here &amp;gt;}}
 My content section is: collection  My layout is: single-series   part 2!     does this work?      now for some very cool things     more     get ready!</description>
@@ -85,10 +85,10 @@ My content section is: collection  My layout is: single-series   part 2!     doe
     
     <item>
       <title>nlmixr2 is here</title>
-      <link>/blog/2022-06-08-nlmixr2-is-here/</link>
+      <link>https://blog.nlmixr.org/blog/2022-06-08-nlmixr2-is-here/</link>
       <pubDate>Wed, 08 Jun 2022 00:00:00 +0000</pubDate>
       
-      <guid>/blog/2022-06-08-nlmixr2-is-here/</guid>
+      <guid>https://blog.nlmixr.org/blog/2022-06-08-nlmixr2-is-here/</guid>
       <description>Over the past half year, a lot of changes have been happening behind the scenes, and the time has finally come to reveal them!
 nlmixr2nlmixr2 will be the version in active development going forward, taking over from nlmixr, starting with the current CRAN version, 2.0.6. Our new home on GitHub is here, and on CRAN, we’re here.
 The reasons for the name and format change are many, but most importantly, we’ve taken this step to improve overall user experience and to help us maintain the project more effectively.</description>
@@ -96,20 +96,20 @@ The reasons for the name and format change are many, but most importantly, we’
     
     <item>
       <title>Contact</title>
-      <link>/contact/</link>
+      <link>https://blog.nlmixr.org/contact/</link>
       <pubDate>Mon, 25 Feb 2019 13:38:41 -0600</pubDate>
       
-      <guid>/contact/</guid>
+      <guid>https://blog.nlmixr.org/contact/</guid>
       <description>** Contact page don&amp;rsquo;t contain a body, just the front matter above. See form.html in the layouts folder.
 Formspree requires a (free) account and new form to be set up. The link is made on the final published url in the field: Restrict to Domain. It is possible to register up to 2 emails free and you can select which one you want the forms to go to within Formspree in the Settings tab.</description>
     </item>
     
     <item>
       <title>Typography Styles &amp; Element Examples</title>
-      <link>/elements/</link>
+      <link>https://blog.nlmixr.org/elements/</link>
       <pubDate>Mon, 18 Feb 2019 12:27:33 -0600</pubDate>
       
-      <guid>/elements/</guid>
+      <guid>https://blog.nlmixr.org/elements/</guid>
       <description>Font Sizes   A A A A A A A A   6rem
 (96px) 5rem
 (80px) 3rem
@@ -123,20 +123,20 @@ Formspree requires a (free) account and new form to be set up. The link is made 
     
     <item>
       <title>License</title>
-      <link>/license/</link>
+      <link>https://blog.nlmixr.org/license/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>/license/</guid>
+      <guid>https://blog.nlmixr.org/license/</guid>
       <description>Our blog posts are released under a Creative Commons Attribution-ShareAlike 4.0 International License.
 </description>
     </item>
     
     <item>
       <title>The Development Team</title>
-      <link>/contributors/</link>
+      <link>https://blog.nlmixr.org/contributors/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>/contributors/</guid>
+      <guid>https://blog.nlmixr.org/contributors/</guid>
       <description>Thank you to all the folks who have contributed both technical and creative skills to this project, and just as much, their employers, who allow them the time to work with us:
 Matt Fidler: our development lead, Matt is an Associate Director at Novartis and is based in Fort Worth, Texas.
 Bill Denney: Bill runs Human Predictions in Cambridge, Massachusetts and is a core developer.</description>

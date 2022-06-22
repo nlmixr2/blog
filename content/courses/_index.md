@@ -11,7 +11,7 @@ cascade:
     text_link_label: View recent talks
     text_link_url: /courses/
 description: |
-  This is a list of our talks, workshops, and other events with a time, date, and place. Coming soon!
+  This is a list of our talks, workshops, and other events with a time, date, and place. 
 layout: list
 show_author_byline: true
 show_button_links: true
@@ -20,7 +20,7 @@ show_post_thumbnail: true
 show_post_time: true
 sidebar:
   author: the nlmixr2 Development Team
-  description: "This is a list for your talks, workshops, or \nother events with a
+  description: "This is a list for talks, workshops, or \nother events with a
     time, date, and place. \nEven this sidebar offers a ton of customizations.\n\nCheck
     out the _index.md file in the /talk folder \nto edit this content. \n"
   show_sidebar_adunit: false

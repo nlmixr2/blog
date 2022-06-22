@@ -2,76 +2,76 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>/collection/day02/01-netlify/</loc>
+    <loc>https://blog.nlmixr.org/collection/day02/01-netlify/</loc>
     <lastmod>2021-01-02T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/collection/day01/01-github/</loc>
+    <loc>https://blog.nlmixr.org/collection/day01/01-github/</loc>
     <lastmod>2021-01-01T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/collection/prework/</loc>
+    <loc>https://blog.nlmixr.org/collection/prework/</loc>
     <lastmod>2021-01-01T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/collection/day01/</loc>
+    <loc>https://blog.nlmixr.org/collection/day01/</loc>
     <lastmod>2021-01-25T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/collection/day01/02-postcards/</loc>
+    <loc>https://blog.nlmixr.org/collection/day01/02-postcards/</loc>
     <lastmod>2021-01-02T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/collection/day02/02-blogdown/</loc>
+    <loc>https://blog.nlmixr.org/collection/day02/02-blogdown/</loc>
     <lastmod>2021-01-01T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/collection/day02/</loc>
+    <loc>https://blog.nlmixr.org/collection/day02/</loc>
     <lastmod>2021-01-26T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/collection/day01/03-distill/</loc>
+    <loc>https://blog.nlmixr.org/collection/day01/03-distill/</loc>
     <lastmod>2021-01-02T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/collection/day02/03-blogdown/</loc>
+    <loc>https://blog.nlmixr.org/collection/day02/03-blogdown/</loc>
     <lastmod>2021-01-02T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/categories/</loc>
+    <loc>https://blog.nlmixr.org/categories/</loc>
     <lastmod>2022-06-08T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/tags/new-version/</loc>
+    <loc>https://blog.nlmixr.org/tags/new-version/</loc>
     <lastmod>2022-06-08T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/</loc>
+    <loc>https://blog.nlmixr.org/</loc>
     <lastmod>2022-06-08T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/categories/nlmixr2/</loc>
+    <loc>https://blog.nlmixr.org/categories/nlmixr2/</loc>
     <lastmod>2022-06-08T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/blog/2022-06-08-nlmixr2-is-here/</loc>
+    <loc>https://blog.nlmixr.org/blog/2022-06-08-nlmixr2-is-here/</loc>
     <lastmod>2022-06-08T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/tags/</loc>
+    <loc>https://blog.nlmixr.org/tags/</loc>
     <lastmod>2022-06-08T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/blog/</loc>
+    <loc>https://blog.nlmixr.org/blog/</loc>
     <lastmod>2022-06-08T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/collection/</loc>
+    <loc>https://blog.nlmixr.org/collection/</loc>
     <lastmod>2021-01-26T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/contact/</loc>
+    <loc>https://blog.nlmixr.org/contact/</loc>
     <lastmod>2019-02-25T13:38:41-06:00</lastmod>
   </url><url>
-    <loc>/form/</loc>
+    <loc>https://blog.nlmixr.org/form/</loc>
     <lastmod>2019-02-25T13:38:41-06:00</lastmod>
   </url><url>
-    <loc>/elements/</loc>
+    <loc>https://blog.nlmixr.org/elements/</loc>
     <lastmod>2019-02-18T12:27:33-06:00</lastmod>
   </url><url>
-    <loc>/about/</loc>
+    <loc>https://blog.nlmixr.org/about/</loc>
   </url><url>
-    <loc>/license/</loc>
+    <loc>https://blog.nlmixr.org/license/</loc>
   </url><url>
-    <loc>/series/</loc>
+    <loc>https://blog.nlmixr.org/series/</loc>
   </url><url>
-    <loc>/courses/</loc>
+    <loc>https://blog.nlmixr.org/courses/</loc>
   </url><url>
-    <loc>/contributors/</loc>
+    <loc>https://blog.nlmixr.org/contributors/</loc>
   </url><url>
-    <loc>/roadmap/</loc>
+    <loc>https://blog.nlmixr.org/roadmap/</loc>
   </url>
 </urlset>
