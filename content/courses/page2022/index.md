@@ -2,11 +2,11 @@
 author: Rik Schoemaker
 categories:
 - workshop
-date: "2022-06-28"
+date: "2022-06-22"
 date_end: "2022-06-28"
 draft: false
 event: PAGE (2022)
-event_url: https://www.page-meeting.org/default.asp?id=47&keuze=meeting
+event_url: "https://www.page-meeting.org/default.asp?id=47&keuze=meeting"
 excerpt: This is the course we presented at PAGE 2022 in Ljubljana, Slovenia.
 featured: true
 layout: single
@@ -14,7 +14,7 @@ links:
 - icon: door-open
   icon_pack: fas
   name: website
-  url: https://www.page-meeting.org/default.asp?id=47&keuze=meeting
+  url: "https://www.page-meeting.org/default.asp?id=47&keuze=meeting"
 - icon: github
   icon_pack: fab
   name: code
@@ -25,7 +25,7 @@ links:
   url: https://github.com/nlmixr2/courses/raw/main/PAGE2022/CourseMaterial.zip
 location: Ljubljana, Slovenia
 show_post_time: false
-subtitle: "PAGE 2022"
+subtitle: PAGE 2022
 title: "An open-source pharmacometrician’s workflow in R: from exploration (xGx) to model building (nlmixr) and diagnostics (ggPMX)"
 ---
 
