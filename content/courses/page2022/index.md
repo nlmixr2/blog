@@ -49,4 +49,8 @@ During the workshop, the participants will have the opportunity to become famili
 
 We're going to be delivering this course on Tuesday 28 June in Ljubljana! We'll expand this page with photos and suchlike after the course has been given.
 
+## Partner materials
+
+Our colleagues in the `ggPMX` team have made their course materials for this session available [here](https://github.com/ggPMXdevelopment/trainings/tree/main/PAGE2022)!
+
 
