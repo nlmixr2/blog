@@ -37,9 +37,9 @@ Pharmacometricians/modelers with basic knowledge on model building, evaluation a
 
 The workshop will provide a tutorial on three open–source R packages, supporting the pharmacometrics workflow in exploring and modeling clinical data:
 
-* Exploration of the data using the Exploratory Graphics (`xgxr`) package, available on CRAN and GitHub (https://opensource.nibr.com/xgx/).
-* Population PK and PKPD modeling of the data using `nlmixr2` package, available on CRAN and GitHub (https://www.nlmixr2.org). `nlmixr2` builds on the ODE simulation package `rxode2`, by implementing parameter estimation algorithms like SAEM and FOCE with interaction.
-* Model building and validation using `ggPMX`, a library of reproducible diagnostic plots available on CRAN and on Github (https://github.com/ggPMXdevelopment/ggPMX).
+* Exploration of the data using the Exploratory Graphics (`xgxr`) package, available on CRAN and GitHub, and [here](https://opensource.nibr.com/xgx).
+* Population PK and PKPD modeling of the data using `nlmixr2` package, available on CRAN and GitHub, and [here](https://www.nlmixr2.org). `nlmixr2` builds on the ODE simulation package `rxode2`, by implementing parameter estimation algorithms like SAEM and FOCE with interaction.
+* Model building and validation using `ggPMX`, a library of reproducible diagnostic plots available on CRAN and on [GitHub](https://github.com/ggPMXdevelopment/ggPMX).
 
 The combination of the three open-source R packages provides the pharmacometrics modeling community the opportunity to reduce the learning curve needed to become proficient on each of the different tasks using a stepwise framework.
 
