@@ -58,11 +58,12 @@ like about `mrgsolve`:
 - A feature I really like about `mrgsolve` is the plugin [`Rcpp`](http://adv-r.had.co.nz/Rcpp.html) that allows advanced calls into many places.
 - `mrgsolve` uses a `C++` LSODA, which is a robust ODE solver.
   
-All these features make it a good candidate for translating models from NONMEM.  It could also translate from some systems but the analyst would need to know both languages.
+All these features make it a good candidate for translating models from NONMEM.  It could also translate from some other systems (like [Monolix](https://lixoft.com/products/monolix/)) but the analyst would need to know both languages.
   
 # What I like about `rxode2` (and why I use it)
 
 Many of the features of `rxode2` are some of the same things I like about `mrgsolve`:
+
 - `rxode2` creates `C` code that makes ODE solving faster than running a R function like in `deSolve`.  While `C++` compiling is slower than `C` compilation, `rxode2` has another parsing step so the compilation speed may be different.
 - `rxode2` is also based on NONMEM's data structure, while it is different slightly from NONMEM, a NONMEM dataset can often be directly ported to `rxode2`. For  those who use NONMEM this is highly convenient. 
 - `rxode2` data structure has also been expanded by allowing `CMT` values to be named.  `rxode2` also allows a replacement event, `EVID=5` (not matching `mrgsolve`). `rxode2` also supports multiplication events like `deSolve` (`EVID=6`) and a special phantom event used with transit compartments (`EVID=7`)
@@ -91,7 +92,7 @@ I also like:
 
 - The easy `plot()` method for a solved object.
 - The new package `babelmixr2` (which will be released shortly) which will convert `rxode2` model to a NONMEM or Monolix model, and autostart models based on NCA.
-  When it converts to either NONMEM or Monolix, the fit then runs the model against the `rxode2` model and automatically validates the resulting `rxode2` model (which can be extracted by `as.function(fit)`).  To me this is the ideal way to write a model that applies to both NONMEM/[Monolix](https://lixoft.com/products/monolix/) and `rxode2`. There are other nice things too (but those are subjects for a future post).
+  When it converts to either NONMEM or Monolix, the fit then runs the model against the `rxode2` model and automatically validates the resulting `rxode2` model (which can be extracted by `as.function(fit)`).  To me this is the ideal way to write a model that applies to both NONMEM/Monolix and `rxode2`. There are other nice things too (but those are subjects for a future post).
 - The open source nature of the project and what it aims to do.
 
 And of course, I run `rxode2` because I am an `rxode2` developer.
