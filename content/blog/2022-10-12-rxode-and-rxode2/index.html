@@ -1,0 +1,249 @@
+---
+title: RxODE and rxode2
+author: Matthew Fidler
+date: '2022-10-12'
+slug: []
+categories:
+  - rxode2
+tags: [new-version]
+subtitle: ''
+excerpt: ''
+draft: yes
+series: ~
+layout: single
+---
+
+
+
+<div id="rxode-vs-rxode2" class="section level2">
+<h2><code>RxODE</code> vs <code>rxode2</code></h2>
+<p>Since <code>rxode2</code> came out recently, I am getting many questions about what is the difference between <code>rxode2</code> and <code>RxODE</code>.</p>
+<p>I think the biggest reason for the question is – is this update going to break all the nice things I already do with <code>RxODE</code>? Or maybe why should I bother to change?</p>
+<p>I feel the same way when I have big changes in things I use. For me, I love the ability to pipe and change data with the <code>tidyverse</code>, and similar tools, but hate when they change things that affect my code.</p>
+<p>With that in mind, I try to keep changes in behavior small when I modify things like <code>RxODE</code> and <code>rxode2</code>.</p>
+<p>In this case, there were much more changes than usual and for that reason I wanted to change the name of the package to <code>rxode2</code>, but I believe <strong>most code will run well on either <code>RxODE</code></strong> <strong>or <code>rxode2</code></strong>. All changes to <code>rxode2</code> are listed in the <a href="https://nlmixr2.github.io/rxode2/news/index.html">News/Changelog</a> on <code>rxode2</code>’s website and is kept up to date.</p>
+</div>
+<div id="what-are-the-changes-people-may-notice" class="section level2">
+<h2>What are the changes people may notice?</h2>
+<p>There are some changes that people will notice and may affect some code. In my opinion these are the big changes:</p>
+<ul>
+<li><p>The options for <code>rxControl</code> and <code>rxSolve</code> are more strict. <code>camelCase</code> is now always used. Old options like <code>add.cov</code> and <code>transit_abs</code> are no longer supported, only <code>addCov</code> is supported. To me this is an annoyance and really makes things a bit easier to remember.</p></li>
+<li><p>The mnemonic <code>et(rate=model)</code> and <code>et(dur=model)</code> mnemonics have been removed. <code>rate</code> needs to be set to <code>-1</code> and <code>-2</code> manually instead.</p>
+<ul>
+<li>This was done because the code for this was a bit cumbersome and hard to maintain</li>
+</ul></li>
+<li><p>If you use options the prefix changed to <code>rxode2</code> instead of <code>RxODE</code>.</p>
+<ul>
+<li>This was done so that <code>rxode2</code> options will not break <code>RxODE</code> options if you wish them to be different.</li>
+</ul></li>
+<li><p>Running simulations inside of an <code>rxode2</code> block no longer depends on the number of threads used (a good fix that may be visible to some).</p></li>
+<li><p>By default the covariates are now added to the dataset (<code>addCov=TRUE</code>) which is different than the behavior of <code>RxODE</code> (<code>addCov=FALSE</code>).</p></li>
+<li><p>If you use transit compartments by <code>transit_abs</code> this is no longer supported. Instead a special <code>evid=7</code> is used by all <a href="https://nlmixr2.github.io/rxode2/articles/rxode2-transit-compartments.html">transit compartment doses</a>. This allows mixing with other types of doses into different compartments and better flexibility but will break code.</p></li>
+</ul>
+</div>
+<div id="things-you-are-unlikely-to-notice-or-miss" class="section level2">
+<h2>Things you are unlikely to notice or miss</h2>
+<ul>
+<li>Various language options (like optionally requiring semi-colons at the end of statements, not allowing <code>&lt;-</code> for instance).</li>
+</ul>
+</div>
+<div id="why-bother-changing" class="section level2">
+<h2>Why bother changing?</h2>
+<div id="simulating-nlmixr2rxode2-models-directly" class="section level3">
+<h3>Simulating <code>nlmixr2</code>/<code>rxode2</code> models directly</h3>
+<p>To me the biggest advantage to using <code>rxode2</code> is you can simulate from <code>nlmixr2</code> style models directly. For example, if you wanted to simulate the example <code>nlmixr2</code> model you can use the following</p>
+<pre class="r"><code>library(rxode2)
+
+one.compartment &lt;- function() {
+  ini({
+    tka &lt;- 0.45 # Log Ka
+    tcl &lt;- 1 # Log Cl
+    tv &lt;- 3.45    # Log V
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+    add.sd &lt;- 0.7
+  })
+  # and a model block with the error sppecification and model specification
+  model({
+    ka &lt;- exp(tka + eta.ka)
+    cl &lt;- exp(tcl + eta.cl)
+    v &lt;- exp(tv + eta.v)
+    d/dt(depot) = -ka * depot
+    d/dt(center) = ka * depot - cl / v * center
+    cp = center / v
+    cp ~ add(add.sd)
+  })
+}
+
+# Create an event table
+et &lt;- et(amt=300) %&gt;%
+  et(0,24, by=2) %&gt;%
+  et(id=1:12)
+
+# simulate directly from the model
+s &lt;- rxSolve(one.compartment, et)</code></pre>
+<pre><code>## ℹ parameter labels from comments will be replaced by &#39;label()&#39;</code></pre>
+<pre class="r"><code>print(s)</code></pre>
+<pre><code>## ── Solved rxode2 object ──
+## ── Parameters ($params): ──
+## # A tibble: 12 × 8
+##    id      tka   tcl    tv add.sd  eta.ka   eta.cl   eta.v
+##    &lt;fct&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt;
+##  1 1      0.45     1  3.45    0.7  0.0234 -0.203    0.896 
+##  2 2      0.45     1  3.45    0.7  0.612   0.594    0.158 
+##  3 3      0.45     1  3.45    0.7  0.887  -0.00435  0.377 
+##  4 4      0.45     1  3.45    0.7 -1.55   -0.00567  0.107 
+##  5 5      0.45     1  3.45    0.7  0.820  -0.247   -0.351 
+##  6 6      0.45     1  3.45    0.7  0.328   0.600    0.0390
+##  7 7      0.45     1  3.45    0.7 -1.43   -0.103   -0.533 
+##  8 8      0.45     1  3.45    0.7 -0.0994 -0.0756   0.0163
+##  9 9      0.45     1  3.45    0.7  0.455  -0.372    0.378 
+## 10 10     0.45     1  3.45    0.7  1.28    0.837    0.276 
+## 11 11     0.45     1  3.45    0.7 -0.304  -0.712   -0.421 
+## 12 12     0.45     1  3.45    0.7 -0.752   0.812    0.0955
+## ── Initial Conditions ($inits): ──
+##  depot center 
+##      0      0 
+## ── First part of data (object): ──
+## # A tibble: 156 × 10
+##      id  time    ka    cl     v    cp ipredSim    sim       depot center
+##   &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;  &lt;dbl&gt;       &lt;dbl&gt;  &lt;dbl&gt;
+## 1     1     0  1.61  2.22  77.2  0        0    -0.477 300             0 
+## 2     1     2  1.61  2.22  77.2  3.58     3.58  4.39   12.1         276.
+## 3     1     4  1.61  2.22  77.2  3.52     3.52  3.55    0.488       272.
+## 4     1     6  1.61  2.22  77.2  3.33     3.33  2.62    0.0197      257.
+## 5     1     8  1.61  2.22  77.2  3.15     3.15  3.27    0.000793    243.
+## 6     1    10  1.61  2.22  77.2  2.97     2.97  3.85    0.0000320   229.
+## # … with 150 more rows</code></pre>
+<pre class="r"><code>plot(s, center)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/simulation-1.png" width="672" /></p>
+<p>Notice that <code>nlmixr2</code> was not called (or even required) to simulate this model.</p>
+</div>
+<div id="exploring-and-changing-nlmixr2rxode2-models-directly" class="section level3">
+<h3>Exploring and changing <code>nlmixr2</code>/<code>rxode2</code> models directly</h3>
+<p>One of the nice features is you can change the model by simply changing a line or two of code by a feature called “model piping”. In the model piping included in <code>rxode2</code> not only does it change your model it tells you how it is changed.</p>
+<p>Lets assume you want to explore the impact of between subject variability in the model. You could drop the variability by changing a single line <code>ka &lt;- exp(tka+eta.ka)</code> to <code>ka &lt;- exp(tka)</code>. Model piping allows that to occur easily</p>
+<pre class="r"><code>mod2 &lt;- one.compartment %&gt;%
+  model(ka &lt;- exp(tka))</code></pre>
+<pre><code>## ℹ parameter labels from comments will be replaced by &#39;label()&#39;</code></pre>
+<pre><code>## ! remove between subject variability `eta.ka`</code></pre>
+<pre class="r"><code>print(mod2)</code></pre>
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────── 
+##  ── Initalization: ──  
+## Fixed Effects ($theta): 
+##    tka    tcl     tv add.sd 
+##   0.45   1.00   3.45   0.70 
+## 
+## Omega ($omega): 
+##        eta.cl eta.v
+## eta.cl    0.3   0.0
+## eta.v     0.0   0.1
+##  ── μ-referencing ($muRefTable): ──  
+##   theta    eta level
+## 1   tcl eta.cl    id
+## 2    tv  eta.v    id
+## 
+##  ── Model (Normalized Syntax): ── 
+## function() {
+##     ini({
+##         tka &lt;- 0.45
+##         label(&quot;Log Ka&quot;)
+##         tcl &lt;- 1
+##         label(&quot;Log Cl&quot;)
+##         tv &lt;- 3.45
+##         label(&quot;Log V&quot;)
+##         add.sd &lt;- c(0, 0.7)
+##         eta.cl ~ 0.3
+##         eta.v ~ 0.1
+##     })
+##     model({
+##         ka &lt;- exp(tka)
+##         cl &lt;- exp(tcl + eta.cl)
+##         v &lt;- exp(tv + eta.v)
+##         d/dt(depot) = -ka * depot
+##         d/dt(center) = ka * depot - cl/v * center
+##         cp = center/v
+##         cp ~ add(add.sd)
+##     })
+## }</code></pre>
+<pre class="r"><code># simulate directly from the model
+s &lt;- rxSolve(mod2, et)
+
+print(s)</code></pre>
+<pre><code>## ── Solved rxode2 object ──
+## ── Parameters ($params): ──
+## # A tibble: 12 × 7
+##    id      tka   tcl    tv add.sd  eta.cl   eta.v
+##    &lt;fct&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;
+##  1 1      0.45     1  3.45    0.7  0.415   0.177 
+##  2 2      0.45     1  3.45    0.7 -1.30    0.497 
+##  3 3      0.45     1  3.45    0.7 -0.309  -0.351 
+##  4 4      0.45     1  3.45    0.7 -0.0349 -0.0980
+##  5 5      0.45     1  3.45    0.7  0.389  -0.0719
+##  6 6      0.45     1  3.45    0.7 -0.354   0.638 
+##  7 7      0.45     1  3.45    0.7 -0.138  -0.178 
+##  8 8      0.45     1  3.45    0.7  0.265   0.0791
+##  9 9      0.45     1  3.45    0.7 -0.316  -0.233 
+## 10 10     0.45     1  3.45    0.7  0.254  -0.0865
+## 11 11     0.45     1  3.45    0.7 -1.45   -0.192 
+## 12 12     0.45     1  3.45    0.7 -0.617  -0.0583
+## ── Initial Conditions ($inits): ──
+##  depot center 
+##      0      0 
+## ── First part of data (object): ──
+## # A tibble: 156 × 10
+##      id  time    ka    cl     v    cp ipredSim    sim       depot center
+##   &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;  &lt;dbl&gt;       &lt;dbl&gt;  &lt;dbl&gt;
+## 1     1     0  1.57  4.12  37.6  0        0    0.0351 300             0 
+## 2     1     2  1.57  4.12  37.6  6.52     6.52 5.52    13.0         245.
+## 3     1     4  1.57  4.12  37.6  5.52     5.52 5.24     0.566       207.
+## 4     1     6  1.57  4.12  37.6  4.45     4.45 4.71     0.0246      167.
+## 5     1     8  1.57  4.12  37.6  3.57     3.57 4.19     0.00107     134.
+## 6     1    10  1.57  4.12  37.6  2.87     2.87 2.33     0.0000463   108.
+## # … with 150 more rows</code></pre>
+<pre class="r"><code>plot(s, center)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/piping-1.png" width="672" /></p>
+<p>Not surprisingly without between subject variability on the <code>ka</code> component, there is not much difference in absorption between subjects.</p>
+</div>
+</div>
+<div id="what-about-piping-a-classic-rxode2-model" class="section level2">
+<h2>What about piping a classic <code>rxode2</code> model?</h2>
+<p>Well when <code>rxode2</code> 2.0.9 is released, you can also pipe a classic <code>rxode2</code> model, which will change it to a <code>nlmixr2</code> style model:</p>
+<pre class="r"><code>mod1 &lt;- rxode2({
+  C2 &lt;- centr/V2;
+  C3 &lt;- peri/V3;
+  d/dt(depot) &lt;- -KA*depot;
+  d/dt(centr) &lt;- KA*depot - CL*C2 - Q*C2 + Q*C3;
+  d/dt(peri)  &lt;- Q*C2 - Q*C3;
+  d/dt(eff)   &lt;- Kin - Kout*(1-C2/(EC50+C2))*eff;
+})
+
+mod2 &lt;-  mod1 %&gt;% 
+    model(KA &lt;- exp(tka+eta.ka), 
+          append=NA) %&gt;% # Prepend a line by append=NA
+    ini(tka    = log(0.294), 
+        eta.ka = 0.2,
+        CL     = 18.6, 
+        V2     = 40.2,              # central 
+        Q      = 10.5,  
+        V3     = 297,               # peripheral
+        Kin    = 1, 
+        Kout   = 1, 
+        EC50   = 200) %&gt;%
+    model(eff(0) &lt;- 1)
+
+
+print(mod2)
+
+s &lt;- rxSolve(mod2, et)
+
+plot(s, centr, eff)</code></pre>
+<p><img src="images/whyrxode.png" /></p>
+</div>
+<div id="why-wouldnt-i-want-to-switch" class="section level2">
+<h2>Why wouldn’t I want to switch?</h2>
+<p><code>rxode2</code> requires R 4.0. This is because the <code>BH</code> headers in windows require the R 4.0 toolchains to compile. To remain on CRAN, we needed to have the R 4.0 requirement.</p>
+<p>While there may be ways to work-around this in Windows, the new version of <code>rxode2</code> <em>is not tested with R 4.0</em>, and the old work-around was not straight forward. I cannot recommend you use <code>rxode2</code> on any of the R versions before R 4.0; it would be too hard to reproduce.</p>
+<p>So, in short, if you don’t have R 4.0, I wouldn’t recommend switching.</p>
+</div>
