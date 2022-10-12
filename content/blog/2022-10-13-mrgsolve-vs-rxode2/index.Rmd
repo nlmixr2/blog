@@ -100,3 +100,6 @@ And of course, I run `rxode2` because I am an `rxode2` developer.
 
 If I am mistaken about any of the wonderful features of `mrgsolve` please let me
 know.  If I'm overlooking one of your favorite features of `rxode2`, please also let me know!
+
+### References
+
