@@ -1,0 +1,104 @@
+---
+title: mrgsolve vs rxode2
+author: Matthew Fidler
+date: '2022-10-13'
+slug: []
+categories:
+  - rxode2
+  - mrgsolve
+tags:
+  - new-version
+bibliography: [refs.bib]
+link-citations: true
+csl: vancouver.csl
+---
+
+
+
+<div id="mrgsolve-vs-rxode2" class="section level2">
+<h2><code>mrgsolve</code> vs <code>rxode2</code></h2>
+<p>One of the most common questions I get is, “What are the differences between
+<a href="https://mrgsolve.org"><code>mrgsolve</code></a> <span class="citation">(<a href="#ref-Elmokadem2019" role="doc-biblioref">1</a>)</span> and <code>rxode2</code>?”.</p>
+<p>The most common reasons for this question are:</p>
+<ul>
+<li>I really don’t know what tool to use, what are the advantages of each?</li>
+<li>I really like one of the tools (either <code>mrgsolve</code> or <code>rxode2</code>) and I want to let my colleagues know how nice my favorite tool is.</li>
+</ul>
+<p>I am not really the best person to answer this question since I am most
+familiar with <code>rxode2</code> and can’t answer all the questions about
+<code>mrgsolve</code>. My guess is that Kyle Baron is most familiar with <code>mrgsolve</code>, and that he
+can’t answer all the questions about <code>rxode2</code> either.</p>
+<p>To complicate matters further, both <code>rxode2</code> and <code>mrgsolve</code> are also
+moving targets. What I say or others say today may change as both
+systems evolve.</p>
+<p>That being said I believe that <code>mrgsolve</code>, like <code>rxode2</code>, is
+committed to open science and open source. And both are open tools
+trying to help bring drugs to patients who need them. Both can be used
+in places that don’t have access to commercial tools.</p>
+<p>In short, I think you can’t go wrong with using tools like <code>mrgsolve</code>. I
+believe <code>mrgsolve</code> is an excellent tool and has helped the
+pharmacometric community with delivering drugs to patients.</p>
+</div>
+<div id="what-i-really-like-about-mrgsolve" class="section level1">
+<h1>What I really like about <code>mrgsolve</code></h1>
+<p>While my knowledge is limited, I would like to share the things I really
+like about <code>mrgsolve</code>:</p>
+<ul>
+<li><code>mrgsolve</code> creates <code>C++</code> code that makes ODE solving faster than running an R function like in <code>deSolve</code></li>
+<li><code>mrgsolve</code> is based on NONMEM’s data structure, while it is slightly different from <a href="https://www.iconplc.com/innovation/nonmem/">NONMEM</a>, a NONMEM dataset can often be directly ported to <code>mrgsolve</code>. For those who use NONMEM this is highly convenient.</li>
+<li><code>mrgsolve</code> data structure has been expanded by allowing <code>CMT</code> values to be named and also allows a replacement event, <code>EVID=8</code>.</li>
+<li><code>mrgsolve</code> has an easy way to create event tables <code>ev()</code>.</li>
+<li><code>mrgsolve</code> syntax similar to NONMEM which makes it easier to translate, it even has a <code>nm-vars</code> plugin to make translation easier.</li>
+<li>A feature I really like about <code>mrgsolve</code> is the plugin <a href="http://adv-r.had.co.nz/Rcpp.html"><code>Rcpp</code></a> that allows advanced calls into many places.</li>
+<li><code>mrgsolve</code> uses a <code>C++</code> LSODA, which is a robust ODE solver.</li>
+</ul>
+<p>All these features make it a good candidate for translating models from NONMEM. It could also translate from some systems but the analyst would need to know both languages.</p>
+</div>
+<div id="what-i-like-about-rxode2-and-why-i-use-it" class="section level1">
+<h1>What I like about <code>rxode2</code> (and why I use it)</h1>
+<p>Many of the features of <code>rxode2</code> are some of the same things I like about <code>mrgsolve</code>:
+- <code>rxode2</code> creates <code>C</code> code that makes ODE solving faster than running a R function like in <code>deSolve</code>. While <code>C++</code> compiling is slower than <code>C</code> compilation, <code>rxode2</code> has another parsing step so the compilation speed may be different.
+- <code>rxode2</code> is also based on NONMEM’s data structure, while it is different slightly from NONMEM, a NONMEM dataset can often be directly ported to <code>rxode2</code>. For those who use NONMEM this is highly convenient.
+- <code>rxode2</code> data structure has also been expanded by allowing <code>CMT</code> values to be named. <code>rxode2</code> also allows a replacement event, <code>EVID=5</code> (not matching <code>mrgsolve</code>). <code>rxode2</code> also supports multiplication events like <code>deSolve</code> (<code>EVID=6</code>) and a special phantom event used with transit compartments (<code>EVID=7</code>)
+- <code>rxode2</code> has an easy way to create event tables <code>et()</code> which is very similar to (but not exactly the same as) <code>mrgsolve</code>.
+- The <code>rxode2</code> implementation uses a thread-safe <code>C</code> LSODA, which is a robust ODE solver. It also has the classic FORTRAN LSODA, the <code>dop853</code> solver, and an experimental inductive linearization <span class="citation">(<a href="#ref-Duffull2014" role="doc-biblioref">2</a>,<a href="#ref-Hasegawa2018" role="doc-biblioref">3</a>)</span> solver. In fact, the default method can solve ODEs parallelized at a C level. This comes at the cost of copying all the memory outside if R. This means that <code>rxode2</code> may be faster if the ODE solving is slower thanks to copying the memory.</p>
+<p>A big difference between the two packages that is also visible is model syntax. <code>rxode2</code> uses Leibniz notation and puts the ODE in a single declaration. This is similar to how <a href="https://berkeley-madonna.myshopify.com/">Berkeley Madonna</a> models are coded and are not too difficult to learn. So to me, this also hangs on knowledge that is readily available to a pharmacometrician. I personally find it more convenient than mixing R and C style code, but this is mostly a stylistic consideration.</p>
+<p>I also like that <code>rxode2</code> supports <code>nlmixr2</code> style functions. You can directly simulate from this code.</p>
+<p>Also like <code>nlmixr2</code>, <code>rxode2</code> can use model piping, that is modifying model features by:</p>
+<ul>
+<li>Changing single lines of your model, ie <code>inModel %&gt;% model(Cl &lt;- exp(tcl))</code> to drop a between
+subject variability.</li>
+<li>Adding lines to your model by <code>inModel %&gt;% model(eff &lt;- emax*cp/(ec50+cp), append=TRUE)</code>
+You can also prepend the lines by <code>model(..., append=NA)</code></li>
+<li>Removing lines from your model by <code>inModel %&gt;% model(-eff)</code></li>
+<li>Changing initial estimates of parameters <code>inModel %&gt;% model(tcl=5)</code></li>
+<li>Changing variable names by <code>rxRename()</code> or simply <code>rename()</code> if <code>dplyr</code> is
+loaded.</li>
+<li>Combining models with <code>model1 %&gt;% rxAppendModel(model2)</code></li>
+</ul>
+<p>With those features and a model library many, many things are possible with little effort. (We are starting to build a model library called <code>nlmixr2lib</code> - we encourage you to contribute models you find useful).</p>
+<p>I also like:</p>
+<ul>
+<li>The easy <code>plot()</code> method for a solved object.</li>
+<li>The new package <code>babelmixr2</code> (which will be released shortly) which will convert <code>rxode2</code> model to a NONMEM or Monolix model, and autostart models based on NCA.
+When it converts to either NONMEM or Monolix, the fit then runs the model against the <code>rxode2</code> model and automatically validates the resulting <code>rxode2</code> model (which can be extracted by <code>as.function(fit)</code>). To me this is the ideal way to write a model that applies to both NONMEM/<a href="https://lixoft.com/products/monolix/">Monolix</a> and <code>rxode2</code>. There are other nice things too (but those are subjects for a future post).</li>
+<li>The open source nature of the project and what it aims to do.</li>
+</ul>
+<p>And of course, I run <code>rxode2</code> because I am an <code>rxode2</code> developer.</p>
+</div>
+<div id="am-i-missing-something" class="section level1">
+<h1>Am I missing something?</h1>
+<p>If I am mistaken about any of the wonderful features of <code>mrgsolve</code> please let me
+know. If I’m overlooking one of your favorite features of <code>rxode2</code>, please also let me know!</p>
+<div id="refs" class="references csl-bib-body">
+<div id="ref-Elmokadem2019" class="csl-entry">
+<div class="csl-left-margin">1. </div><div class="csl-right-inline">Elmokadem A, Riggs MM, Baron KT. <span class="nocase">Quantitative Systems Pharmacology and Physiologically-Based Pharmacokinetic Modeling With mrgsolve: A Hands-On Tutorial</span>. CPT: Pharmacometrics and Systems Pharmacology [Internet]. 2019 Dec;8(12):883–93. Available from: <a href="https://onlinelibrary.wiley.com/doi/full/10.1002/psp4.12467 https://onlinelibrary.wiley.com/doi/abs/10.1002/psp4.12467 https://ascpt.onlinelibrary.wiley.com/doi/10.1002/psp4.12467">https://onlinelibrary.wiley.com/doi/full/10.1002/psp4.12467 https://onlinelibrary.wiley.com/doi/abs/10.1002/psp4.12467 https://ascpt.onlinelibrary.wiley.com/doi/10.1002/psp4.12467</a></div>
+</div>
+<div id="ref-Duffull2014" class="csl-entry">
+<div class="csl-left-margin">2. </div><div class="csl-right-inline">Duffull SB, Hegarty G. <a href="https://doi.org/10.4172/jtco.1000119"><span class="nocase">An Inductive Approximation to the Solution of Systems of Nonlinear Ordinary Differential Equations in Pharmacokinetics-Pharmacodynamics</span></a>. Journal of Theoretical and Computational Science. 2014;02(01):1–4. </div>
+</div>
+<div id="ref-Hasegawa2018" class="csl-entry">
+<div class="csl-left-margin">3. </div><div class="csl-right-inline">Hasegawa C, Duffull SB. <span class="nocase">Exploring inductive linearization for pharmacokinetic–pharmacodynamic systems of nonlinear ordinary differential equations</span>. Journal of Pharmacokinetics and Pharmacodynamics [Internet]. 2018 May;45(1):35–47. Available from: <a href="https://link.springer.com/article/10.1007/s10928-017-9527-z">https://link.springer.com/article/10.1007/s10928-017-9527-z</a></div>
+</div>
+</div>
+</div>
