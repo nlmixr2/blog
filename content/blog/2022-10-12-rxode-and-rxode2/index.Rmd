@@ -3,14 +3,8 @@ title: RxODE and rxode2
 author: Matthew Fidler
 date: '2022-10-12'
 slug: []
-categories:
-  - rxode2
+categories: [rxode2]
 tags: [new-version]
-subtitle: ''
-excerpt: ''
-draft: yes
-series: ~
-layout: single
 ---
 
 ```{r setup, include=FALSE}
