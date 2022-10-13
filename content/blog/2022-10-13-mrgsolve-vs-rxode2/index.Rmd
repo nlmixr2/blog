@@ -1,0 +1,106 @@
+---
+title: mrgsolve vs rxode2
+author: Matthew Fidler
+date: '2022-10-13'
+slug: []
+categories:
+  - rxode2
+  - mrgsolve
+tags:
+  - new-version
+bibliography: [refs.bib]
+link-citations: true
+csl: vancouver.csl
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## `mrgsolve` vs `rxode2`
+
+One of the most common questions I get is, "What are the differences between
+[`mrgsolve`](https://mrgsolve.org) [@Elmokadem2019] and `rxode2`?".
+
+The most common reasons for this question are:
+
+- I really don't know what tool to use, what are the advantages of each?
+- I really like one of the tools (either `mrgsolve` or `rxode2`) and I want to let my colleagues know how nice my favorite tool is.
+
+I am not really the best person to answer this question since I am most
+familiar with `rxode2` and can't answer all the questions about
+`mrgsolve`. My guess is that Kyle Baron is most familiar with `mrgsolve`, and that he
+can't answer all the questions about `rxode2` either.
+
+To complicate matters further, both `rxode2` and `mrgsolve` are also
+moving targets. What I say or others say today may change as both
+systems evolve.
+
+That being said I believe that `mrgsolve`, like `rxode2`, is
+committed to open science and open source. And both are open tools
+trying to help bring drugs to patients who need them. Both can be used
+in places that don't have access to commercial tools.
+
+In short, I think you can't go wrong with using tools like `mrgsolve`. I
+believe `mrgsolve` is an excellent tool and has helped the
+pharmacometric community with delivering drugs to patients.
+
+# What I really like about `mrgsolve`
+
+While my knowledge is limited, I would like to share the things I really
+like about `mrgsolve`:
+
+- `mrgsolve` creates `C++` code that makes ODE solving faster than running an R function like in `deSolve`
+- `mrgsolve` is based on NONMEM's data structure, while it is slightly different from [NONMEM](https://www.iconplc.com/innovation/nonmem/), a NONMEM dataset can often be directly ported to `mrgsolve`. For those who use NONMEM this is highly convenient. 
+- `mrgsolve` data structure has been expanded by allowing `CMT` values to be named and also allows a replacement event, `EVID=8`.
+- `mrgsolve` has an easy way to create event tables `ev()`.
+- `mrgsolve` syntax similar to NONMEM which makes it easier to translate, it even has a `nm-vars` plugin to make translation easier.
+- A feature I really like about `mrgsolve` is the plugin [`Rcpp`](http://adv-r.had.co.nz/Rcpp.html) that allows advanced calls into many places.
+- `mrgsolve` uses a `C++` LSODA, which is a robust ODE solver.
+  
+All these features make it a good candidate for translating models from NONMEM.  It could also translate from some other systems (like [Monolix](https://lixoft.com/products/monolix/)) but the analyst would need to know both languages.
+  
+# What I like about `rxode2` (and why I use it)
+
+Many of the features of `rxode2` are some of the same things I like about `mrgsolve`:
+
+- `rxode2` creates `C` code that makes ODE solving faster than running a R function like in `deSolve`.  While `C++` compiling is slower than `C` compilation, `rxode2` has another parsing step so the compilation speed may be different.
+- `rxode2` is also based on NONMEM's data structure, while it is different slightly from NONMEM, a NONMEM dataset can often be directly ported to `rxode2`. For  those who use NONMEM this is highly convenient. 
+- `rxode2` data structure has also been expanded by allowing `CMT` values to be named.  `rxode2` also allows a replacement event, `EVID=5` (not matching `mrgsolve`). `rxode2` also supports multiplication events like `deSolve` (`EVID=6`) and a special phantom event used with transit compartments (`EVID=7`)
+- `rxode2` has an easy way to create event tables `et()` which is very similar to (but not exactly the same as) `mrgsolve`.
+- The `rxode2` implementation uses a thread-safe `C` LSODA, which is a robust ODE solver.  It also has the classic FORTRAN LSODA, the `dop853` solver, and an experimental inductive linearization [@Duffull2014;@Hasegawa2018] solver. In fact, the default method can solve ODEs parallelized at a C level.  This comes at the cost of copying all the memory outside if R.  This means that `rxode2` may be faster if the ODE solving is slower thanks to copying the memory.
+
+A big difference between the two packages that is also visible is model syntax. `rxode2` uses Leibniz notation and puts the ODE in a single declaration. This is similar to how [Berkeley Madonna](https://berkeley-madonna.myshopify.com/) models are coded and are not too difficult to learn. So to me, this also hangs on knowledge that is readily available to a pharmacometrician. I personally find it more convenient than mixing R and C style code, but this is mostly a stylistic consideration.
+
+I also like that `rxode2` supports `nlmixr2` style functions. You can directly simulate from this code.  
+
+Also like `nlmixr2`, `rxode2` can use model piping, that is modifying model features by:
+
+- Changing single lines of your model, ie `inModel %>% model(Cl <- exp(tcl))` to drop a between 
+  subject variability.
+- Adding lines to your model by `inModel %>% model(eff <- emax*cp/(ec50+cp), append=TRUE)`
+  You can also prepend the lines by `model(..., append=NA)`
+- Removing lines from your model by `inModel %>% model(-eff)`
+- Changing initial estimates of parameters `inModel %>% model(tcl=5)`
+- Changing variable names by `rxRename()` or simply `rename()` if `dplyr` is
+  loaded.
+- Combining models with `model1 %>% rxAppendModel(model2)`
+
+With those features and a model library many, many things are possible with little effort. (We are starting to build a model library called `nlmixr2lib` - we encourage you to contribute models you find useful).
+
+I also like:
+
+- The easy `plot()` method for a solved object.
+- The new package `babelmixr2` (which will be released shortly) which will convert `rxode2` model to a NONMEM or Monolix model, and autostart models based on NCA.
+  When it converts to either NONMEM or Monolix, the fit then runs the model against the `rxode2` model and automatically validates the resulting `rxode2` model (which can be extracted by `as.function(fit)`).  To me this is the ideal way to write a model that applies to both NONMEM/Monolix and `rxode2`. There are other nice things too (but those are subjects for a future post).
+- The open source nature of the project and what it aims to do.
+
+And of course, I run `rxode2` because I am an `rxode2` developer.
+
+# Am I missing something?
+
+If I am mistaken about any of the wonderful features of `mrgsolve` please let me
+know.  If I'm overlooking one of your favorite features of `rxode2`, please also let me know!
+
+### References
+
