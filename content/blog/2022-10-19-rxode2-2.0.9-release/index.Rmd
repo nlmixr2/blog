@@ -130,7 +130,7 @@ Note the use of `as.function()` here, though it may not always be required in th
 ## Why is 'rxode2' breaking 'nlmixr2'
 
 CRAN had requested that we reduce the compile time for 'rxode2' to
-keep remain on CRAN.  This effectively was requesting the compile be
+remain on CRAN.  This effectively was requesting the compile be
 split out to separate packages. With the restructuring, 'nlmixr2'
 needed to be restructured too.  We are actively resubmitting a
 compatible 'nlmixr2' now. In the mean time you can use the development
@@ -145,7 +145,7 @@ install.packages(c("rxode2ll", "rxode2parse", "rxode2random",
                          CRAN="https://cloud.r-project.org"))
 ```
 
-Note now the packages that `rxode2` depend on are:
+Note, now the packages that `rxode2` depend on are:
 
 - 'rxode2parse' which is the parsing of the rxode2 low level language
   to C (and includes some solved linear compartment code at the

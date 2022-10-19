@@ -254,7 +254,7 @@ print(rx)</code></pre>
 <div id="why-is-rxode2-breaking-nlmixr2" class="section level2">
 <h2>Why is ‘rxode2’ breaking ‘nlmixr2’</h2>
 <p>CRAN had requested that we reduce the compile time for ‘rxode2’ to
-keep remain on CRAN. This effectively was requesting the compile be
+remain on CRAN. This effectively was requesting the compile be
 split out to separate packages. With the restructuring, ‘nlmixr2’
 needed to be restructured too. We are actively resubmitting a
 compatible ‘nlmixr2’ now. In the mean time you can use the development
@@ -265,7 +265,7 @@ versions with r-universe:</p>
                    &quot;nlmixr2&quot;),
                  repos=c(nlmixr2=&quot;https://nlmixr2.r-universe.dev&quot;,
                          CRAN=&quot;https://cloud.r-project.org&quot;))</code></pre>
-<p>Note now the packages that <code>rxode2</code> depend on are:</p>
+<p>Note, now the packages that <code>rxode2</code> depend on are:</p>
 <ul>
 <li><p>‘rxode2parse’ which is the parsing of the rxode2 low level language
 to C (and includes some solved linear compartment code at the
