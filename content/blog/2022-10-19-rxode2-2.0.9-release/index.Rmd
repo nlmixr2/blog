@@ -12,10 +12,11 @@ knitr::opts_chunk$set(echo = TRUE)
 library(rxode2)
 ```
 
+'rxode2' 2.0.9 has been released today! I want to personally thank all
+those who have submitted issues, and helped with the development.
+Without the support 'rxode2' wouldn't be the tool it is today.
 
-'rxode2' 2.0.9 has been released today!
-
-This is the first user visible release since 'rxode2' 2.0.7 and I
+This is the CRAN visible release since 'rxode2' 2.0.7 and I
 would like to highlight a few new interesting features:
 
 ## 'rxode2' can how have models functions that are more flexible
