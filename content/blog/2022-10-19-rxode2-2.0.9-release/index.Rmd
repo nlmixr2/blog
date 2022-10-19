@@ -1,0 +1,257 @@
+---
+title: rxode2 2.0.9
+author: Matthew Fidler
+date: '2022-10-19'
+slug: []
+categories: [rxode2]
+tags: [new-version]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rxode2)
+```
+
+
+'rxode2' 2.0.9 has been released today!
+
+This is the first user visible release since 'rxode2' 2.0.7 and I
+would like to highlight a few new interesting features:
+
+## 'rxode2' can how have models functions that are more flexible
+
+The key features are:
+
+- You do not need an `ini()` block any longer
+
+- You do not need to specify an endpoint either with `~`
+
+For example, this model is perfectly reasonable in `rxode2`:
+
+```{r modelOnly}
+
+set.seed(42)
+rxSetSeed(42) # for parallel random number generator
+
+one.compartment <- function() {
+  model({
+    ka <- exp(tka + eta.ka)
+    cl <- exp(tcl + eta.cl)
+    v <- exp(tv + eta.v)
+    d / dt(depot) <- -ka * depot
+    d / dt(center) <- ka * depot - cl / v * center
+    F(depot) <- 3
+    cp <- center / v
+  })
+}
+
+m <- one.compartment()
+
+m
+
+# When solving you will have to manually supply the parameters
+
+theta <- c(tka = 0.45, tcl = 1,tv = 3.45)
+
+omega <- lotri({eta.ka ~ 0.6
+  eta.cl ~ 0.3
+  eta.v ~ 0.1
+})
+
+# Create an event table
+et <- et(amt=300) %>%
+  et(0,24, by=2) %>%
+  et(id=1:12)
+
+# simulate directly from the model
+s <- rxSolve(m, et, theta, omega=omega)
+
+library(ggplot2 )
+
+plot(s, cp) + ylab("Concentration")
+```
+
+## You can now pipe omega matrices to set initial values
+
+For example, using the above model you could the omega initial values:
+
+```{r modelOmega}
+m2 <- m %>%
+  ini(omega)
+
+
+print(m2)
+
+# notice that the model now includes an `ini({})` block
+
+# If you pipe the theta values, you can get a full model:
+
+m2 <- m2 %>% ini(tka = 0.45, tcl = 1,tv = 3.45)
+
+print(m2)
+
+# Which of course still allows simple solving:
+s <- rxSolve(m2, et)
+
+
+plot(s, cp) + ylab("Concentration (model m2)")
+```
+## Piping classic 'rxode2' models
+
+With the above flexibility, this release also allows piping of classic
+`rxode2` models:
+
+For example:
+
+```{r classicModel}
+rx <-  rxode2({
+  ka <- exp(tka + eta.ka)
+  cl <- exp(tcl + eta.cl)
+  v <- exp(tv + eta.v)
+  d / dt(depot) <- -ka * depot
+  d / dt(center) <- ka * depot - cl / v * center
+  F(depot) <- 3
+  cp <- center / v
+})
+
+print(rx)
+
+
+m3 <- as.function(rx) %>%
+  ini(omega) %>%
+  ini(tka = 0.45, tcl = 1,tv = 3.45)
+
+print(m3)
+```
+
+Note the use of `as.function()` here, though it may not always be required in the future.
+
+## Why is 'rxode2' breaking 'nlmixr2'
+
+CRAN had requested that we reduce the compile time for 'rxode2' to
+keep remain on CRAN.  This effectively was requesting the compile be
+split out to separate packages. With the restructuring, 'nlmixr2'
+needed to be restructured too.  We are actively resubmitting a
+compatible 'nlmixr2' now. In the mean time you can use the development
+versions with r-universe:
+
+``` r
+install.packages(c("rxode2ll", "rxode2parse", "rxode2random",
+                   "rxode2et", "rxode2",
+                   "nlmixr2est", "nlmixr2extra", "nlmixr2plot",
+                   "nlmixr2"),
+                 repos=c(nlmixr2="https://nlmixr2.r-universe.dev",
+                         CRAN="https://cloud.r-project.org"))
+```
+
+Note now the packages that `rxode2` depend on are:
+
+- 'rxode2parse' which is the parsing of the rxode2 low level language
+  to C (and includes some solved linear compartment code at the
+  moment)
+
+- 'rxode2random' which has the parallel safe random number generation
+  routines, and some other random number generating functions like
+  'cvPost()`
+
+- 'rxode2ll' which includes the new likelihood functions supported in
+  this release (which will add generalized likelihood estimation in
+  'nlmixr2')
+
+- 'rxode2et' which is the split off of the 'rxode2' event table
+  function 'et()'
+  
+
+
+## Full changes from 2.0.7
+
+# rxode2 2.0.9
+
+- Remove log likelihoods from 'rxode2' to reduce compilation time and
+  increase maintainability of 'rxode2'. They were transferred to
+  'rxode2ll' (requested by CRAN).
+  
+- Remove the parsing from 'rxode2' and solved linear compartment code
+  and move to 'rxode2parse' to reduce the compilation time (as requested
+  by CRAN).
+  
+- Remove the random number generation from 'rxode2' and move to
+  'rxode2random' to reduce the compilation time (as requested by
+  CRAN).
+
+- Remove the event table translation and generation from 'rxode2' and
+  move to 'rxode2et' to reduce the compilation time (as requested by
+  CRAN).
+  
+- Change the `rxode2` ui object so it is a compressed, serialized
+  object by default.  This could reduce the `C stack size` problem
+  that occurs with too many environments in R.
+  
+- Warn when ignoring items during simulations
+
+- Export a method to change 'rxode2' solve methods into internal integers
+
+- Bug fix for time invariant covariates identified as time variant
+  covariate when the individual's time starts after `0`.
+
+# rxode2 2.0.8
+
+## Breaking changes
+
+- `rxgamma` now only allows a `rate` input.  This aligns with the
+  internal `rxode2` version of `rxgamma` and clarifies how this will
+  be used. It is also aligned with the `llikGamma` function used for
+  generalized likelihood estimation.
+
+- ui `cauchy` simulations now follow the ui for `normal` and `t`
+  distributions, which means you can combine with transformations.
+  This is because the `cauchy` is a `t` distribution with one degree
+  of freedom.
+
+- ui `dnorm()` and `norm()` are no longer equivalent to `add()`.  Now
+  it allows you to use the loglik `llikNorm()` instead of the standard
+  `nlmixr2` style focei likelihood.  This is done by adding `dnorm()`
+  at the end of the line.  It also means `dnorm()` now doesn't take
+  any arguments.
+  
+- Vandercorput normal removed (non-random number generator)
+
+## New features
+
+- Allow models in the `nlmixr2` form without an `ini({})` block
+
+- Allow model piping of an omega matrix by `f %>% ini(omegaMatrix)`
+
+- Standard models created with `rxode2()` can no be piped into a model function
+
+- Families of log-likelihood were added to `rxode2` so that mixed
+  likelihood nonlinear mixed effects models may be specified and run.
+
+- The memory footprint of a `rxode2` solving has been reduced
+
+- Piping now allow named strings (issue #249)
+
+## Bug fixes
+
+- `rxode2`'s symengine would convert `sqrt(2)` to `M_SQRT_2` when it
+  should be `M_SQRT2`.  This has been fixed; it was most noticeable in
+  nlmixr2 log-likelihood estimation methods
+  
+- `rxode2` treats `DV` as a non-covariate with `etTran` (last time it
+  would duplicate if it is in the model).  This is most noticeable in
+  the nlmixr2 log-likelihood estimation methods.
+  
+## New features
+
+- A new flag (`rxFlag`) has been created to tell you where in the
+  `rxode2` solving process you are.  This is useful for debugging. If
+  outputting this variable it will always be `11` or calculating the
+  left handed equations.  If you are using in conjunction with the
+  `printf()` methods, it is a double variable and should be formatted
+  with `"%f"`.
+  
+- An additional option of `fullPrint` has been added to `rxode2()`
+  which allows `rprintf()` to be used in almost all of `rxode2()`
+  steps (inductive linearization and matrix exponential are the
+  exception here) instead of just the integration `ddt` step.  It
+  defaults to `FALSE`.
