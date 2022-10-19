@@ -127,23 +127,11 @@ print(m3)
 
 Note the use of `as.function()` here, though it may not always be required in the future.
 
-## Why is 'rxode2' breaking 'nlmixr2'
+## Why are there more dependencies of 'rxode2'
 
 CRAN had requested that we reduce the compile time for 'rxode2' to
 remain on CRAN.  This effectively was requesting the compile be
-split out to separate packages. With the restructuring, 'nlmixr2'
-needed to be restructured too.  We are actively resubmitting a
-compatible 'nlmixr2' now. In the mean time you can use the development
-versions with r-universe:
-
-``` r
-install.packages(c("rxode2ll", "rxode2parse", "rxode2random",
-                   "rxode2et", "rxode2",
-                   "nlmixr2est", "nlmixr2extra", "nlmixr2plot",
-                   "nlmixr2"),
-                 repos=c(nlmixr2="https://nlmixr2.r-universe.dev",
-                         CRAN="https://cloud.r-project.org"))
-```
+split out to separate packages.
 
 Note, now the packages that `rxode2` depend on are:
 

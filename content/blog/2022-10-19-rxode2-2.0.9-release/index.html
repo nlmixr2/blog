@@ -40,7 +40,7 @@ one.compartment &lt;- function() {
 m &lt;- one.compartment()
 
 m</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────── 
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ──────────────────────────────────────────────────────────────────────────────────────────────────── 
 ## 
 ## States ($state or $stateDf): 
 ##   Compartment Number Compartment Name
@@ -92,7 +92,7 @@ plot(s, cp) + ylab(&quot;Concentration&quot;)</code></pre>
 <pre><code>## ℹ promote `eta.v` to between subject variability with initial estimate 0.1</code></pre>
 <pre><code>## ℹ change initial estimate of `eta.v` to `0.1`</code></pre>
 <pre class="r"><code>print(m2)</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────── 
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ──────────────────────────────────────────────────────────────────────────────────────────────────── 
 ##  ── Initalization: ──  
 ## 
 ## Omega ($omega): 
@@ -134,7 +134,7 @@ m2 &lt;- m2 %&gt;% ini(tka = 0.45, tcl = 1,tv = 3.45)</code></pre>
 <pre><code>## ℹ promote `tv` to population parameter with initial estimate 3.45</code></pre>
 <pre><code>## ℹ change initial estimate of `tv` to `3.45`</code></pre>
 <pre class="r"><code>print(m2)</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────── 
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ──────────────────────────────────────────────────────────────────────────────────────────────────── 
 ##  ── Initalization: ──  
 ## Fixed Effects ($theta): 
 ##  tka  tcl   tv 
@@ -213,7 +213,7 @@ print(rx)</code></pre>
 <pre><code>## ℹ promote `tv` to population parameter with initial estimate 3.45</code></pre>
 <pre><code>## ℹ change initial estimate of `tv` to `3.45`</code></pre>
 <pre class="r"><code>print(m3)</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────── 
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ──────────────────────────────────────────────────────────────────────────────────────────────────── 
 ##  ── Initalization: ──  
 ## Fixed Effects ($theta): 
 ##  tka  tcl   tv 
@@ -251,20 +251,11 @@ print(rx)</code></pre>
 ## }</code></pre>
 <p>Note the use of <code>as.function()</code> here, though it may not always be required in the future.</p>
 </div>
-<div id="why-is-rxode2-breaking-nlmixr2" class="section level2">
-<h2>Why is ‘rxode2’ breaking ‘nlmixr2’</h2>
+<div id="why-are-there-more-dependencies-of-rxode2" class="section level2">
+<h2>Why are there more dependencies of ‘rxode2’</h2>
 <p>CRAN had requested that we reduce the compile time for ‘rxode2’ to
 remain on CRAN. This effectively was requesting the compile be
-split out to separate packages. With the restructuring, ‘nlmixr2’
-needed to be restructured too. We are actively resubmitting a
-compatible ‘nlmixr2’ now. In the mean time you can use the development
-versions with r-universe:</p>
-<pre class="r"><code>install.packages(c(&quot;rxode2ll&quot;, &quot;rxode2parse&quot;, &quot;rxode2random&quot;,
-                   &quot;rxode2et&quot;, &quot;rxode2&quot;,
-                   &quot;nlmixr2est&quot;, &quot;nlmixr2extra&quot;, &quot;nlmixr2plot&quot;,
-                   &quot;nlmixr2&quot;),
-                 repos=c(nlmixr2=&quot;https://nlmixr2.r-universe.dev&quot;,
-                         CRAN=&quot;https://cloud.r-project.org&quot;))</code></pre>
+split out to separate packages.</p>
 <p>Note, now the packages that <code>rxode2</code> depend on are:</p>
 <ul>
 <li><p>‘rxode2parse’ which is the parsing of the rxode2 low level language
