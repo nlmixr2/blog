@@ -19,7 +19,7 @@ Without the support 'rxode2' wouldn't be the tool it is today.
 This is the CRAN visible release since 'rxode2' 2.0.7 and I
 would like to highlight a few new interesting features:
 
-## 'rxode2' can how have models functions that are more flexible
+## 'rxode2' can now have more flexible models functions
 
 The key features are:
 
