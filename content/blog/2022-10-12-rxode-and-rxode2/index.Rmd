@@ -56,6 +56,8 @@ To me the biggest advantage to using `rxode2` is you can simulate from `nlmixr2`
 
 ```{r simulation}
 library(rxode2)
+set.seed(42)
+rxSetSeed(42)
 
 one.compartment <- function() {
   ini({

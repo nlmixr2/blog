@@ -1,0 +1,395 @@
+---
+title: rxode2 2.0.9/2.0.10
+author: Matthew Fidler
+date: '2022-10-19'
+slug: []
+categories: [rxode2]
+tags: [new-version]
+---
+
+
+
+<p><code>rxode2</code> 2.0.9 has been released, and <code>rxode2</code> 2.0.10 will be released
+soon! I want to personally thank all those who have submitted issues,
+and helped with the development. Without the support <code>rxode2</code>
+wouldn’t be the tool it is today.</p>
+<p>This is the first CRAN-visible release since <code>rxode2</code> 2.0.7 and I
+would like to highlight a few new interesting features:</p>
+<div id="rxode2-can-now-have-more-flexible-model-functions" class="section level2">
+<h2>‘rxode2’ can now have more flexible model functions</h2>
+<p>The key features are:</p>
+<ul>
+<li>You do not need an <code>ini()</code> block any longer</li>
+<li>You do not need to specify an endpoint either with <code>~</code></li>
+</ul>
+<p>For example, this model is perfectly reasonable in <code>rxode2</code>:</p>
+<pre class="r"><code>set.seed(42)
+rxSetSeed(42) # for parallel random number generator
+
+one.compartment &lt;- function() {
+  model({
+    ka &lt;- exp(tka + eta.ka)
+    cl &lt;- exp(tcl + eta.cl)
+    v &lt;- exp(tv + eta.v)
+    d / dt(depot) &lt;- -ka * depot
+    d / dt(center) &lt;- ka * depot - cl / v * center
+    F(depot) &lt;- 3
+    cp &lt;- center / v
+  })
+}
+
+m &lt;- one.compartment()
+
+m</code></pre>
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────── 
+## 
+## States ($state or $stateDf): 
+##   Compartment Number Compartment Name
+## 1                  1            depot
+## 2                  2           center
+##  ── Model (Normalized Syntax): ── 
+## function() {
+##     model({
+##         ka &lt;- exp(tka + eta.ka)
+##         cl &lt;- exp(tcl + eta.cl)
+##         v &lt;- exp(tv + eta.v)
+##         d/dt(depot) &lt;- -ka * depot
+##         d/dt(center) &lt;- ka * depot - cl/v * center
+##         F(depot) &lt;- 3
+##         cp &lt;- center/v
+##     })
+## }</code></pre>
+<pre class="r"><code># When solving you will have to manually supply the parameters
+
+theta &lt;- c(tka = 0.45, tcl = 1,tv = 3.45)
+
+omega &lt;- lotri({eta.ka ~ 0.6
+  eta.cl ~ 0.3
+  eta.v ~ 0.1
+})
+
+# Create an event table
+et &lt;- et(amt=300) %&gt;%
+  et(0,24, by=2) %&gt;%
+  et(id=1:12)
+
+# simulate directly from the model
+s &lt;- rxSolve(m, et, theta, omega=omega)</code></pre>
+<pre><code>## → creating rxode2 include directory</code></pre>
+<pre><code>## → getting R compile options</code></pre>
+<pre><code>## → precompiling headers</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre class="r"><code>library(ggplot2 )
+
+plot(s, cp) + ylab(&quot;Concentration&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/modelOnly-1.png" width="672" /></p>
+</div>
+<div id="you-can-now-pipe-omega-matrices-to-set-initial-values" class="section level2">
+<h2>You can now pipe omega matrices to set initial values</h2>
+<p>For example, using the above model you could the omega initial values:</p>
+<pre class="r"><code>m2 &lt;- m %&gt;%
+  ini(omega)</code></pre>
+<pre><code>## ℹ promote `eta.ka` to between subject variability with initial estimate 0.6</code></pre>
+<pre><code>## ℹ change initial estimate of `eta.ka` to `0.6`</code></pre>
+<pre><code>## ℹ promote `eta.cl` to between subject variability with initial estimate 0.3</code></pre>
+<pre><code>## ℹ change initial estimate of `eta.cl` to `0.3`</code></pre>
+<pre><code>## ℹ promote `eta.v` to between subject variability with initial estimate 0.1</code></pre>
+<pre><code>## ℹ change initial estimate of `eta.v` to `0.1`</code></pre>
+<pre class="r"><code>print(m2)</code></pre>
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────── 
+##  ── Initalization: ──  
+## 
+## Omega ($omega): 
+##        eta.ka eta.cl eta.v
+## eta.ka    0.6    0.0   0.0
+## eta.cl    0.0    0.3   0.0
+## eta.v     0.0    0.0   0.1
+## 
+## States ($state or $stateDf): 
+##   Compartment Number Compartment Name
+## 1                  1            depot
+## 2                  2           center
+##  ── Model (Normalized Syntax): ── 
+## function() {
+##     ini({
+##         eta.ka ~ 0.6
+##         eta.cl ~ 0.3
+##         eta.v ~ 0.1
+##     })
+##     model({
+##         ka &lt;- exp(tka + eta.ka)
+##         cl &lt;- exp(tcl + eta.cl)
+##         v &lt;- exp(tv + eta.v)
+##         d/dt(depot) &lt;- -ka * depot
+##         d/dt(center) &lt;- ka * depot - cl/v * center
+##         F(depot) &lt;- 3
+##         cp &lt;- center/v
+##     })
+## }</code></pre>
+<pre class="r"><code># notice that the model now includes an `ini({})` block
+
+# If you pipe the theta values, you can get a full model:
+
+m2 &lt;- m2 %&gt;% ini(tka = 0.45, tcl = 1,tv = 3.45)</code></pre>
+<pre><code>## ℹ promote `tka` to population parameter with initial estimate 0.45</code></pre>
+<pre><code>## ℹ change initial estimate of `tka` to `0.45`</code></pre>
+<pre><code>## ℹ promote `tcl` to population parameter with initial estimate 1</code></pre>
+<pre><code>## ℹ change initial estimate of `tcl` to `1`</code></pre>
+<pre><code>## ℹ promote `tv` to population parameter with initial estimate 3.45</code></pre>
+<pre><code>## ℹ change initial estimate of `tv` to `3.45`</code></pre>
+<pre class="r"><code>print(m2)</code></pre>
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────── 
+##  ── Initalization: ──  
+## Fixed Effects ($theta): 
+##  tka  tcl   tv 
+## 0.45 1.00 3.45 
+## 
+## Omega ($omega): 
+##        eta.ka eta.cl eta.v
+## eta.ka    0.6    0.0   0.0
+## eta.cl    0.0    0.3   0.0
+## eta.v     0.0    0.0   0.1
+## 
+## States ($state or $stateDf): 
+##   Compartment Number Compartment Name
+## 1                  1            depot
+## 2                  2           center
+##  ── Model (Normalized Syntax): ── 
+## function() {
+##     ini({
+##         tka &lt;- 0.45
+##         tcl &lt;- 1
+##         tv &lt;- 3.45
+##         eta.ka ~ 0.6
+##         eta.cl ~ 0.3
+##         eta.v ~ 0.1
+##     })
+##     model({
+##         ka &lt;- exp(tka + eta.ka)
+##         cl &lt;- exp(tcl + eta.cl)
+##         v &lt;- exp(tv + eta.v)
+##         d/dt(depot) &lt;- -ka * depot
+##         d/dt(center) &lt;- ka * depot - cl/v * center
+##         F(depot) &lt;- 3
+##         cp &lt;- center/v
+##     })
+## }</code></pre>
+<pre class="r"><code># Which of course still allows simple solving:
+s &lt;- rxSolve(m2, et)
+
+
+plot(s, cp) + ylab(&quot;Concentration (model m2)&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/modelOmega-1.png" width="672" />
+## Piping classic <code>rxode2</code> models</p>
+<p>With the above flexibility, this release also allows piping of classic
+<code>rxode2</code> models:</p>
+<p>For example:</p>
+<pre class="r"><code>rx &lt;-  rxode2({
+  ka &lt;- exp(tka + eta.ka)
+  cl &lt;- exp(tcl + eta.cl)
+  v &lt;- exp(tv + eta.v)
+  d / dt(depot) &lt;- -ka * depot
+  d / dt(center) &lt;- ka * depot - cl / v * center
+  F(depot) &lt;- 3
+  cp &lt;- center / v
+})
+
+print(rx)</code></pre>
+<pre><code>## rxode2 2.0.10 model named rx_3c919cdfd78bcd515c59521974200beb model (✔ ready). 
+## $state: depot, center
+## $params: tka, eta.ka, tcl, eta.cl, tv, eta.v
+## $lhs: ka, cl, v, cp</code></pre>
+<pre class="r"><code>m3 &lt;- as.function(rx) %&gt;%
+  ini(omega) %&gt;%
+  ini(tka = 0.45, tcl = 1,tv = 3.45)</code></pre>
+<pre><code>## ℹ parameter labels from comments are typically ignored in non-interactive mode</code></pre>
+<pre><code>## ℹ Need to run with the source intact to parse comments</code></pre>
+<pre><code>## ℹ promote `eta.ka` to between subject variability with initial estimate 0.6</code></pre>
+<pre><code>## ℹ change initial estimate of `eta.ka` to `0.6`</code></pre>
+<pre><code>## ℹ promote `eta.cl` to between subject variability with initial estimate 0.3</code></pre>
+<pre><code>## ℹ change initial estimate of `eta.cl` to `0.3`</code></pre>
+<pre><code>## ℹ promote `eta.v` to between subject variability with initial estimate 0.1</code></pre>
+<pre><code>## ℹ change initial estimate of `eta.v` to `0.1`</code></pre>
+<pre><code>## ℹ promote `tka` to population parameter with initial estimate 0.45</code></pre>
+<pre><code>## ℹ change initial estimate of `tka` to `0.45`</code></pre>
+<pre><code>## ℹ promote `tcl` to population parameter with initial estimate 1</code></pre>
+<pre><code>## ℹ change initial estimate of `tcl` to `1`</code></pre>
+<pre><code>## ℹ promote `tv` to population parameter with initial estimate 3.45</code></pre>
+<pre><code>## ℹ change initial estimate of `tv` to `3.45`</code></pre>
+<pre class="r"><code>print(m3)</code></pre>
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────── 
+##  ── Initalization: ──  
+## Fixed Effects ($theta): 
+##  tka  tcl   tv 
+## 0.45 1.00 3.45 
+## 
+## Omega ($omega): 
+##        eta.ka eta.cl eta.v
+## eta.ka    0.6    0.0   0.0
+## eta.cl    0.0    0.3   0.0
+## eta.v     0.0    0.0   0.1
+## 
+## States ($state or $stateDf): 
+##   Compartment Number Compartment Name
+## 1                  1            depot
+## 2                  2           center
+##  ── Model (Normalized Syntax): ── 
+## function() {
+##     ini({
+##         tka &lt;- 0.45
+##         tcl &lt;- 1
+##         tv &lt;- 3.45
+##         eta.ka ~ 0.6
+##         eta.cl ~ 0.3
+##         eta.v ~ 0.1
+##     })
+##     model({
+##         ka = exp(tka + eta.ka)
+##         cl = exp(tcl + eta.cl)
+##         v = exp(tv + eta.v)
+##         d/dt(depot) = -ka * depot
+##         d/dt(center) = ka * depot - cl/v * center
+##         f(depot) = 3
+##         cp = center/v
+##     })
+## }</code></pre>
+<p>Note the use of <code>as.function()</code> here, though it may not always be required in the future.</p>
+</div>
+<div id="why-are-there-more-dependencies-for-rxode2" class="section level2">
+<h2>Why are there more dependencies for <code>rxode2</code>?</h2>
+<p>CRAN had requested that we reduce the compile time for ‘rxode2’ to
+remain on CRAN. This effectively was requesting the compile be
+split out to separate packages.</p>
+<p>Note, now the packages that <code>rxode2</code> depend on are:</p>
+<ul>
+<li><code>rxode2parse</code> which is the parsing of the rxode2 low level language
+to C (and includes some solved linear compartment code at the
+moment)</li>
+<li><code>rxode2random</code> which has the parallel safe random number generation
+routines, and some other random number generating functions like
+<code>cvPost()</code></li>
+<li><code>rxode2ll</code> which includes the new likelihood functions supported in
+this release (which will add generalized likelihood estimation in
+<code>nlmixr2</code>)</li>
+<li><code>rxode2et</code> which the <code>rxode2</code> event table
+function <code>et()</code>, split off</li>
+</ul>
+</div>
+<div id="what-about-when-cran-is-out-of-sync-or-temporarily-dropped-the-packages" class="section level1">
+<h1>What about when CRAN is out of sync (or temporarily dropped the packages)</h1>
+<p>Because the dependencies of ‘nlmixr2’ and ‘rxode2’ are currently a
+binary dependency of each other, if they were not compiled together
+they will not work together. You may get issues like “This was
+compiled against a different version of PACKAGE” when trying to load
+the package.</p>
+<p>One approach is to use the r-universe to install the development
+version everything, that is:</p>
+<pre class="r"><code>install.packages(c(&quot;dparser&quot;, &quot;rxode2ll&quot;, &quot;rxode2parse&quot;,
+                   &quot;rxode2random&quot;, &quot;rxode2et&quot;, &quot;symengine&quot;, &quot;rxode2&quot;,
+                   &quot;nlmixr2est&quot;, &quot;nlmixr2extra&quot;,  &quot;nlmixr2plot&quot;,
+                   &quot;nlmixr2&quot;),
+                 repos=c(nlmixr2=&quot;https://nlmixr2.r-universe.dev&quot;,
+                         symengine=&quot;https://symengine.r-universe.dev&quot;,
+                         CRAN=&quot;https://cloud.r-project.org&quot;))
+</code></pre>
+<p>I would only suggest this if CRAN doesn’t seem to be working for your
+setup.</p>
+<div id="full-changes-from-2.0.7" class="section level2">
+<h2>Full changes from 2.0.7</h2>
+</div>
+</div>
+<div id="rxode2-2.0.10" class="section level1">
+<h1>rxode2 2.0.10</h1>
+<ul>
+<li><p>Time invariant covariates can now contain ‘NA’ values.</p></li>
+<li><p>When a column has ‘NA’ for the entire id, now ‘rxode2’ warns about
+both the id and column instead of just the id.</p></li>
+<li><p>To fix some CRAN issues in ‘nlmixr2est’, make the version dependency
+explicit.</p></li>
+</ul>
+</div>
+<div id="rxode2-2.0.9" class="section level1">
+<h1><code>rxode2</code> 2.0.9</h1>
+<ul>
+<li><p>Remove log likelihoods from <code>rxode2</code> to reduce compilation time and
+increase maintainability of <code>rxode2</code>. They were transferred to
+‘rxode2ll’ (requested by CRAN).</p></li>
+<li><p>Remove the parsing from <code>rxode2</code> and solved linear compartment code
+and move to <code>rxode2parse</code> to reduce the compilation time (as requested
+by CRAN).</p></li>
+<li><p>Remove the random number generation from <code>rxode2</code> and move to
+<code>rxode2random</code> to reduce the compilation time (as requested by
+CRAN).</p></li>
+<li><p>Remove the event table translation and generation from <code>rxode2</code> and
+move to <code>rxode2et</code> to reduce the compilation time (as requested by
+CRAN).</p></li>
+<li><p>Change the <code>rxode2</code> ui object so it is a compressed, serialized
+object by default. This could reduce the <code>C stack size</code> problem
+that occurs with too many environments in R.</p></li>
+<li><p>Warn when ignoring items during simulations</p></li>
+<li><p>Export a method to change <code>rxode2</code> solve methods into internal integers</p></li>
+<li><p>Bug fix for time invariant covariates identified as time variant
+covariate when the individual’s time starts after <code>0</code>.</p></li>
+</ul>
+</div>
+<div id="rxode2-2.0.8" class="section level1">
+<h1><code>rxode2</code> 2.0.8</h1>
+<div id="breaking-changes" class="section level2">
+<h2>Breaking changes</h2>
+<ul>
+<li><p><code>rxgamma</code> now only allows a <code>rate</code> input. This aligns with the
+internal <code>rxode2</code> version of <code>rxgamma</code> and clarifies how this will
+be used. It is also aligned with the <code>llikGamma</code> function used for
+generalized likelihood estimation.</p></li>
+<li><p>ui <code>cauchy</code> simulations now follow the ui for <code>normal</code> and <code>t</code>
+distributions, which means you can combine with transformations.
+This is because the <code>cauchy</code> is a <code>t</code> distribution with one degree
+of freedom.</p></li>
+<li><p>ui <code>dnorm()</code> and <code>norm()</code> are no longer equivalent to <code>add()</code>. Now
+it allows you to use the loglik <code>llikNorm()</code> instead of the standard
+<code>nlmixr2</code> style focei likelihood. This is done by adding <code>dnorm()</code>
+at the end of the line. It also means <code>dnorm()</code> now doesn’t take
+any arguments.</p></li>
+<li><p>Vandercorput normal removed (non-random number generator)</p></li>
+</ul>
+</div>
+<div id="new-features" class="section level2">
+<h2>New features</h2>
+<ul>
+<li><p>Allow models in the <code>nlmixr2</code> form without an <code>ini({})</code> block</p></li>
+<li><p>Allow model piping of an omega matrix by <code>f %&gt;% ini(omegaMatrix)</code></p></li>
+<li><p>Standard models created with <code>rxode2()</code> can no be piped into a model function</p></li>
+<li><p>Families of log-likelihood were added to <code>rxode2</code> so that mixed
+likelihood nonlinear mixed effects models may be specified and run.</p></li>
+<li><p>The memory footprint of a <code>rxode2</code> solving has been reduced</p></li>
+<li><p>Piping now allow named strings (issue #249)</p></li>
+</ul>
+</div>
+<div id="bug-fixes" class="section level2">
+<h2>Bug fixes</h2>
+<ul>
+<li><p><code>rxode2</code>’s symengine would convert <code>sqrt(2)</code> to <code>M_SQRT_2</code> when it
+should be <code>M_SQRT2</code>. This has been fixed; it was most noticeable in
+nlmixr2 log-likelihood estimation methods</p></li>
+<li><p><code>rxode2</code> treats <code>DV</code> as a non-covariate with <code>etTran</code> (last time it
+would duplicate if it is in the model). This is most noticeable in
+the nlmixr2 log-likelihood estimation methods.</p></li>
+</ul>
+</div>
+<div id="new-features-1" class="section level2">
+<h2>New features</h2>
+<ul>
+<li><p>A new flag (<code>rxFlag</code>) has been created to tell you where in the
+<code>rxode2</code> solving process you are. This is useful for debugging. If
+outputting this variable it will always be <code>11</code> or calculating the
+left handed equations. If you are using in conjunction with the
+<code>printf()</code> methods, it is a double variable and should be formatted
+with <code>"%f"</code>.</p></li>
+<li><p>An additional option of <code>fullPrint</code> has been added to <code>rxode2()</code>
+which allows <code>rprintf()</code> to be used in almost all of <code>rxode2()</code>
+steps (inductive linearization and matrix exponential are the
+exception here) instead of just the integration <code>ddt</code> step. It
+defaults to <code>FALSE</code>.</p></li>
+</ul>
+</div>
+</div>
