@@ -1,5 +1,5 @@
 ---
-title: rxode2 2.0.9
+title: rxode2 2.0.9/2.0.10
 author: Matthew Fidler
 date: '2022-10-19'
 slug: []
@@ -9,17 +9,18 @@ tags: [new-version]
 
 
 
-<p>‘rxode2’ 2.0.9 has been released today! I want to personally thank all
-those who have submitted issues, and helped with the development.
-Without the support ‘rxode2’ wouldn’t be the tool it is today.</p>
-<p>This is the CRAN visible release since ‘rxode2’ 2.0.7 and I
+<p><code>rxode2</code> 2.0.9 has been released, and <code>rxode2</code> 2.0.10 will be released
+soon! I want to personally thank all those who have submitted issues,
+and helped with the development. Without the support <code>rxode2</code>
+wouldn’t be the tool it is today.</p>
+<p>This is the first CRAN-visible release since <code>rxode2</code> 2.0.7 and I
 would like to highlight a few new interesting features:</p>
-<div id="rxode2-can-now-have-more-flexible-models-functions" class="section level2">
-<h2>‘rxode2’ can now have more flexible models functions</h2>
+<div id="rxode2-can-now-have-more-flexible-model-functions" class="section level2">
+<h2>‘rxode2’ can now have more flexible model functions</h2>
 <p>The key features are:</p>
 <ul>
-<li><p>You do not need an <code>ini()</code> block any longer</p></li>
-<li><p>You do not need to specify an endpoint either with <code>~</code></p></li>
+<li>You do not need an <code>ini()</code> block any longer</li>
+<li>You do not need to specify an endpoint either with <code>~</code></li>
 </ul>
 <p>For example, this model is perfectly reasonable in <code>rxode2</code>:</p>
 <pre class="r"><code>set.seed(42)
@@ -40,7 +41,7 @@ one.compartment &lt;- function() {
 m &lt;- one.compartment()
 
 m</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ──────────────────────────────────────────────────────────────────────────────────────────────────── 
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────── 
 ## 
 ## States ($state or $stateDf): 
 ##   Compartment Number Compartment Name
@@ -73,9 +74,12 @@ et &lt;- et(amt=300) %&gt;%
   et(id=1:12)
 
 # simulate directly from the model
-s &lt;- rxSolve(m, et, theta, omega=omega)
-
-library(ggplot2 )
+s &lt;- rxSolve(m, et, theta, omega=omega)</code></pre>
+<pre><code>## → creating rxode2 include directory</code></pre>
+<pre><code>## → getting R compile options</code></pre>
+<pre><code>## → precompiling headers</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre class="r"><code>library(ggplot2 )
 
 plot(s, cp) + ylab(&quot;Concentration&quot;)</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/modelOnly-1.png" width="672" /></p>
@@ -92,7 +96,7 @@ plot(s, cp) + ylab(&quot;Concentration&quot;)</code></pre>
 <pre><code>## ℹ promote `eta.v` to between subject variability with initial estimate 0.1</code></pre>
 <pre><code>## ℹ change initial estimate of `eta.v` to `0.1`</code></pre>
 <pre class="r"><code>print(m2)</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ──────────────────────────────────────────────────────────────────────────────────────────────────── 
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────── 
 ##  ── Initalization: ──  
 ## 
 ## Omega ($omega): 
@@ -134,7 +138,7 @@ m2 &lt;- m2 %&gt;% ini(tka = 0.45, tcl = 1,tv = 3.45)</code></pre>
 <pre><code>## ℹ promote `tv` to population parameter with initial estimate 3.45</code></pre>
 <pre><code>## ℹ change initial estimate of `tv` to `3.45`</code></pre>
 <pre class="r"><code>print(m2)</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ──────────────────────────────────────────────────────────────────────────────────────────────────── 
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────── 
 ##  ── Initalization: ──  
 ## Fixed Effects ($theta): 
 ##  tka  tcl   tv 
@@ -176,7 +180,7 @@ s &lt;- rxSolve(m2, et)
 
 plot(s, cp) + ylab(&quot;Concentration (model m2)&quot;)</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/modelOmega-1.png" width="672" />
-## Piping classic ‘rxode2’ models</p>
+## Piping classic <code>rxode2</code> models</p>
 <p>With the above flexibility, this release also allows piping of classic
 <code>rxode2</code> models:</p>
 <p>For example:</p>
@@ -191,7 +195,7 @@ plot(s, cp) + ylab(&quot;Concentration (model m2)&quot;)</code></pre>
 })
 
 print(rx)</code></pre>
-<pre><code>## rxode2 2.0.9 model named rx_5959aa4344f5f62de5213979043a34cb model (✔ ready). 
+<pre><code>## rxode2 2.0.10 model named rx_3c919cdfd78bcd515c59521974200beb model (✔ ready). 
 ## $state: depot, center
 ## $params: tka, eta.ka, tcl, eta.cl, tv, eta.v
 ## $lhs: ka, cl, v, cp</code></pre>
@@ -213,7 +217,7 @@ print(rx)</code></pre>
 <pre><code>## ℹ promote `tv` to population parameter with initial estimate 3.45</code></pre>
 <pre><code>## ℹ change initial estimate of `tv` to `3.45`</code></pre>
 <pre class="r"><code>print(m3)</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ──────────────────────────────────────────────────────────────────────────────────────────────────── 
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────── 
 ##  ── Initalization: ──  
 ## Fixed Effects ($theta): 
 ##  tka  tcl   tv 
@@ -251,55 +255,85 @@ print(rx)</code></pre>
 ## }</code></pre>
 <p>Note the use of <code>as.function()</code> here, though it may not always be required in the future.</p>
 </div>
-<div id="why-are-there-more-dependencies-of-rxode2" class="section level2">
-<h2>Why are there more dependencies of ‘rxode2’</h2>
+<div id="why-are-there-more-dependencies-for-rxode2" class="section level2">
+<h2>Why are there more dependencies for <code>rxode2</code>?</h2>
 <p>CRAN had requested that we reduce the compile time for ‘rxode2’ to
 remain on CRAN. This effectively was requesting the compile be
 split out to separate packages.</p>
 <p>Note, now the packages that <code>rxode2</code> depend on are:</p>
 <ul>
-<li><p>‘rxode2parse’ which is the parsing of the rxode2 low level language
+<li><code>rxode2parse</code> which is the parsing of the rxode2 low level language
 to C (and includes some solved linear compartment code at the
-moment)</p></li>
-<li><p>‘rxode2random’ which has the parallel safe random number generation
+moment)</li>
+<li><code>rxode2random</code> which has the parallel safe random number generation
 routines, and some other random number generating functions like
-’cvPost()`</p></li>
-<li><p>‘rxode2ll’ which includes the new likelihood functions supported in
+<code>cvPost()</code></li>
+<li><code>rxode2ll</code> which includes the new likelihood functions supported in
 this release (which will add generalized likelihood estimation in
-‘nlmixr2’)</p></li>
-<li><p>‘rxode2et’ which is the split off of the ‘rxode2’ event table
-function ‘et()’</p></li>
+<code>nlmixr2</code>)</li>
+<li><code>rxode2et</code> which the <code>rxode2</code> event table
+function <code>et()</code>, split off</li>
 </ul>
 </div>
+<div id="what-about-when-cran-is-out-of-sync-or-temporarily-dropped-the-packages" class="section level1">
+<h1>What about when CRAN is out of sync (or temporarily dropped the packages)</h1>
+<p>Because the dependencies of ‘nlmixr2’ and ‘rxode2’ are currently a
+binary dependency of each other, if they were not compiled together
+they will not work together. You may get issues like “This was
+compiled against a different version of PACKAGE” when trying to load
+the package.</p>
+<p>One approach is to use the r-universe to install the development
+version everything, that is:</p>
+<pre class="r"><code>install.packages(c(&quot;dparser&quot;, &quot;rxode2ll&quot;, &quot;rxode2parse&quot;,
+                   &quot;rxode2random&quot;, &quot;rxode2et&quot;, &quot;symengine&quot;, &quot;rxode2&quot;,
+                   &quot;nlmixr2est&quot;, &quot;nlmixr2extra&quot;,  &quot;nlmixr2plot&quot;,
+                   &quot;nlmixr2&quot;),
+                 repos=c(nlmixr2=&quot;https://nlmixr2.r-universe.dev&quot;,
+                         symengine=&quot;https://symengine.r-universe.dev&quot;,
+                         CRAN=&quot;https://cloud.r-project.org&quot;))
+</code></pre>
+<p>I would only suggest this if CRAN doesn’t seem to be working for your
+setup.</p>
 <div id="full-changes-from-2.0.7" class="section level2">
 <h2>Full changes from 2.0.7</h2>
 </div>
-<div id="rxode2-2.0.9" class="section level1">
-<h1>rxode2 2.0.9</h1>
+</div>
+<div id="rxode2-2.0.10" class="section level1">
+<h1>rxode2 2.0.10</h1>
 <ul>
-<li><p>Remove log likelihoods from ‘rxode2’ to reduce compilation time and
-increase maintainability of ‘rxode2’. They were transferred to
+<li><p>Time invariant covariates can now contain ‘NA’ values.</p></li>
+<li><p>When a column has ‘NA’ for the entire id, now ‘rxode2’ warns about
+both the id and column instead of just the id.</p></li>
+<li><p>To fix some CRAN issues in ‘nlmixr2est’, make the version dependency
+explicit.</p></li>
+</ul>
+</div>
+<div id="rxode2-2.0.9" class="section level1">
+<h1><code>rxode2</code> 2.0.9</h1>
+<ul>
+<li><p>Remove log likelihoods from <code>rxode2</code> to reduce compilation time and
+increase maintainability of <code>rxode2</code>. They were transferred to
 ‘rxode2ll’ (requested by CRAN).</p></li>
-<li><p>Remove the parsing from ‘rxode2’ and solved linear compartment code
-and move to ‘rxode2parse’ to reduce the compilation time (as requested
+<li><p>Remove the parsing from <code>rxode2</code> and solved linear compartment code
+and move to <code>rxode2parse</code> to reduce the compilation time (as requested
 by CRAN).</p></li>
-<li><p>Remove the random number generation from ‘rxode2’ and move to
-‘rxode2random’ to reduce the compilation time (as requested by
+<li><p>Remove the random number generation from <code>rxode2</code> and move to
+<code>rxode2random</code> to reduce the compilation time (as requested by
 CRAN).</p></li>
-<li><p>Remove the event table translation and generation from ‘rxode2’ and
-move to ‘rxode2et’ to reduce the compilation time (as requested by
+<li><p>Remove the event table translation and generation from <code>rxode2</code> and
+move to <code>rxode2et</code> to reduce the compilation time (as requested by
 CRAN).</p></li>
 <li><p>Change the <code>rxode2</code> ui object so it is a compressed, serialized
 object by default. This could reduce the <code>C stack size</code> problem
 that occurs with too many environments in R.</p></li>
 <li><p>Warn when ignoring items during simulations</p></li>
-<li><p>Export a method to change ‘rxode2’ solve methods into internal integers</p></li>
+<li><p>Export a method to change <code>rxode2</code> solve methods into internal integers</p></li>
 <li><p>Bug fix for time invariant covariates identified as time variant
 covariate when the individual’s time starts after <code>0</code>.</p></li>
 </ul>
 </div>
 <div id="rxode2-2.0.8" class="section level1">
-<h1>rxode2 2.0.8</h1>
+<h1><code>rxode2</code> 2.0.8</h1>
 <div id="breaking-changes" class="section level2">
 <h2>Breaking changes</h2>
 <ul>

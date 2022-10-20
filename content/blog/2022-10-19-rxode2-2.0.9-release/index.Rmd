@@ -1,5 +1,5 @@
 ---
-title: rxode2 2.0.9
+title: rxode2 2.0.9/2.0.10
 author: Matthew Fidler
 date: '2022-10-19'
 slug: []
@@ -12,9 +12,10 @@ knitr::opts_chunk$set(echo = TRUE)
 library(rxode2)
 ```
 
-`rxode2` 2.0.9 has been released! I want to personally thank all
-those who have submitted issues, and helped with the development.
-Without the support `rxode2` wouldn't be the tool it is today.
+`rxode2` 2.0.9 has been released, and `rxode2` 2.0.10 will be released
+soon! I want to personally thank all those who have submitted issues,
+and helped with the development.  Without the support `rxode2`
+wouldn't be the tool it is today.
 
 This is the first CRAN-visible release since `rxode2` 2.0.7 and I
 would like to highlight a few new interesting features:
@@ -146,9 +147,43 @@ Note, now the packages that `rxode2` depend on are:
 - `rxode2et` which the `rxode2` event table
   function `et()`, split off
   
+# What about when CRAN is out of sync (or temporarily dropped the packages)
+
+Because the dependencies of 'nlmixr2' and 'rxode2' are currently a
+binary dependency of each other, if they were not compiled together
+they will not work together.  You may get issues like "This was
+compiled against a different version of PACKAGE" when trying to load
+the package.
+
+One approach is to use the r-universe to install the development
+version everything, that is:
+
+``` r
+install.packages(c("dparser", "rxode2ll", "rxode2parse",
+                   "rxode2random", "rxode2et", "symengine", "rxode2",
+                   "nlmixr2est", "nlmixr2extra",  "nlmixr2plot",
+                   "nlmixr2"),
+                 repos=c(nlmixr2="https://nlmixr2.r-universe.dev",
+                         symengine="https://symengine.r-universe.dev",
+                         CRAN="https://cloud.r-project.org"))
+
+```
+
+I would only suggest this if CRAN doesn't seem to be working for your
+setup.
 
 
 ## Full changes from 2.0.7
+
+# rxode2 2.0.10
+
+- Time invariant covariates can now contain 'NA' values.
+
+- When a column has 'NA' for the entire id, now 'rxode2' warns about
+  both the id and column instead of just the id.
+  
+- To fix some CRAN issues in 'nlmixr2est', make the version dependency
+  explicit.
 
 # `rxode2` 2.0.9
 
