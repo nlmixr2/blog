@@ -12,19 +12,18 @@ knitr::opts_chunk$set(echo = TRUE)
 library(rxode2)
 ```
 
-'rxode2' 2.0.9 has been released today! I want to personally thank all
+`rxode2` 2.0.9 has been released! I want to personally thank all
 those who have submitted issues, and helped with the development.
-Without the support 'rxode2' wouldn't be the tool it is today.
+Without the support `rxode2` wouldn't be the tool it is today.
 
-This is the CRAN visible release since 'rxode2' 2.0.7 and I
+This is the first CRAN-visible release since `rxode2` 2.0.7 and I
 would like to highlight a few new interesting features:
 
-## 'rxode2' can now have more flexible models functions
+## 'rxode2' can now have more flexible model functions
 
 The key features are:
 
 - You do not need an `ini()` block any longer
-
 - You do not need to specify an endpoint either with `~`
 
 For example, this model is perfectly reasonable in `rxode2`:
@@ -97,7 +96,7 @@ s <- rxSolve(m2, et)
 
 plot(s, cp) + ylab("Concentration (model m2)")
 ```
-## Piping classic 'rxode2' models
+## Piping classic `rxode2` models
 
 With the above flexibility, this release also allows piping of classic
 `rxode2` models:
@@ -127,7 +126,7 @@ print(m3)
 
 Note the use of `as.function()` here, though it may not always be required in the future.
 
-## Why are there more dependencies of 'rxode2'
+## Why are there more dependencies for `rxode2`?
 
 CRAN had requested that we reduce the compile time for 'rxode2' to
 remain on CRAN.  This effectively was requesting the compile be
@@ -135,41 +134,38 @@ split out to separate packages.
 
 Note, now the packages that `rxode2` depend on are:
 
-- 'rxode2parse' which is the parsing of the rxode2 low level language
+- `rxode2parse` which is the parsing of the rxode2 low level language
   to C (and includes some solved linear compartment code at the
   moment)
-
-- 'rxode2random' which has the parallel safe random number generation
+- `rxode2random` which has the parallel safe random number generation
   routines, and some other random number generating functions like
-  'cvPost()`
-
-- 'rxode2ll' which includes the new likelihood functions supported in
+  `cvPost()`
+- `rxode2ll` which includes the new likelihood functions supported in
   this release (which will add generalized likelihood estimation in
-  'nlmixr2')
-
-- 'rxode2et' which is the split off of the 'rxode2' event table
-  function 'et()'
+  `nlmixr2`)
+- `rxode2et` which the `rxode2` event table
+  function `et()`, split off
   
 
 
 ## Full changes from 2.0.7
 
-# rxode2 2.0.9
+# `rxode2` 2.0.9
 
-- Remove log likelihoods from 'rxode2' to reduce compilation time and
-  increase maintainability of 'rxode2'. They were transferred to
+- Remove log likelihoods from `rxode2` to reduce compilation time and
+  increase maintainability of `rxode2`. They were transferred to
   'rxode2ll' (requested by CRAN).
   
-- Remove the parsing from 'rxode2' and solved linear compartment code
-  and move to 'rxode2parse' to reduce the compilation time (as requested
+- Remove the parsing from `rxode2` and solved linear compartment code
+  and move to `rxode2parse` to reduce the compilation time (as requested
   by CRAN).
   
-- Remove the random number generation from 'rxode2' and move to
-  'rxode2random' to reduce the compilation time (as requested by
+- Remove the random number generation from `rxode2` and move to
+  `rxode2random` to reduce the compilation time (as requested by
   CRAN).
 
-- Remove the event table translation and generation from 'rxode2' and
-  move to 'rxode2et' to reduce the compilation time (as requested by
+- Remove the event table translation and generation from `rxode2` and
+  move to `rxode2et` to reduce the compilation time (as requested by
   CRAN).
   
 - Change the `rxode2` ui object so it is a compressed, serialized
@@ -178,12 +174,12 @@ Note, now the packages that `rxode2` depend on are:
   
 - Warn when ignoring items during simulations
 
-- Export a method to change 'rxode2' solve methods into internal integers
+- Export a method to change `rxode2` solve methods into internal integers
 
 - Bug fix for time invariant covariates identified as time variant
   covariate when the individual's time starts after `0`.
 
-# rxode2 2.0.8
+# `rxode2` 2.0.8
 
 ## Breaking changes
 
