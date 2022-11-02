@@ -26,7 +26,7 @@ links:
 location: Aurora, Colorado
 show_post_time: false
 subtitle: ACoP 2022
-title: "sing nlmixr2 for automatically selecting PK models with PKNCA"
+title: "Using nlmixr2 for automatically selecting PK models with PKNCA"
 ---
 
 ## Workshop target audience
