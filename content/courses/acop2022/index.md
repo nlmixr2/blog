@@ -19,10 +19,6 @@ links:
   icon_pack: fab
   name: code
   url: https://github.com/nlmixr2/courses/tree/main/ACoP2022
-- icon: file-download
-  icon_pack: fas
-  name: download
-  url: https://github.com/nlmixr2/courses/raw/main/PAGE2022/CourseMaterial.zip
 location: Aurora, Colorado
 show_post_time: false
 subtitle: ACoP 2022
