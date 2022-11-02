@@ -1,0 +1,219 @@
+---
+title: "nlmixr2 2.0.8 Objectively Surprising"
+author: "Matt Fidler and the nlmixr2 Development Team"
+date: "2022-10-25"
+output:
+  html_document:
+    df_print: paged
+bibliography: refs.bib
+link-citations: yes
+csl: vancouver.csl
+categories: nlmixr2
+tags: "new-version"
+slug: []
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rxode2)
+library(tidyverse)
+library(nlmixr2)
+```
+
+Last time I promised to talk about a few other things, including:
+
+-   Likelihood based each observation (and how to get it)
+
+-   Standard Errors / Hessians, etc for etas (and how to get them)
+
+I like to have an interesting example for showing these features, and fortunately I have one that gives what some may consider counter-intuitive results.
+
+# Objective function Motivating example
+
+I was working with Bill Denney to prepare the upcoming
+`babelmixr2`. In this package, you can perform a `NCA` analysis (using
+`PKNCA`), then use these values (and possibly calculate a unit
+conversion) to create a initial `nlmixr2` PK model. This model has
+with `NCA` derived initial estimates and ranges (and needed unit
+conversions too)!
+
+This is exciting to me, as someone who has been wanting this feature in nonlinear mixed effects modeling packages like `nlmixr2` for quite awhile.
+
+## Two nearly identical models
+
+Still, when testing this we came across the following (possibly) surprising situation:
+
+```{r theo1, echo=TRUE}
+one.compartment <- function() {
+  ini({
+    tka <- 0.45 # Log Ka
+    tcl <- 1 # Log Cl
+    tv <- 3.45    # Log V
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+    add.sd <- 0.7
+  })
+  model({
+    ka <- exp(tka + eta.ka)
+    cl <- exp(tcl + eta.cl)
+    v <- exp(tv + eta.v)
+    d/dt(depot) = -ka * depot
+    d/dt(center) = ka * depot - cl / v * center
+    cp = center / v
+    cp ~ add(add.sd)
+  })
+}
+fit1 <- nlmixr(one.compartment, nlmixr2data::theo_sd,  
+               est="focei", control=list(print=0))
+```
+
+Now multiply the `cp` by 1000 and the observations by 1000 for a nearly identical model (ie, change the scale for different units)
+
+```{r theo2}
+d2 <- nlmixr2data::theo_sd %>%
+  mutate(DV=ifelse(AMT==0, DV*1000, DV))
+
+# Use model piping to scale `cp`:
+one.compartment %>%
+  model(cp = 1000*center/v) %>%
+  ini(add.sd=700)-> 
+  m2
+
+# Verify the new model
+print(m2)
+
+fit2 <- nlmixr(m2, d2, est="focei", control=list(print=0))
+```
+
+### Comparing Estimates
+
+As expected the population estimates are similar:
+
+```{r compare}
+#fit1
+print(fixef(fit1))
+
+#fit2 
+print(fixef(fit2))
+```
+
+Note that the additive error is (unsurprisingly) larger by a factor of about 1000.
+
+Still, the Omega matrices are similar too:
+
+```{r compareOmega}
+# fit 1
+print(fit1$omega)
+# fit 2 
+print(fit2$omega)
+```
+
+And the etas:
+
+```{r compareEtas}
+# fit 1
+print(fit1$etaObf)
+# fit 2
+print(fit2$etaObf)
+```
+
+The ETAs are similar too; You can also see the individual contribution
+to the objective functions are quite different (`OBJI`). So it should
+be no surprise that the objective functions are different:
+
+```{r compareObjf}
+# fit 1
+print(fit1$objf)
+# fit 2
+print(fit2$objf)
+```
+
+## What about NONMEM?
+
+You might say, well, maybe `nlmixr2` is broken? (If you see anything surprising of course submit a bug report if you can).
+
+Well, with the coming `babelmixr2` you can run the same models in NONMEM (with certain caveats we will discuss later).
+
+So...
+
+The objective functions are basically the same between `NONMEM` and `nlmixr2`. So it is still matching NONMEM's `focei` approximation here. The small differences in the `NONMEM` and `nlmixr2` model is likely differences optimization. (we use different optimization procedures).
+
+Note we still validate against known `focei` objective functions in `NONMEM`.
+
+## Exploring more with individual observation contribution
+
+One of the new features is the ability to see individual observations contribution to the likelihood in `focei` related methods.
+
+This can help us explore the differences.
+
+In `nlmixr2`, you can use the `fit$dataMergeInner` to merge the original data and the fit data. During this merge process it will also add the column `$nlmixrLlikObs`:
+
+```{r, obsLlik}
+dm1 <- fit1$dataMergeInner
+
+dm1ll <- dm1 %>%
+  select(ID, nlmixrLlikObs) %>%
+  group_by(ID) %>%
+  summarize(sllik=sum(nlmixrLlikObs))
+
+dm2 <- fit2$dataMergeInner
+
+dm2ll <- dm2 %>%
+  group_by(ID) %>%
+  summarize(sllik=sum(nlmixrLlikObs))
+
+
+print(dm1ll)
+
+print(dm2ll)
+```
+
+In the normal (non generalized likelihood) the observation likelihoods are given by $l_{i, obs}$:
+
+$$l_{i, obs} = -0.5\times\left(\frac{\textsf{IPRED}-\textsf{DV}}{v}\right)^2-0.5*\log(v)$$
+
+Where $v=$ variance of the estimate at that point.  In this case it is $\textsf{add.sd}^2$
+
+You can see part of the difference is the relative differences of this term for subjects. If you want, you can see which observations give the biggest difference by comparing point by point.
+
+## Finishing up the likelihood calculation
+
+This is a bit more involved mathematically, but uses the new output `$etaH` to calculate the individual log-likelihood.
+
+You may notice the sum of these items also do not equal the individual
+likelihood components; this is because the individual likelihood
+contain two extra components in addition to the observation likelihoods
+given in the `nlmixrLlikObs`
+
+First is the individual `omega`/`eta` contribution:
+
+$$l_{i,\Omega}=-\frac{1}{2}\boldsymbol{\eta_i^T\Omega^{-1}\eta_i}-\frac{1}{2}\log\det\boldsymbol{\Omega}$$
+
+(note that the $2\pi$ factor is not included like NONMEM)
+
+The Individual Negative Hessian ($\Delta l_i(\boldsymbol{\eta_i})$) contribution:
+
+$$l_{i, \Delta l} =-\sum(\mathsf{diag}(\mathsf{chol}(-\Delta l_i(\boldsymbol{\eta_i}))))$$
+So the full individual likelihood can be calculated with:
+
+$$l_i = l_{i, obs} + l_{i, \omega} + l_{i, \Delta l}$$
+
+You could finish up the likelihood calculations from the output of `nlmixr2`.
+
+Lets take the values from one individual to show this:
+
+```{r, oneOmega}
+omega <- fit1$omega
+omega1 <- solve(omega)
+
+eta <- t(as.matrix(fit1$eta[1,-1]))
+
+
+
+-(dm1ll$sllik[1] - 0.5*(t(eta) %*% omega1 %*% eta))+log(diag(chol(omega1)))
+
+
+```
+
+### References
