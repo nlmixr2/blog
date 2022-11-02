@@ -32,4 +32,10 @@ Pharmacometricians/modelers with basic knowledge on model building, evaluation a
 ## Workshop overview
 
 The workshop will provide a tutorial on nlmixr2 and how to use PKNCA
-to auto-start popualtion PK models based on Noncompartmental analysis.
+to auto-start population PK models based on noncompartmental analysis.
+
+## Workshop materials
+
+The materials for the course are available below:
+
+* [The R script to run the workshop materials](nlmixr2-pknca_tutorial.R)
