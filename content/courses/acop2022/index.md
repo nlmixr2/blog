@@ -2,12 +2,11 @@
 author: Matt Fidler and Bill Denney
 categories:
 - workshop
-date: 4 November 2022
-draft: false
+date: "2022-11-03"
 draft: false
 event: ACoP (2022)
 event_url: "https://www.go-acop.org/default.asp?id=46&keuze=meeting&mid=21"
-excerpt: "This is the course we presented at ACoP in Aurora, Colorado."
+excerpt: "This is the course we presented at ACoP in Aurora, Colorado on 4 November 2022."
 featured: true
 layout: single
 links:

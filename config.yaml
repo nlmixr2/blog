@@ -30,6 +30,8 @@ markup:
     ordered: no
     startLevel: 2
 params:
+  defaultContentLanguage: en
+  languageCode: en_us
   custom_theme: nlmixr-hex
   customheadingFontFamily: Atkinson Hyperlegible
   customtextFontFamily: Atkinson Hyperlegible
