@@ -1,5 +1,5 @@
 ---
-author: Matt Fidler & Bill Denney
+author: "Matt Fidler, Bill Denney"
 categories:
 - workshop
 date: "2022-11-04"
@@ -7,7 +7,7 @@ date_end: "2022-11-04"
 draft: false
 event: ACoP (2022)
 event_url: "https://www.go-acop.org/default.asp?id=46&keuze=meeting&mid=21"
-excerpt: This is the course we presented at ACoP in Aurora, Colorado.
+excerpt: "This is the course we presented at ACoP in Aurora, Colorado."
 featured: true
 layout: single
 links:
@@ -18,8 +18,8 @@ links:
 - icon: github
   icon_pack: fab
   name: code
-  url: https://github.com/nlmixr2/courses/tree/main/ACoP2022
-location: Aurora, Colorado
+  url: "https://github.com/nlmixr2/courses/tree/main/ACoP2022"
+location: "Aurora, Colorado"
 show_post_time: false
 subtitle: ACoP 2022
 title: "Using nlmixr2 for automatically selecting PK models with PKNCA"
