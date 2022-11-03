@@ -1,9 +1,9 @@
 ---
-author: Matt Fidler
+author: Matt Fidler and Bill Denney
 categories:
 - workshop
 date: "2022-11-04"
-date_end: "2022-11-04"
+date_end: "2022-11-05"
 draft: false
 event: ACoP (2022)
 event_url: "https://www.go-acop.org/default.asp?id=46&keuze=meeting&mid=21"
