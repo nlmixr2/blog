@@ -36,6 +36,4 @@ to auto-start population PK models based on noncompartmental analysis.
 
 ## Workshop materials
 
-The materials for the course are available below:
-
-* [The R script to run the workshop materials](nlmixr2-pknca_tutorial.R)
+The materials for the course are available in the [nlmixr2 courses repository](https://github.com/nlmixr2/courses/blob/main/ACoP2022/).
