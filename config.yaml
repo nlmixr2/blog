@@ -56,6 +56,9 @@ params:
     - icon: linkedin
       icon_pack: fab
       url: https://www.linkedin.com/groups/8621368/
+    - icon: mastodon
+      icon_pack: fab
+      url: https://fosstodon.org/web/@nlmixr2
     - icon: twitter
       icon_pack: fab
       url: https://twitter.com/hashtag/nlmixr
