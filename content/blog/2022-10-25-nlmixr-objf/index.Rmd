@@ -40,13 +40,12 @@ likelihood:
 Other components may be accessed as well:
 
 
-| Syntax | Values returned |
-|---------|------------------|
-| `$phiH`, `$etaH` | -Hessian matrix | 
-
+| Syntax           | Values returned                  |
+|------------------|------------------                |
+| `$phiH`, `$etaH` | -Hessian matrix                  |  
 | `$phiC`, `$etaC` |  Covariance matrix, standard deviations on diagonals, correlations on off-diagonals | 
 | `$phiR`, `$etaR` | Correlation matrix, standard deviations on diagonals, correlations on off-diagonals | 
-| `$phiSE`, `$etaSE` | standard error of each individual's eta |
+| `$phiSE`, `$etaSE`   | standard error of each individual's eta |
 | `$phiRSE`, `$etaRSE` | relative standard error of each individual's eta |
 
 These all require that the `cwres` are in the fit because they come from the `focei` calculations
@@ -54,10 +53,9 @@ These all require that the `cwres` are in the fit because they come from the `fo
 # Objective function Motivating example
 
 I was working with Bill Denney to prepare the upcoming
-`babelmixr2`. In this package, you can perform a `NCA` analysis (using
-`PKNCA`), then use these values (and possibly calculate a unit
-conversion) to create a initial `nlmixr2` PK model. This model has
-with `NCA` derived initial estimates and ranges (and needed unit
+[`babelmixr2`](https://github.com/nlmixr2/babelmixr2). In this package, you can perform an `NCA` analysis (using
+[`PKNCA`](https://github.com/billdenney/pknca)), then use these values (and possibly calculate a unit conversion) to create a initial `nlmixr2` PK model. This model has
+derived initial estimates and ranges with `NCA` (and needed unit
 conversions too)!
 
 This is exciting to me, as someone who has been wanting this feature
@@ -243,7 +241,7 @@ You can see the individual Hessian contribution is acutally large in
 this particular implementation.
 
 
-# Conculsion
+# Conclusion
 
 Well that is everything for now.  This illustrates a few things:
 
