@@ -40,13 +40,13 @@ likelihood:
 Other components may be accessed as well:
 
 
-| Syntax           | Values returned                  |
-|------------------|------------------                |
-| `$phiH`, `$etaH` | -Hessian matrix                  |  
-| `$phiC`, `$etaC` |  Covariance matrix, standard deviations on diagonals, correlations on off-diagonals | 
-| `$phiR`, `$etaR` | Correlation matrix, standard deviations on diagonals, correlations on off-diagonals | 
-| `$phiSE`, `$etaSE`   | standard error of each individual's eta |
-| `$phiRSE`, `$etaRSE` | relative standard error of each individual's eta |
+| Syntax               | Values returned                                                                                   |
+|----------------------|---------------------------------------------------------------------------------------------------|
+| `$phiH`, `$etaH`     |  Hessian matrix                                                                                   |  
+| `$phiC`, `$etaC`     |  Covariance matrix, standard deviations on diagonals, correlations on off-diagonals          | 
+| `$phiR`, `$etaR`     | Correlation matrix, standard deviations on diagonals, correlations on off-diagonals          | 
+| `$phiSE`, `$etaSE`   | standard error of each individual's eta                                                           |
+| `$phiRSE`, `$etaRSE` | relative standard error of each individual's eta                                                  |
 
 These all require that the `cwres` are in the fit because they come from the `focei` calculations
 
