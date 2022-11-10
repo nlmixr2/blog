@@ -1,0 +1,353 @@
+---
+title: "nlmixr2 2.0.8 Objectively Surprising"
+author: "Matt Fidler and the nlmixr2 Development Team"
+date: "2022-10-25"
+slug: []
+bibliography: [refs.bib]
+link-citations: true
+csl: vancouver.csl
+categories: [nlmixr2]
+tags: [new-version]
+---
+
+
+
+<p>Last time I blogged promised to talk about a few other things, including:</p>
+<ul>
+<li><p>Likelihood based on each observation (and how to get it)</p></li>
+<li><p>Standard Errors / Hessians, etc for between subject variabilities
+or <code>eta</code>s (and how to get them)</p></li>
+</ul>
+<p>Hessians for the individual between subject variability is also used
+for the <code>focei</code> calculation. So, if you are impatient, I will give
+you brief instructions on where to get each component of the
+likelihood:</p>
+<ul>
+<li><p>The individual observation’s likelihood contribution is contained in
+the datasets where the original (left) merged with the fit (right)
+in any of the following accessor methods: <code>fit$dataMergeLeft</code>,
+<code>fit$dataMergeRight</code>, <code>fit$dataMergeInner</code>, or <code>fit$dataMergeFull</code>.
+In these dataset an new column is added <code>$nlmixrLlikObs</code></p>
+<ul>
+<li>The individual -Hessian <code>etas</code> can be accessed by <code>fit$etaH</code> or <code>fit$phiH</code></li>
+</ul></li>
+</ul>
+<p>Other components may be accessed as well:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Syntax</th>
+<th>Values returned</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>$phiH</code>, <code>$etaH</code></td>
+<td>-Hessian matrix</td>
+</tr>
+</tbody>
+</table>
+<div class="line-block"><code>$phiC</code>, <code>$etaC</code> | Covariance matrix, standard deviations on diagonals, correlations on off-diagonals |<br />
+<code>$phiR</code>, <code>$etaR</code> | Correlation matrix, standard deviations on diagonals, correlations on off-diagonals |<br />
+<code>$phiSE</code>, <code>$etaSE</code> | standard error of each individual’s eta |<br />
+<code>$phiRSE</code>, <code>$etaRSE</code> | relative standard error of each individual’s eta |</div>
+<p>These all require that the <code>cwres</code> are in the fit because they come from the <code>focei</code> calculations</p>
+<div id="objective-function-motivating-example" class="section level1">
+<h1>Objective function Motivating example</h1>
+<p>I was working with Bill Denney to prepare the upcoming
+<code>babelmixr2</code>. In this package, you can perform a <code>NCA</code> analysis (using
+<code>PKNCA</code>), then use these values (and possibly calculate a unit
+conversion) to create a initial <code>nlmixr2</code> PK model. This model has
+with <code>NCA</code> derived initial estimates and ranges (and needed unit
+conversions too)!</p>
+<p>This is exciting to me, as someone who has been wanting this feature
+in nonlinear mixed effects modeling packages like <code>nlmixr2</code> for quite
+awhile.</p>
+<div id="two-nearly-identical-models" class="section level2">
+<h2>Two nearly identical models</h2>
+<p>Still, when testing this we came across the following (possibly)
+surprising situation:</p>
+<pre class="r"><code>one.compartment &lt;- function() {
+  ini({
+    tka &lt;- 0.45 # Log Ka
+    tcl &lt;- 1 # Log Cl
+    tv &lt;- 3.45    # Log V
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+    add.sd &lt;- 0.7
+  })
+  model({
+    ka &lt;- exp(tka + eta.ka)
+    cl &lt;- exp(tcl + eta.cl)
+    v &lt;- exp(tv + eta.v)
+    d/dt(depot) = -ka * depot
+    d/dt(center) = ka * depot - cl / v * center
+    cp = center / v
+    cp ~ add(add.sd)
+  })
+}
+
+fit1 &lt;- nlmixr(one.compartment, nlmixr2data::theo_sd,  
+               est=&quot;focei&quot;, control=list(print=0))</code></pre>
+<pre><code>## ℹ parameter labels from comments will be replaced by &#39;label()&#39;</code></pre>
+<pre><code>## calculating covariance matrix
+## done</code></pre>
+<pre><code>## → Calculating residuals/tables</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → compress origData in nlmixr2 object, save 5952</code></pre>
+<pre><code>## → compress parHist in nlmixr2 object, save 2400</code></pre>
+<p>Now multiply the <code>cp</code> by 1000 and the observations by 1000 for a
+nearly identical model (ie, change the scale for different units)</p>
+<pre class="r"><code>d2 &lt;- nlmixr2data::theo_sd %&gt;%
+  mutate(DV=ifelse(AMT==0, DV*1000, DV))
+
+# Use model piping to scale `cp`:
+one.compartment %&gt;%
+  model(cp = 1000*center/v) %&gt;%
+  ini(add.sd=700)-&gt; 
+  m2</code></pre>
+<pre><code>## ℹ parameter labels from comments will be replaced by &#39;label()&#39;</code></pre>
+<pre><code>## ℹ change initial estimate of `add.sd` to `700`</code></pre>
+<pre class="r"><code># Verify the new model
+print(m2)</code></pre>
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────── 
+##  ── Initalization: ──  
+## Fixed Effects ($theta): 
+##    tka    tcl     tv add.sd 
+##   0.45   1.00   3.45 700.00 
+## 
+## Omega ($omega): 
+##        eta.ka eta.cl eta.v
+## eta.ka    0.6    0.0   0.0
+## eta.cl    0.0    0.3   0.0
+## eta.v     0.0    0.0   0.1
+## 
+## States ($state or $stateDf): 
+##   Compartment Number Compartment Name
+## 1                  1            depot
+## 2                  2           center
+##  ── μ-referencing ($muRefTable): ──  
+##   theta    eta level
+## 1   tka eta.ka    id
+## 2   tcl eta.cl    id
+## 3    tv  eta.v    id
+## 
+##  ── Model (Normalized Syntax): ── 
+## function() {
+##     ini({
+##         tka &lt;- 0.45
+##         label(&quot;Log Ka&quot;)
+##         tcl &lt;- 1
+##         label(&quot;Log Cl&quot;)
+##         tv &lt;- 3.45
+##         label(&quot;Log V&quot;)
+##         add.sd &lt;- c(0, 700)
+##         eta.ka ~ 0.6
+##         eta.cl ~ 0.3
+##         eta.v ~ 0.1
+##     })
+##     model({
+##         ka &lt;- exp(tka + eta.ka)
+##         cl &lt;- exp(tcl + eta.cl)
+##         v &lt;- exp(tv + eta.v)
+##         d/dt(depot) = -ka * depot
+##         d/dt(center) = ka * depot - cl/v * center
+##         cp &lt;- 1000 * center/v
+##         cp ~ add(add.sd)
+##     })
+## }</code></pre>
+<pre class="r"><code>fit2 &lt;- nlmixr(m2, d2, est=&quot;focei&quot;, control=list(print=0))</code></pre>
+<pre><code>## calculating covariance matrix
+## done</code></pre>
+<pre><code>## → Calculating residuals/tables</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → compress origData in nlmixr2 object, save 6400</code></pre>
+<pre><code>## → compress parHist in nlmixr2 object, save 1856</code></pre>
+<div id="comparing-estimates" class="section level3">
+<h3>Comparing Estimates</h3>
+<p>As expected the population estimates are similar:</p>
+<pre class="r"><code>#fit1
+print(fixef(fit1))</code></pre>
+<pre><code>##       tka       tcl        tv    add.sd 
+## 0.4755982 1.0152032 3.4605765 0.6964329</code></pre>
+<pre class="r"><code>#fit2 
+print(fixef(fit2))</code></pre>
+<pre><code>##         tka         tcl          tv      add.sd 
+##   0.4632747   1.0116245   3.4602015 695.3004086</code></pre>
+<p>Note that the additive error is (unsurprisingly) larger by a factor of about 1000.</p>
+<p>Still, the Omega matrices are similar too:</p>
+<pre class="r"><code># fit 1
+print(fit1$omega)</code></pre>
+<pre><code>##           eta.ka     eta.cl     eta.v
+## eta.ka 0.3965371 0.00000000 0.0000000
+## eta.cl 0.0000000 0.06609421 0.0000000
+## eta.v  0.0000000 0.00000000 0.0189034</code></pre>
+<pre class="r"><code># fit 2 
+print(fit2$omega)</code></pre>
+<pre><code>##           eta.ka     eta.cl      eta.v
+## eta.ka 0.3892106 0.00000000 0.00000000
+## eta.cl 0.0000000 0.06839672 0.00000000
+## eta.v  0.0000000 0.00000000 0.01885031</code></pre>
+<p>And the etas:</p>
+<pre class="r"><code># fit 1
+print(fit1$etaObf)</code></pre>
+<pre><code>##    ID      eta.ka      eta.cl        eta.v      OBJI
+## 1   1  0.07380512 -0.47377507 -0.092726943 12.731100
+## 2   2  0.18745323  0.14029818  0.004629602 17.761561
+## 3   3  0.36028190  0.02522593  0.052062437  0.241700
+## 4   4 -0.29241554 -0.02115808 -0.013641003 10.966127
+## 5   5 -0.05365737 -0.15263117 -0.144045845 29.068040
+## 6   6 -0.39525871  0.36564639  0.193421905  7.797285
+## 7   7 -0.78074888  0.14163632  0.055298747  2.226522
+## 8   8 -0.17817254  0.16047222  0.093002288  6.936265
+## 9   9  1.34938977  0.04245204 -0.001210923  8.356287
+## 10 10 -0.74338444 -0.38309248 -0.172511056  8.096207
+## 11 11  0.74253294  0.28298630  0.135626472  3.353714
+## 12 12 -0.52921042 -0.12846924 -0.201645041  9.287018</code></pre>
+<pre class="r"><code># fit 2
+print(fit2$etaObf)</code></pre>
+<pre><code>##    ID      eta.ka      eta.cl        eta.v     OBJI
+## 1   1  0.08676139 -0.47321299 -0.091753369 164.5500
+## 2   2  0.19859995  0.14435666  0.004612295 169.7950
+## 3   3  0.37118976  0.02871478  0.052154278 152.2332
+## 4   4 -0.28032986 -0.01807234 -0.013271402 162.9404
+## 5   5 -0.04139780 -0.14997041 -0.143548796 181.0793
+## 6   6 -0.38511801  0.37180668  0.192607687 159.7349
+## 7   7 -0.76890394  0.14568098  0.055362585 154.1730
+## 8   8 -0.16701882  0.16475592  0.092908448 158.9137
+## 9   9  1.35698124  0.04608685 -0.001213913 160.5138
+## 10 10 -0.72976734 -0.38187406 -0.171329853 159.9207
+## 11 11  0.75188271  0.28813929  0.135213191 155.3850
+## 12 12 -0.51666992 -0.12569554 -0.201079720 161.2189</code></pre>
+<p>The ETAs are similar too; You can also see the individual contribution
+to the objective functions are quite different (<code>OBJI</code>). So it should
+be no surprise that the objective functions are different:</p>
+<pre class="r"><code># fit 1
+print(fit1$objf)</code></pre>
+<pre><code>## [1] 116.8218</code></pre>
+<pre class="r"><code># fit 2
+print(fit2$objf)</code></pre>
+<pre><code>## [1] 1940.458</code></pre>
+</div>
+</div>
+<div id="what-about-nonmem" class="section level2">
+<h2>What about NONMEM?</h2>
+<p>You might say, well, maybe <code>nlmixr2</code> is broken? (If you see anything
+surprising of course submit a bug report if you can).</p>
+<p>Well, with the coming <code>babelmixr2</code> you can run the same models in
+NONMEM (with certain caveats we will discuss later).</p>
+<p>So…</p>
+<p>The objective functions are basically the same between <code>NONMEM</code> and
+<code>nlmixr2</code>. So it is still matching NONMEM’s <code>focei</code> approximation
+here. The small differences in the <code>NONMEM</code> and <code>nlmixr2</code> model is
+likely differences optimization. (we use different optimization
+procedures).</p>
+<p>Note we still validate against known <code>focei</code> objective functions in <code>NONMEM</code>.</p>
+</div>
+<div id="exploring-more-with-individual-observation-contribution" class="section level2">
+<h2>Exploring more with individual observation contribution</h2>
+<p>One of the new features is the ability to see individual observations
+contribution to the likelihood in <code>focei</code> related methods.</p>
+<p>This can help us explore the differences.</p>
+<p>In <code>nlmixr2</code>, you can use the <code>fit$dataMergeInner</code> to merge the
+original data and the fit data. During this merge process it will also
+add the column <code>$nlmixrLlikObs</code>:</p>
+<pre class="r"><code>dm1 &lt;- fit1$dataMergeInner
+
+dm1ll &lt;- dm1 %&gt;%
+  select(ID, nlmixrLlikObs) %&gt;%
+  group_by(ID) %&gt;%
+  summarize(sllik=sum(nlmixrLlikObs))
+
+dm2 &lt;- fit2$dataMergeInner
+
+dm2ll &lt;- dm2 %&gt;%
+  group_by(ID) %&gt;%
+  summarize(sllik=sum(nlmixrLlikObs))
+
+
+print(dm1ll)</code></pre>
+<pre><code>## # A tibble: 12 × 2
+##    ID     sllik
+##    &lt;fct&gt;  &lt;dbl&gt;
+##  1 1      0.648
+##  2 2      3.24 
+##  3 3      2.29 
+##  4 4      0.916
+##  5 5      0.126
+##  6 6      2.87 
+##  7 7      1.10 
+##  8 8     -9.99 
+##  9 9     -1.94 
+## 10 10     3.47 
+## 11 11    -5.27 
+## 12 12    -0.691</code></pre>
+<pre class="r"><code>print(dm2ll)</code></pre>
+<pre><code>## # A tibble: 12 × 2
+##    ID    sllik
+##    &lt;fct&gt; &lt;dbl&gt;
+##  1 1     -75.3
+##  2 2     -72.7
+##  3 3     -73.7
+##  4 4     -75.1
+##  5 5     -75.9
+##  6 6     -73.1
+##  7 7     -74.9
+##  8 8     -86.0
+##  9 9     -77.9
+## 10 10    -72.5
+## 11 11    -81.3
+## 12 12    -76.7</code></pre>
+<pre class="r"><code># It is clear that there are individual differences in log-likelihood</code></pre>
+<p>In the normal (non generalized likelihood) the observation likelihoods are given by <span class="math inline">\(l_{i, obs}\)</span>:</p>
+<p><span class="math display">\[l_{i, obs} = -0.5\times\left(\frac{\textsf{IPRED}-\textsf{DV}}{v}\right)^2-0.5*\log(v)\]</span></p>
+<p>Where <span class="math inline">\(v=\)</span> variance of the estimate at that point. In this case it is <span class="math inline">\(\textsf{add.sd}^2\)</span></p>
+<p>You can see part of the difference is the relative differences of this
+term for subjects. If you want, you can see which observations give
+the biggest difference by comparing point by point. In this case the
+variances are larger since everything is multiplied by <code>1000</code>. Hence
+the objective function difference.</p>
+</div>
+<div id="finishing-up-the-likelihood-calculation" class="section level2">
+<h2>Finishing up the likelihood calculation</h2>
+<p>A part of the individual Hessians are the other component that is used
+in the likelihood calculation. With the new tools you can also see
+what this contribution to each individual’s likelihood is:</p>
+<pre class="r"><code>hess1 &lt;- merge(fit1$etaObf, dm1ll) %&gt;%
+  mutate(hessLlik=OBJI-sllik)
+
+hess2 &lt;- merge(fit2$etaObf, dm2ll) %&gt;%
+  mutate(hessLlik=OBJI-sllik)
+
+# Hess1
+print(hess1)
+# Hess2
+print(hess2)</code></pre>
+<p>You can see the individual Hessian contribution is acutally large in
+this particular implementation.</p>
+</div>
+</div>
+<div id="conculsion" class="section level1">
+<h1>Conculsion</h1>
+<p>Well that is everything for now. This illustrates a few things:</p>
+<ul>
+<li><p>How to get individual likelihoods</p></li>
+<li><p>How to split apart the likelihood contribution from the Normal
+assumption of the observations and the contribution from the
+hessian. (Note this works with generalized likelihood too)</p></li>
+<li><p>Where to get standard errors of <code>etas</code></p></li>
+</ul>
+<p>I wish I had known where these came from earlier, but I seem to want
+to know how things work. For a more in-depth reference you could use
+the paper by Almquist <span class="citation">(<a href="#ref-Almquist2015" role="doc-biblioref">1</a>)</span> to dig into the full likelihood
+math.</p>
+<div id="references" class="section level3 unnumbered">
+<h3>References</h3>
+<div id="refs" class="references csl-bib-body">
+<div id="ref-Almquist2015" class="csl-entry">
+<div class="csl-left-margin">1. </div><div class="csl-right-inline">Almquist J, Leander J, Jirstrand M. <a href="https://doi.org/10.1007/s10928-015-9409-1"><span class="nocase">Using sensitivity equations for computing gradients of the FOCE and FOCEI approximations to the population likelihood</span></a>. Journal of Pharmacokinetics and Pharmacodynamics. 2015 Jun;42(3):191–209. </div>
+</div>
+</div>
+</div>
+</div>

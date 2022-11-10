@@ -2,15 +2,12 @@
 title: "nlmixr2 2.0.8 Objectively Surprising"
 author: "Matt Fidler and the nlmixr2 Development Team"
 date: "2022-10-25"
-output:
-  html_document:
-    df_print: paged
-bibliography: refs.bib
-link-citations: yes
-csl: vancouver.csl
-categories: nlmixr2
-tags: "new-version"
 slug: []
+bibliography: [refs.bib]
+link-citations: true
+csl: vancouver.csl
+categories: [nlmixr2]
+tags: [new-version]
 ---
 
 ```{r setup, include=FALSE}
