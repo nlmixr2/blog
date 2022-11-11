@@ -1,7 +1,7 @@
 ---
 title: "babelmixr2, nlmixr2 and NONMEM"
 author: "Matt Fidler and the nlmixr2 Development Team"
-date: "2022-10-25"
+date: "2022-11-11"
 slug: []
 bibliography: [refs.bib]
 link-citations: true
