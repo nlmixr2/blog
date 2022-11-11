@@ -158,7 +158,7 @@ completed model. When reading in a NONMEM model, <code>babelmixr2</code> grabs:<
 <li><code>NONMEM</code>’s covariance (if available)</li>
 <li><code>NONMEM</code>’s optimization history</li>
 <li><code>NONMEM</code>’s final parameter estimates (including the ETAs)</li>
-<li><code>NONMEM</code>’s <code>PRED</code> and <code>IPRED</code> values</li>
+<li><code>NONMEM</code>’s <code>PRED</code> and <code>IPRED</code> values (for validation purposes)</li>
 </ul>
 <p>These are used to solve the ODEs <em>as if they came from a nlmixr2</em>
 optimization procedure.</p>
@@ -178,8 +178,8 @@ have a validated <code>roxde2</code>/<code>nlmixr2</code> model.</p>
 ## 
 ## ── Time (sec $time): ──
 ## 
-##           setup table compress   other
-## elapsed 0.00565 0.176    0.029 6.25835
+##            setup table compress    other
+## elapsed 0.005316 0.135    0.032 5.769684
 ## 
 ## ── Population Parameters ($parFixed or $parFixedDf): ──
 ## 
@@ -311,8 +311,8 @@ the <code>rxode2</code> model below:</p>
 ## 
 ## ── Time (sec f2$time): ──
 ## 
-##           setup table compress   other
-## elapsed 0.00438  0.14     0.03 5.46162
+##            setup table compress    other
+## elapsed 0.004381 0.134    0.028 5.195619
 ## 
 ## ── Population Parameters (f2$parFixed or f2$parFixedDf): ──
 ## 

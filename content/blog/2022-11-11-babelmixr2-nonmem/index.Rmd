@@ -171,7 +171,7 @@ completed model.  When reading in a NONMEM model, `babelmixr2` grabs:
 - `NONMEM`'s covariance (if available)
 - `NONMEM`'s optimization history
 - `NONMEM`'s final parameter estimates (including the ETAs)
-- `NONMEM`'s `PRED` and `IPRED` values
+- `NONMEM`'s `PRED` and `IPRED` values (for validation purposes)
 
 These are used to solve the ODEs *as if they came from a nlmixr2*
 optimization procedure.
