@@ -1,0 +1,264 @@
+---
+title: "babelmixr2, nlmixr2 and NONMEM"
+author: "Matt Fidler and the nlmixr2 Development Team"
+date: "2022-10-25"
+slug: []
+bibliography: [refs.bib]
+link-citations: true
+csl: vancouver.csl
+categories: [nlmixr2]
+tags: [new-version]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rxode2)
+library(tidyverse)
+library(babelmixr2)
+```
+
+I remember attending a virtual ACoP where Tim Waterhouse said "This
+person is so convincing that the could sell NONMEM to a nlmixr
+developer".  I was in the wrong meeting so I laughed and connected to
+the correct meeting.
+
+While he is correct, I don't really want to purchase a NONMEM license,
+I would believe that individual pharmacometricians are the same, they
+do not want to buy a license of the software the use at work (although
+CROs are different here).
+
+That being said, I have used `NOMMEM` long before I helped develop
+`nlmixr2`, and has always appreciated all that `NONMEM` brought to the
+pharmacometrics community. I remember when I ran my first `NONMEM` model
+I was amazed and wondered how it could calculate both individual and
+population effects of a complicated system.
+
+I still think `NONMEM` has an important part in our pharmacometrics
+ecosystem today.
+
+Still our vision stands:
+
+> To develop an R-based open-source nonlinear mixed-effects modeling
+> software that can compete with commercial tools and is suitable for
+> regulatory submissions.
+
+which means it would be really convenient to have an interface to
+convert to `NONMEM` and other tools to make sure we can compete with
+the commercial tools.
+
+With this in mind, I am proud to announce the first `nlmixr2` to
+`NONMEM` translator in `babelmixr2`.
+
+While this has been done before, the *method* that we are converting
+between the two is novel and has some surprising advantages.
+
+# How to use `NONMEM` with `nlmixr2`
+
+To use `NONMEM` in nlmixr, you do not need to change your data or your
+nlmixr2 dataset.  `babelmixr2` will do the heavy lifting here.
+
+Lets take the classic `warfarin` example to start the comparison with:
+
+The model we use in the `nlmixr2` vignettes is:
+
+```{r}
+library(babelmixr2)
+# The nonmem translation requires the package pmxTools as well.
+# You do not need to load it, simply have it available for use.
+pk.turnover.emax3 <- function() {
+  ini({
+    tktr <- log(1)
+    tka <- log(1)
+    tcl <- log(0.1)
+    tv <- log(10)
+    ##
+    eta.ktr ~ 1
+    eta.ka ~ 1
+    eta.cl ~ 2
+    eta.v ~ 1
+    prop.err <- 0.1
+    pkadd.err <- 0.1
+    ##
+    temax <- logit(0.8)
+    tec50 <- log(0.5)
+    tkout <- log(0.05)
+    te0 <- log(100)
+    ##
+    eta.emax ~ .5
+    eta.ec50  ~ .5
+    eta.kout ~ .5
+    eta.e0 ~ .5
+    ##
+    pdadd.err <- 10
+  })
+  model({
+    ktr <- exp(tktr + eta.ktr)
+    ka <- exp(tka + eta.ka)
+    cl <- exp(tcl + eta.cl)
+    v <- exp(tv + eta.v)
+    emax = expit(temax+eta.emax)
+    ec50 =  exp(tec50 + eta.ec50)
+    kout = exp(tkout + eta.kout)
+    e0 = exp(te0 + eta.e0)
+    ##
+    DCP = center/v
+    PD=1-emax*DCP/(ec50+DCP)
+    ##
+    effect(0) = e0
+    kin = e0*kout
+    ##
+    d/dt(depot) = -ktr * depot
+    d/dt(gut) =  ktr * depot -ka * gut
+    d/dt(center) =  ka * gut - cl / v * center
+    d/dt(effect) = kin*PD -kout*effect
+    ##
+    cp = center / v
+    cp ~ prop(prop.err) + add(pkadd.err)
+    effect ~ add(pdadd.err) | pca
+  })
+}
+```
+
+Next you have to figure out the command to run `NONMEM` it is often
+useful to use the full command path.  You can use it in
+`options("babelmixr2.nonmem"="nmfe743")` or use
+`nonmemControl(runCommand="nmfe743")`.  I prefer the `options()`
+method since you only need to set it once.  This could also be a
+function if you prefer (but I will not cover using the function here).
+
+Lets assume you have `NONMEM` setup appropriately.  To run the
+`nlmixr2` model using `NONMEM` you simply can run it directly:
+
+```{r}
+testthat::expect_error(nlmixr(pk.turnover.emax3, nlmixr2data::warfarin, "nonmem",
+                              nonmemControl(readRounding=FALSE, modelName="pk.turnover.emax3")))
+```
+
+Note that a few options you may note in the `nonmemControl()` here is
+`modelName` which helps control the output directory of `NONMEM` (if
+not specified `babelmixr2` tries to guess based on the model name based on the input).
+
+Now if you wanted, you could do the standard approach of changing
+`sigdig`, `sigl`, `tol` etc., to get a successful `NONMEM` model
+convergence, of course that is supported.
+
+One of the other approaches is to **ignore** the rounding errors that
+have occurred and read into `nlmixr2` anyway:
+
+```{r}
+# Can still load the model to get information (possibly pipe) and create a new model
+f <- nlmixr(pk.turnover.emax3, nlmixr2data::warfarin, "nonmem",
+            nonmemControl(readRounding=TRUE, modelName="pk.turnover.emax3"))
+```
+
+You may see more work than you expected to read in an already
+completed model.  When reading in a NONMEM model, `babelmixr2` grabs:
+
+- `NONMEM`'s objective function value
+- `NONMEM`'s covariance (if available)
+- `NONMEM`'s optimization history
+- `NONMEM`'s final parameter estimates (including the ETAs)
+- `NONMEM`'s `PRED` and `IPRED` values
+
+These are used to solve the ODEs *as if they came from a nlmixr2*
+optimization procedure.
+
+This means that you can compare the `IPRED` and `PRED` values of
+`nlmixr2`/`rxode2` and *know immediately* if your model validates.
+This is similar to the procedure Kyle Baron advocates for validating a
+NONMEM model against a `mrgsolve` model (see
+https://mrgsolve.org/blog/posts/2022-05-validate-translation/). 
+
+The advantage of this method is that you simply write one model to
+have a validated `roxde2`/`nlmixr2` model.
+
+In this case you can see the validation when you print the fit object:
+```{r}
+print(f)
+```
+
+That is in this case:
+
+```
+    IPRED relative difference compared to Nonmem IPRED: 0%; 95% percentile: (0%,0%); rtol=7.3e-06
+    PRED relative difference compared to Nonmem PRED: 0%; 95% percentile: (0%,0%); rtol=6.57e-06
+    IPRED absolute difference compared to Nonmem IPRED: atol=7.97e-05; 95% percentile: (2.18e-06, 0.00064)
+    PRED absolute difference compared to Nonmem PRED: atol=6.57e-06; 95% percentile: (2.75e-07,0.00337)
+
+```
+
+Which means there is very little differences between the predictions
+of `rxode2` and `NONMEM`, or this model is validated.
+
+Since it *is* a `nlmixr2` fit, you can do interesting things with this fit that you couldn't do in `NONMEM` or even in another translator.  For example, if you wanted to add a covariance step you can with `getVarCov()`:
+
+```{r}
+getVarCov(f)
+```
+
+nlmixr2 is more generous in what constitutes a covariance step.  The
+`r,s` covariance matrix is the "most" successful covariance step for
+`focei`, but will fall back to other methods.
+
+While this covariance is not `r,s`, and should be regarded with
+caution, it scan still give clues on why this is not working in
+`NONMEM`.
+
+When examining the fit, you can see the shrinkage is high for temax tktr and tka, so they could be dropped with a model in nonmem that is more likely to converge in NONMEM.
+
+If we use model piping to remove the parameters, then the new run will
+start at the last model's best estimates (saving my model development
+time too).
+
+In this case, I specify the output directory `pk.turnover.emax4` with
+the control and get the following:
+
+```{r}
+f2 <- f %>% model(ktr <- exp(tktr)) %>%
+  model(ka <- exp(tka)) %>%
+  model(emax = expit(temax)) %>%
+  nlmixr(data=nlmixr2data::warfarin, est="nonmem",
+         control=nonmemControl(readRounding=FALSE,
+                               modelName="pk.turnover.emax4"))
+```
+
+You can see the `NONMEM` run is now successful and validates against
+the `rxode2` model.
+
+
+One thing to note, you will know immediately if the translation is off
+because the model will not validate.  Hence you can start this process
+with confidence that you will know immediately if something is wrong.
+
+# Conclusion
+
+The first release of `babelmixr2` includes a `NONMEM` translation.
+The advantages of this are:
+
+- For `nlmixr2` development, we can easily compare to NONMEM to try to
+  make this competitive with commercial software.
+  
+- For people who are using `rxode2` and `NONMEM`, writing a model with
+  nlmixr2 syntax and using it to run NONMEM will make sure you only
+  write one model and save you time debugging and coding it yourself.
+  
+- For users, you can take an unsuccessful NONMEM step, get information
+  (ie covariance shrikage etc) about the model and you will be able to
+  make informed decisions on how to proceed.
+
+Many of these advantages are because `babelmixr2` is not platform
+agnostic, rather it leans into helping `nlmixr2` development and
+having `nlmixr2` help pharmcometricans in daily tasks.
+
+If you are an astute reader, you will also notice that the full model
+runs in `nlmixr2`'s focei without adjustment.  I would like to caution
+that this doesn't mean that `nlmixr2`'s focei is *better* rather it is
+different (as mentioned in the previous blog post).  I have seen cases
+in the past where something runs better in `NONMEM` than `nlmixr2` so
+comparisons based on a single model should be regarded with caution (I
+no longer have these examples though so I can display them in the blog
+either).
+
+
+
+### References
