@@ -178,8 +178,8 @@ have a validated <code>roxde2</code>/<code>nlmixr2</code> model.</p>
 ## 
 ## ── Time (sec $time): ──
 ## 
-##            setup table compress    other
-## elapsed 0.005325 0.135     0.03 5.830675
+##           setup table compress   other
+## elapsed 0.00565 0.176    0.029 6.25835
 ## 
 ## ── Population Parameters ($parFixed or $parFixedDf): ──
 ## 
@@ -290,12 +290,98 @@ the control and get the following:</p>
 <pre><code>## ! remove between subject variability `eta.ktr`</code></pre>
 <pre><code>## ! remove between subject variability `eta.ka`</code></pre>
 <pre><code>## ! remove between subject variability `eta.emax`</code></pre>
-<pre><code>## ℹ load saved nlmixr2 object</code></pre>
+<pre><code>## → loading into symengine environment...</code></pre>
+<pre><code>## → pruning branches (`if`/`else`) of full model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → finding duplicate expressions in EBE model...</code></pre>
+<pre><code>## → optimizing duplicate expressions in EBE model...</code></pre>
+<pre><code>## → compiling EBE model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → Calculating residuals/tables</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → compress origData in nlmixr2 object, save 27560</code></pre>
+<pre><code>## → compress parHist in nlmixr2 object, save 7448</code></pre>
 <p>You can see the <code>NONMEM</code> run is now successful and validates against
-the <code>rxode2</code> model.</p>
-<p>One thing to note, you will know immediately if the translation is off
-because the model will not validate. Hence you can start this process
-with confidence that you will know immediately if something is wrong.</p>
+the <code>rxode2</code> model below:</p>
+<pre class="r"><code>f2</code></pre>
+<pre><code>## ── nlmixr² nonmem ver 7.4.3 ──
+## 
+##                  OBJF      AIC      BIC Log-likelihood Condition Number
+## nonmem focei 1418.923 2338.618 2405.498      -1153.309     1.852796e+16
+## 
+## ── Time (sec f2$time): ──
+## 
+##           setup table compress   other
+## elapsed 0.00438  0.14     0.03 5.46162
+## 
+## ── Population Parameters (f2$parFixed or f2$parFixedDf): ──
+## 
+##                Est.       SE     %RSE     Back-transformed(95%CI) BSV(CV%)
+## tktr       6.24e-07 9.05e-05 1.45e+04                    1 (1, 1)         
+## tka       -3.57e-06 0.000153 4.29e+03                    1 (1, 1)         
+## tcl           -1.99   0.0639      3.2         0.136 (0.12, 0.154)     27.6
+## tv             2.05     2.66      130      7.76 (0.042, 1.44e+03)     23.6
+## prop.err      0.161                                         0.161         
+## pkadd.err     0.571                                         0.571         
+## temax          9.98     4.96     49.7                1 (0.565, 1)         
+## tec50         0.131     1.61 1.23e+03         1.14 (0.0489, 26.6)     43.6
+## tkout         -2.96     28.3      954 0.0517 (4.63e-26, 5.77e+22)     8.63
+## te0            4.57    0.411        9            96.7 (43.2, 217)     5.19
+## pdadd.err      3.59                                          3.59         
+##           Shrink(SD)%
+## tktr                 
+## tka                  
+## tcl            3.19% 
+## tv             10.7% 
+## prop.err             
+## pkadd.err            
+## temax                
+## tec50          7.12% 
+## tkout          33.8% 
+## te0            17.2% 
+## pdadd.err            
+##  
+##   Covariance Type (f2$covMethod): nonmem.r,s
+##   No correlations in between subject variability (BSV) matrix
+##   Full BSV covariance (f2$omega) or correlation (f2$omegaR; diagonals=SDs) 
+##   Distribution stats (mean/skewness/kurtosis/p-value) available in f2$shrink 
+##   Censoring (f2$censInformation): No censoring
+##   Minimization message (f2$message):  
+##     
+## 
+##  WARNINGS AND ERRORS (IF ANY) FOR PROBLEM    1
+## 
+##  (WARNING  2) NM-TRAN INFERS THAT THE DATA ARE POPULATION.
+## 
+##     
+## 0MINIMIZATION SUCCESSFUL
+##  HOWEVER, PROBLEMS OCCURRED WITH THE MINIMIZATION.
+##  REGARD THE RESULTS OF THE ESTIMATION STEP CAREFULLY, AND ACCEPT THEM ONLY
+##  AFTER CHECKING THAT THE COVARIANCE STEP PRODUCES REASONABLE OUTPUT.
+##  NO. OF FUNCTION EVALUATIONS USED:     2391
+##  NO. OF SIG. DIGITS IN FINAL EST.:  4.1
+## 
+##     IPRED relative difference compared to Nonmem IPRED: 0%; 95% percentile: (0%,0%); rtol=7.82e-06
+##     PRED relative difference compared to Nonmem PRED: 0%; 95% percentile: (0%,0%); rtol=7.17e-06
+##     IPRED absolute difference compared to Nonmem IPRED: atol=7.42e-05; 95% percentile: (2.13e-06, 0.000645)
+##     PRED absolute difference compared to Nonmem PRED: atol=7.17e-06; 95% percentile: (3.11e-07,0.00342)
+##     nonmem model: &#39;pk.turnover.emax4-nonmem/pk.turnover.emax4.nmctl&#39; 
+## 
+## ── Fit Data (object f2 is a modified tibble): ──
+## # A tibble: 483 × 32
+##   ID     TIME CMT      DV  PRED   RES IPRED   IRES IWRES eta.cl eta.v eta.ec50
+##   &lt;fct&gt; &lt;dbl&gt; &lt;fct&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;
+## 1 1       0.5 cp      0    1.16 -1.16 0.920 -0.920 -1.56  0.689 0.228    0.160
+## 2 1       1   cp      1.9  3.38 -1.48 2.68  -0.780 -1.09  0.689 0.228    0.160
+## 3 1       2   cp      3.3  7.53 -4.23 5.94  -2.64  -2.36  0.689 0.228    0.160
+## # … with 480 more rows, and 20 more variables: eta.kout &lt;dbl&gt;, eta.e0 &lt;dbl&gt;,
+## #   cp &lt;dbl&gt;, depot &lt;dbl&gt;, gut &lt;dbl&gt;, center &lt;dbl&gt;, effect &lt;dbl&gt;, ktr &lt;dbl&gt;,
+## #   ka &lt;dbl&gt;, cl &lt;dbl&gt;, v &lt;dbl&gt;, emax &lt;dbl&gt;, ec50 &lt;dbl&gt;, kout &lt;dbl&gt;, e0 &lt;dbl&gt;,
+## #   DCP &lt;dbl&gt;, PD &lt;dbl&gt;, kin &lt;dbl&gt;, tad &lt;dbl&gt;, dosenum &lt;dbl&gt;</code></pre>
+<p>One thing to note, unlike other translators, you will know immediately
+if the translation is off because the model will not validate. Hence
+you can start this process with confidence that you will know
+immediately if something is wrong.</p>
 </div>
 <div id="conclusion" class="section level1">
 <h1>Conclusion</h1>

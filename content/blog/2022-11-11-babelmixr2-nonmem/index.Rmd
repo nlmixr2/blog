@@ -21,8 +21,8 @@ if (!dir.exists("pk.turnover.emax3-nonmem")) {
 if (file.exists("pk.turnover.emax3-nonmem/pk.turnover.emax3-rounding.qs")) {
   unlink("pk.turnover.emax3-nonmem/pk.turnover.emax3-rounding.qs")
 }
-if (file.exists("pk.turnover.emax3-nonmem/pk.turnover.emax4.qs")) {
-  unlink("pk.turnover.emax3-nonmem/pk.turnover.emax4.qs")
+if (file.exists("pk.turnover.emax4-nonmem/pk.turnover.emax4.qs")) {
+  unlink("pk.turnover.emax4-nonmem/pk.turnover.emax4.qs")
 }
 
 library(rxode2)
@@ -236,12 +236,16 @@ f2 <- f %>% model(ktr <- exp(tktr)) %>%
 ```
 
 You can see the `NONMEM` run is now successful and validates against
-the `rxode2` model.
+the `rxode2` model below:
 
+```{r}
+f2
+```
 
-One thing to note, you will know immediately if the translation is off
-because the model will not validate.  Hence you can start this process
-with confidence that you will know immediately if something is wrong.
+One thing to note, unlike other translators, you will know immediately
+if the translation is off because the model will not validate.  Hence
+you can start this process with confidence that you will know
+immediately if something is wrong.
 
 # Conclusion
 
