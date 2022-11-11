@@ -1,416 +1,325 @@
 ---
-title: "nlmixr2 2.0.8 Objectively Surprising"
+title: "babelmixr2, nlmixr2 and NONMEM"
 author: "Matt Fidler and the nlmixr2 Development Team"
 date: "2022-10-25"
 slug: []
 bibliography: [refs.bib]
 link-citations: true
 csl: vancouver.csl
-categories: [nlmixr2]
-tags: [new-version]
+categories: [babelmixr2]
+tags: [new-version, NONMEM]
 ---
 
 
 
-<p>Last time I blogged promised to talk about a few other things, including:</p>
-<ul>
-<li><p>Likelihood based on each observation (and how to get it)</p></li>
-<li><p>Standard Errors / Hessians, etc for between subject variabilities
-or <code>eta</code>s (and how to get them)</p></li>
-</ul>
-<p>Hessians for the individual between subject variability is also used
-for the <code>focei</code> calculation. So, if you are impatient, I will give
-you brief instructions on where to get each component of the
-likelihood:</p>
-<ul>
-<li><p>The individual observation’s likelihood contribution is contained in
-the datasets where the original (left) merged with the fit (right)
-in any of the following accessor methods: <code>fit$dataMergeLeft</code>,
-<code>fit$dataMergeRight</code>, <code>fit$dataMergeInner</code>, or <code>fit$dataMergeFull</code>.
-In these dataset an new column is added <code>$nlmixrLlikObs</code></p>
-<ul>
-<li>The individual -Hessian <code>etas</code> can be accessed by <code>fit$etaH</code> or <code>fit$phiH</code></li>
-</ul></li>
-</ul>
-<p>Other components may be accessed as well:</p>
-<table>
-<colgroup>
-<col width="18%" />
-<col width="81%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>Syntax</th>
-<th>Values returned</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><code>$phiH</code>, <code>$etaH</code></td>
-<td>Hessian matrix</td>
-</tr>
-<tr class="even">
-<td><code>$phiC</code>, <code>$etaC</code></td>
-<td>Covariance matrix, standard deviations on diagonals, correlations on off-diagonals</td>
-</tr>
-<tr class="odd">
-<td><code>$phiR</code>, <code>$etaR</code></td>
-<td>Correlation matrix, standard deviations on diagonals, correlations on off-diagonals</td>
-</tr>
-<tr class="even">
-<td><code>$phiSE</code>, <code>$etaSE</code></td>
-<td>standard error of each individual’s eta</td>
-</tr>
-<tr class="odd">
-<td><code>$phiRSE</code>, <code>$etaRSE</code></td>
-<td>relative standard error of each individual’s eta</td>
-</tr>
-</tbody>
-</table>
-<p>These all require that the <code>cwres</code> are in the fit because they come from the <code>focei</code> calculations</p>
-<div id="objective-function-motivating-example" class="section level1">
-<h1>Objective function Motivating example</h1>
-<p>I was working with Bill Denney to prepare the upcoming
-<a href="https://github.com/nlmixr2/babelmixr2"><code>babelmixr2</code></a>. In this package, you can perform an <code>NCA</code> analysis (using
-<a href="https://github.com/billdenney/pknca"><code>PKNCA</code></a>), then use these values (and possibly calculate a unit conversion) to create a initial <code>nlmixr2</code> PK model. This model has
-derived initial estimates and ranges with <code>NCA</code> (and needed unit
-conversions too)!</p>
-<p>This is exciting to me, as someone who has been wanting this feature
-in nonlinear mixed effects modeling packages like <code>nlmixr2</code> for quite
-awhile.</p>
-<div id="two-nearly-identical-models" class="section level2">
-<h2>Two nearly identical models</h2>
-<p>Still, when testing this we came across the following (possibly)
-surprising situation:</p>
-<pre class="r"><code>one.compartment &lt;- function() {
+<p>I remember attending a virtual ACoP where Tim Waterhouse said “This
+person is so convincing that the could sell NONMEM to a nlmixr
+developer”. I was in the wrong meeting so I laughed and connected to
+the correct meeting.</p>
+<p>While he is correct, I don’t really want to purchase a NONMEM license,
+I would believe that individual pharmacometricians are the same, they
+do not want to buy a license of the software the use at work (although
+CROs are different here).</p>
+<p>That being said, I have used <code>NOMMEM</code> long before I helped develop
+<code>nlmixr2</code>, and has always appreciated all that <code>NONMEM</code> brought to the
+pharmacometrics community. I remember when I ran my first <code>NONMEM</code> model
+I was amazed and wondered how it could calculate both individual and
+population effects of a complicated system.</p>
+<p>I still think <code>NONMEM</code> has an important part in our pharmacometrics
+ecosystem today.</p>
+<p>Still our vision stands:</p>
+<blockquote>
+<p>To develop an R-based open-source nonlinear mixed-effects modeling
+software that can compete with commercial tools and is suitable for
+regulatory submissions.</p>
+</blockquote>
+<p>which means it would be really convenient to have an interface to
+convert to <code>NONMEM</code> and other tools to make sure we can compete with
+the commercial tools.</p>
+<p>With this in mind, I am proud to announce the first <code>nlmixr2</code> to
+<code>NONMEM</code> translator in <code>babelmixr2</code>.</p>
+<p>While this has been done before, the <em>method</em> that we are converting
+between the two is novel and has some surprising advantages.</p>
+<div id="how-to-use-nonmem-with-nlmixr2" class="section level1">
+<h1>How to use <code>NONMEM</code> with <code>nlmixr2</code></h1>
+<p>To use <code>NONMEM</code> in nlmixr, you do not need to change your data or your
+nlmixr2 dataset. <code>babelmixr2</code> will do the heavy lifting here.</p>
+<p>Lets take the classic <code>warfarin</code> example to start the comparison with:</p>
+<p>The model we use in the <code>nlmixr2</code> vignettes is:</p>
+<pre class="r"><code>library(babelmixr2)
+# The nonmem translation requires the package pmxTools as well.
+# You do not need to load it, simply have it available for use.
+pk.turnover.emax3 &lt;- function() {
   ini({
-    tka &lt;- 0.45 # Log Ka
-    tcl &lt;- 1 # Log Cl
-    tv &lt;- 3.45    # Log V
-    eta.ka ~ 0.6
-    eta.cl ~ 0.3
-    eta.v ~ 0.1
-    add.sd &lt;- 0.7
+    tktr &lt;- log(1)
+    tka &lt;- log(1)
+    tcl &lt;- log(0.1)
+    tv &lt;- log(10)
+    ##
+    eta.ktr ~ 1
+    eta.ka ~ 1
+    eta.cl ~ 2
+    eta.v ~ 1
+    prop.err &lt;- 0.1
+    pkadd.err &lt;- 0.1
+    ##
+    temax &lt;- logit(0.8)
+    tec50 &lt;- log(0.5)
+    tkout &lt;- log(0.05)
+    te0 &lt;- log(100)
+    ##
+    eta.emax ~ .5
+    eta.ec50  ~ .5
+    eta.kout ~ .5
+    eta.e0 ~ .5
+    ##
+    pdadd.err &lt;- 10
   })
   model({
+    ktr &lt;- exp(tktr + eta.ktr)
     ka &lt;- exp(tka + eta.ka)
     cl &lt;- exp(tcl + eta.cl)
     v &lt;- exp(tv + eta.v)
-    d/dt(depot) = -ka * depot
-    d/dt(center) = ka * depot - cl / v * center
+    emax = expit(temax+eta.emax)
+    ec50 =  exp(tec50 + eta.ec50)
+    kout = exp(tkout + eta.kout)
+    e0 = exp(te0 + eta.e0)
+    ##
+    DCP = center/v
+    PD=1-emax*DCP/(ec50+DCP)
+    ##
+    effect(0) = e0
+    kin = e0*kout
+    ##
+    d/dt(depot) = -ktr * depot
+    d/dt(gut) =  ktr * depot -ka * gut
+    d/dt(center) =  ka * gut - cl / v * center
+    d/dt(effect) = kin*PD -kout*effect
+    ##
     cp = center / v
-    cp ~ add(add.sd)
+    cp ~ prop(prop.err) + add(pkadd.err)
+    effect ~ add(pdadd.err) | pca
   })
-}
-
-fit1 &lt;- nlmixr(one.compartment, nlmixr2data::theo_sd,  
-               est=&quot;focei&quot;, control=list(print=0))</code></pre>
-<pre><code>## ℹ parameter labels from comments will be replaced by &#39;label()&#39;</code></pre>
+}</code></pre>
+<p>Next you have to figure out the command to run <code>NONMEM</code> it is often
+useful to use the full command path. You can use it in
+<code>options("babelmixr2.nonmem"="nmfe743")</code> or use
+<code>nonmemControl(runCommand="nmfe743")</code>. I prefer the <code>options()</code>
+method since you only need to set it once. This could also be a
+function if you prefer (but I will not cover using the function here).</p>
+<p>Lets assume you have <code>NONMEM</code> setup appropriately. To run the
+<code>nlmixr2</code> model using <code>NONMEM</code> you simply can run it directly:</p>
+<pre class="r"><code>testthat::expect_error(nlmixr(pk.turnover.emax3, nlmixr2data::warfarin, &quot;nonmem&quot;,
+                              nonmemControl(readRounding=FALSE, modelName=&quot;pk.turnover.emax3&quot;)))</code></pre>
+<pre><code>## 
+## 
+##  WARNINGS AND ERRORS (IF ANY) FOR PROBLEM    1
+## 
+##  (WARNING  2) NM-TRAN INFERS THAT THE DATA ARE POPULATION.
+## 
+## 
+## 0MINIMIZATION TERMINATED
+##  DUE TO ROUNDING ERRORS (ERROR=134)
+##  NO. OF FUNCTION EVALUATIONS USED:     1088
+##  NO. OF SIG. DIGITS UNREPORTABLE
+## 0PARAMETER ESTIMATE IS NEAR ITS BOUNDARY
+## 
+## nonmem model: &#39;pk.turnover.emax3-nonmem/pk.turnover.emax3.nmctl&#39;</code></pre>
+<pre><code>## → terminated with rounding errors, can force nlmixr2/rxode2 to read with nonmemControl(readRounding=TRUE)</code></pre>
+<pre><code>## Error : nonmem minimization not successful</code></pre>
+<p>Note that a few options you may note in the <code>nonmemControl()</code> here is
+<code>modelName</code> which helps control the output directory of <code>NONMEM</code> (if
+not specified <code>babelmixr2</code> tries to guess based on the model name based on the input).</p>
+<p>Now if you wanted, you could do the standard approach of changing
+<code>sigdig</code>, <code>sigl</code>, <code>tol</code> etc., to get a successful <code>NONMEM</code> model
+convergence, of course that is supported.</p>
+<p>One of the other approaches is to <strong>ignore</strong> the rounding errors that
+have occurred and read into <code>nlmixr2</code> anyway:</p>
+<pre class="r"><code># Can still load the model to get information (possibly pipe) and create a new model
+f &lt;- nlmixr(pk.turnover.emax3, nlmixr2data::warfarin, &quot;nonmem&quot;,
+            nonmemControl(readRounding=TRUE, modelName=&quot;pk.turnover.emax3&quot;))</code></pre>
 <pre><code>## → loading into symengine environment...</code></pre>
 <pre><code>## → pruning branches (`if`/`else`) of full model...</code></pre>
 <pre><code>## ✔ done</code></pre>
-<pre><code>## → calculate jacobian</code></pre>
-<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
-<pre><code>## → calculate sensitivities</code></pre>
-<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
-<pre><code>## → calculate ∂(f)/∂(η)</code></pre>
-<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
-<pre><code>## → calculate ∂(R²)/∂(η)</code></pre>
-<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
-<pre><code>## → finding duplicate expressions in inner model...</code></pre>
-<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
-<pre><code>## → optimizing duplicate expressions in inner model...</code></pre>
-<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre><code>## → finding duplicate expressions in EBE model...</code></pre>
 <pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre><code>## → optimizing duplicate expressions in EBE model...</code></pre>
 <pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
-<pre><code>## → compiling inner model...</code></pre>
-<pre><code>## ✔ done</code></pre>
-<pre><code>## → finding duplicate expressions in FD model...</code></pre>
-<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
-<pre><code>## → optimizing duplicate expressions in FD model...</code></pre>
-<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre><code>## → compiling EBE model...</code></pre>
 <pre><code>## ✔ done</code></pre>
-<pre><code>## → compiling events FD model...</code></pre>
+<pre><code>## → Calculating residuals/tables</code></pre>
 <pre><code>## ✔ done</code></pre>
-<pre><code>## calculating covariance matrix
-## done</code></pre>
-<pre><code>## → Calculating residuals/tables
-## ✔ done</code></pre>
-<pre><code>## → compress origData in nlmixr2 object, save 5952</code></pre>
-<pre><code>## → compress parHist in nlmixr2 object, save 2392</code></pre>
-<p>Now multiply the <code>cp</code> by 1000 and the observations by 1000 for a
-nearly identical model (ie, change the scale for different units)</p>
-<pre class="r"><code>d2 &lt;- nlmixr2data::theo_sd %&gt;%
-  mutate(DV=ifelse(AMT==0, DV*1000, DV))
-
-# Use model piping to scale `cp`:
-one.compartment %&gt;%
-  model(cp = 1000*center/v) %&gt;%
-  ini(add.sd=700)-&gt; 
-  m2</code></pre>
-<pre><code>## ℹ parameter labels from comments will be replaced by &#39;label()&#39;</code></pre>
-<pre><code>## ℹ change initial estimate of `add.sd` to `700`</code></pre>
-<pre class="r"><code># Verify the new model
-print(m2)</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────── 
-##  ── Initalization: ──  
-## Fixed Effects ($theta): 
-##    tka    tcl     tv add.sd 
-##   0.45   1.00   3.45 700.00 
+<pre><code>## → compress origData in nlmixr2 object, save 27560</code></pre>
+<pre><code>## → compress parHist in nlmixr2 object, save 4760</code></pre>
+<p>You may see more work than you expected to read in an already
+completed model. When reading in a NONMEM model, <code>babelmixr2</code> grabs:</p>
+<ul>
+<li><code>NONMEM</code>’s objective function value</li>
+<li><code>NONMEM</code>’s covariance (if available)</li>
+<li><code>NONMEM</code>’s optimization history</li>
+<li><code>NONMEM</code>’s final parameter estimates (including the ETAs)</li>
+<li><code>NONMEM</code>’s <code>PRED</code> and <code>IPRED</code> values</li>
+</ul>
+<p>These are used to solve the ODEs <em>as if they came from a nlmixr2</em>
+optimization procedure.</p>
+<p>This means that you can compare the <code>IPRED</code> and <code>PRED</code> values of
+<code>nlmixr2</code>/<code>rxode2</code> and <em>know immediately</em> if your model validates.
+This is similar to the procedure Kyle Baron advocates for validating a
+NONMEM model against a <code>mrgsolve</code> model (see
+<a href="https://mrgsolve.org/blog/posts/2022-05-validate-translation/" class="uri">https://mrgsolve.org/blog/posts/2022-05-validate-translation/</a>).</p>
+<p>The advantage of this method is that you simply write one model to
+have a validated <code>roxde2</code>/<code>nlmixr2</code> model.</p>
+<p>In this case you can see the validation when you print the fit object:</p>
+<pre class="r"><code>print(f)</code></pre>
+<pre><code>## ── nlmixr² nonmem ver 7.4.3 ──
 ## 
-## Omega ($omega): 
-##        eta.ka eta.cl eta.v
-## eta.ka    0.6    0.0   0.0
-## eta.cl    0.0    0.3   0.0
-## eta.v     0.0    0.0   0.1
+##                 OBJF      AIC      BIC Log-likelihood Condition Number
+## nonmem focei 1326.91 2252.605 2332.025      -1107.302               NA
 ## 
-## States ($state or $stateDf): 
-##   Compartment Number Compartment Name
-## 1                  1            depot
-## 2                  2           center
-##  ── μ-referencing ($muRefTable): ──  
-##   theta    eta level
-## 1   tka eta.ka    id
-## 2   tcl eta.cl    id
-## 3    tv  eta.v    id
+## ── Time (sec $time): ──
 ## 
-##  ── Model (Normalized Syntax): ── 
-## function() {
-##     ini({
-##         tka &lt;- 0.45
-##         label(&quot;Log Ka&quot;)
-##         tcl &lt;- 1
-##         label(&quot;Log Cl&quot;)
-##         tv &lt;- 3.45
-##         label(&quot;Log V&quot;)
-##         add.sd &lt;- c(0, 700)
-##         eta.ka ~ 0.6
-##         eta.cl ~ 0.3
-##         eta.v ~ 0.1
-##     })
-##     model({
-##         ka &lt;- exp(tka + eta.ka)
-##         cl &lt;- exp(tcl + eta.cl)
-##         v &lt;- exp(tv + eta.v)
-##         d/dt(depot) = -ka * depot
-##         d/dt(center) = ka * depot - cl/v * center
-##         cp &lt;- 1000 * center/v
-##         cp ~ add(add.sd)
-##     })
-## }</code></pre>
-<pre class="r"><code>fit2 &lt;- nlmixr(m2, d2, est=&quot;focei&quot;, control=list(print=0))</code></pre>
-<pre><code>## → loading into symengine environment...</code></pre>
-<pre><code>## → pruning branches (`if`/`else`) of full model...</code></pre>
-<pre><code>## ✔ done</code></pre>
-<pre><code>## → calculate jacobian</code></pre>
-<pre><code>## → calculate sensitivities</code></pre>
-<pre><code>## → calculate ∂(f)/∂(η)</code></pre>
-<pre><code>## → calculate ∂(R²)/∂(η)</code></pre>
-<pre><code>## → finding duplicate expressions in inner model...</code></pre>
-<pre><code>## → optimizing duplicate expressions in inner model...</code></pre>
-<pre><code>## → finding duplicate expressions in EBE model...</code></pre>
-<pre><code>## → optimizing duplicate expressions in EBE model...</code></pre>
-<pre><code>## → compiling inner model...</code></pre>
-<pre><code>## ✔ done</code></pre>
-<pre><code>## → finding duplicate expressions in FD model...</code></pre>
-<pre><code>## → optimizing duplicate expressions in FD model...</code></pre>
-<pre><code>## → compiling EBE model...</code></pre>
-<pre><code>## ✔ done</code></pre>
-<pre><code>## → compiling events FD model...</code></pre>
-<pre><code>## ✔ done</code></pre>
-<pre><code>## calculating covariance matrix
-## done</code></pre>
-<pre><code>## → Calculating residuals/tables
-## ✔ done</code></pre>
-<pre><code>## → compress origData in nlmixr2 object, save 6400</code></pre>
-<pre><code>## → compress parHist in nlmixr2 object, save 2024</code></pre>
-<div id="comparing-estimates" class="section level3">
-<h3>Comparing Estimates</h3>
-<p>As expected the population estimates are similar:</p>
-<pre class="r"><code>#fit1
-print(fixef(fit1))</code></pre>
-<pre><code>##       tka       tcl        tv    add.sd 
-## 0.4681803 1.0108966 3.4603969 0.6969408</code></pre>
-<pre class="r"><code>#fit2 
-print(fixef(fit2))</code></pre>
-<pre><code>##         tka         tcl          tv      add.sd 
-##   0.4683352   1.0115432   3.4607923 694.4413168</code></pre>
-<p>Note that the additive error is (unsurprisingly) larger by a factor of about 1000.</p>
-<p>Still, the Omega matrices are similar too:</p>
-<pre class="r"><code># fit 1
-print(fit1$omega)</code></pre>
-<pre><code>##           eta.ka     eta.cl      eta.v
-## eta.ka 0.3905671 0.00000000 0.00000000
-## eta.cl 0.0000000 0.06868965 0.00000000
-## eta.v  0.0000000 0.00000000 0.01900547</code></pre>
-<pre class="r"><code># fit 2 
-print(fit2$omega)</code></pre>
-<pre><code>##           eta.ka     eta.cl      eta.v
-## eta.ka 0.3950723 0.00000000 0.00000000
-## eta.cl 0.0000000 0.06806684 0.00000000
-## eta.v  0.0000000 0.00000000 0.01905419</code></pre>
-<p>And the etas:</p>
-<pre class="r"><code># fit 1
-print(fit1$etaObf)</code></pre>
-<pre><code>##    ID      eta.ka      eta.cl        eta.v       OBJI
-## 1   1  0.08208665 -0.47259882 -0.091897473 12.5606972
-## 2   2  0.19410054  0.14488970  0.004567050 17.7860972
-## 3   3  0.36685381  0.02921334  0.052141272  0.2980393
-## 4   4 -0.28483616 -0.01755511 -0.013311522 10.9727363
-## 5   5 -0.04614196 -0.14932588 -0.143715338 29.0206253
-## 6   6 -0.38880790  0.37194163  0.193020540  7.7759907
-## 7   7 -0.77296044  0.14601460  0.055578295  2.2571264
-## 8   8 -0.17120576  0.16513639  0.093028469  6.9589644
-## 9   9  1.35263334  0.04662980 -0.001322353  8.5170235
-## 10 10 -0.73447486 -0.38123254 -0.171485167  7.9744277
-## 11 11  0.74760924  0.28858115  0.135248561  3.4258868
-## 12 12 -0.52143688 -0.12502814 -0.201272246  9.2635184</code></pre>
-<pre class="r"><code># fit 2
-print(fit2$etaObf)</code></pre>
-<pre><code>##    ID      eta.ka      eta.cl        eta.v     OBJI
-## 1   1  0.08180853 -0.47296571 -0.092397056 164.5851
-## 2   2  0.19429924  0.14418654  0.004310170 169.8321
-## 3   3  0.36757318  0.02842365  0.052022866 152.2118
-## 4   4 -0.28524042 -0.01807046 -0.013762949 162.9714
-## 5   5 -0.04661044 -0.14973343 -0.144315774 181.1468
-## 6   6 -0.38822210  0.37075684  0.193368002 159.7219
-## 7   7 -0.77379790  0.14547001  0.055117184 154.1658
-## 8   8 -0.17103635  0.16431876  0.092932433 158.9221
-## 9   9  1.35579162  0.04576087 -0.001438554 160.4134
-## 10 10 -0.73590990 -0.38125995 -0.172486227 159.9292
-## 11 11  0.74951270  0.28749652  0.135469658 155.3285
-## 12 12 -0.52263038 -0.12521875 -0.202224009 161.2270</code></pre>
-<p>The ETAs are similar too; You can also see the individual contribution
-to the objective functions are quite different (<code>OBJI</code>). So it should
-be no surprise that the objective functions are different:</p>
-<pre class="r"><code># fit 1
-print(fit1$objf)</code></pre>
-<pre><code>## [1] 116.8111</code></pre>
-<pre class="r"><code># fit 2
-print(fit2$objf)</code></pre>
-<pre><code>## [1] 1940.455</code></pre>
-</div>
-</div>
-<div id="what-about-nonmem" class="section level2">
-<h2>What about NONMEM?</h2>
-<p>You might say, well, maybe <code>nlmixr2</code> is broken? (If you see anything
-surprising of course submit a bug report if you can).</p>
-<p>Well, with the coming <code>babelmixr2</code> you can run the same models in
-NONMEM (with certain caveats we will discuss later).</p>
-<p>So…</p>
-<p>The objective functions are basically the same between <code>NONMEM</code> and
-<code>nlmixr2</code>. So it is still matching NONMEM’s <code>focei</code> approximation
-here. The small differences in the <code>NONMEM</code> and <code>nlmixr2</code> model is
-likely differences optimization. (we use different optimization
-procedures).</p>
-<p>Note we still validate against known <code>focei</code> objective functions in <code>NONMEM</code>.</p>
-</div>
-<div id="exploring-more-with-individual-observation-contribution" class="section level2">
-<h2>Exploring more with individual observation contribution</h2>
-<p>One of the new features is the ability to see individual observations
-contribution to the likelihood in <code>focei</code> related methods.</p>
-<p>This can help us explore the differences.</p>
-<p>In <code>nlmixr2</code>, you can use the <code>fit$dataMergeInner</code> to merge the
-original data and the fit data. During this merge process it will also
-add the column <code>$nlmixrLlikObs</code>:</p>
-<pre class="r"><code>dm1 &lt;- fit1$dataMergeInner
-
-dm1ll &lt;- dm1 %&gt;%
-  select(ID, nlmixrLlikObs) %&gt;%
-  group_by(ID) %&gt;%
-  summarize(sllik=sum(nlmixrLlikObs))
-
-dm2 &lt;- fit2$dataMergeInner
-
-dm2ll &lt;- dm2 %&gt;%
-  group_by(ID) %&gt;%
-  summarize(sllik=sum(nlmixrLlikObs))
-
-
-print(dm1ll)</code></pre>
-<pre><code>## # A tibble: 12 × 2
-##    ID     sllik
-##    &lt;fct&gt;  &lt;dbl&gt;
-##  1 1      0.644
-##  2 2      3.23 
-##  3 3      2.29 
-##  4 4      0.896
-##  5 5      0.124
-##  6 6      2.86 
-##  7 7      1.11 
-##  8 8     -9.97 
-##  9 9     -1.94 
-## 10 10     3.47 
-## 11 11    -5.26 
-## 12 12    -0.674</code></pre>
-<pre class="r"><code>print(dm2ll)</code></pre>
-<pre><code>## # A tibble: 12 × 2
-##    ID    sllik
-##    &lt;fct&gt; &lt;dbl&gt;
-##  1 1     -75.3
-##  2 2     -72.7
-##  3 3     -73.7
-##  4 4     -75.1
-##  5 5     -75.8
-##  6 6     -73.1
-##  7 7     -74.9
-##  8 8     -86.0
-##  9 9     -77.9
-## 10 10    -72.5
-## 11 11    -81.3
-## 12 12    -76.7</code></pre>
-<pre class="r"><code># It is clear that there are individual differences in log-likelihood</code></pre>
-<p>In the normal (non generalized likelihood) the observation likelihoods are given by <span class="math inline">\(l_{i, obs}\)</span>:</p>
-<p><span class="math display">\[l_{i, obs} = -0.5\times\left(\frac{\textsf{IPRED}-\textsf{DV}}{v}\right)^2-0.5*\log(v)\]</span></p>
-<p>Where <span class="math inline">\(v=\)</span> variance of the estimate at that point. In this case it is <span class="math inline">\(\textsf{add.sd}^2\)</span></p>
-<p>You can see part of the difference is the relative differences of this
-term for subjects. If you want, you can see which observations give
-the biggest difference by comparing point by point. In this case the
-variances are larger since everything is multiplied by <code>1000</code>. Hence
-the objective function difference.</p>
-</div>
-<div id="finishing-up-the-likelihood-calculation" class="section level2">
-<h2>Finishing up the likelihood calculation</h2>
-<p>A part of the individual Hessians are the other component that is used
-in the likelihood calculation. With the new tools you can also see
-what this contribution to each individual’s likelihood is:</p>
-<pre class="r"><code>hess1 &lt;- merge(fit1$etaObf, dm1ll) %&gt;%
-  mutate(hessLlik=OBJI-sllik)
-
-hess2 &lt;- merge(fit2$etaObf, dm2ll) %&gt;%
-  mutate(hessLlik=OBJI-sllik)
-
-# Hess1
-print(hess1)
-# Hess2
-print(hess2)</code></pre>
-<p>You can see the individual Hessian contribution is acutally large in
-this particular implementation.</p>
-</div>
+##            setup table compress    other
+## elapsed 0.005704 0.145    0.031 6.580296
+## 
+## ── Population Parameters ($parFixed or $parFixedDf): ──
+## 
+##                Est. Back-transformed BSV(CV% or SD) Shrink(SD)%
+## tktr       6.24e-07                1           86.5      59.8% 
+## tka       -3.01e-06                1           86.5      59.8% 
+## tcl              -2            0.135           28.6      1.34% 
+## tv             2.05             7.78           22.8      6.44% 
+## prop.err     0.0986           0.0986                           
+## pkadd.err     0.512            0.512                           
+## temax          6.42            0.998           3.00      100.% 
+## tec50         0.141             1.15           45.0      6.06% 
+## tkout         -2.95           0.0522           9.16      32.4% 
+## te0            4.57             96.6           5.24      18.1% 
+## pdadd.err      3.72             3.72                           
+##  
+##   No correlations in between subject variability (BSV) matrix
+##   Full BSV covariance ($omega) or correlation ($omegaR; diagonals=SDs) 
+##   Distribution stats (mean/skewness/kurtosis/p-value) available in $shrink 
+##   Information about run found ($runInfo):
+##    • NONMEM terminated due to rounding errors, but reading into nlmixr2/rxode2 anyway 
+##   Censoring ($censInformation): No censoring
+##   Minimization message ($message):  
+##     
+## 
+##  WARNINGS AND ERRORS (IF ANY) FOR PROBLEM    1
+## 
+##  (WARNING  2) NM-TRAN INFERS THAT THE DATA ARE POPULATION.
+## 
+##     
+## 0MINIMIZATION TERMINATED
+##  DUE TO ROUNDING ERRORS (ERROR=134)
+##  NO. OF FUNCTION EVALUATIONS USED:     1088
+##  NO. OF SIG. DIGITS UNREPORTABLE
+## 0PARAMETER ESTIMATE IS NEAR ITS BOUNDARY
+## 
+##     IPRED relative difference compared to Nonmem IPRED: 0%; 95% percentile: (0%,0%); rtol=7.3e-06
+##     PRED relative difference compared to Nonmem PRED: 0%; 95% percentile: (0%,0%); rtol=6.57e-06
+##     IPRED absolute difference compared to Nonmem IPRED: atol=7.97e-05; 95% percentile: (2.18e-06, 0.00064)
+##     PRED absolute difference compared to Nonmem PRED: atol=6.57e-06; 95% percentile: (2.75e-07,0.00337)
+##     there are solving errors during optimization (see &#39;$prderr&#39;)
+##     nonmem model: &#39;pk.turnover.emax3-nonmem/pk.turnover.emax3.nmctl&#39; 
+## 
+## ── Fit Data (object is a modified tibble): ──
+## # A tibble: 483 × 35
+##   ID     TIME CMT      DV  PRED   RES IPRED   IRES  IWRES eta.ktr eta.ka eta.cl
+##   &lt;fct&gt; &lt;dbl&gt; &lt;fct&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+## 1 1       0.5 cp      0    1.16 -1.16 0.444 -0.444 -0.864  -0.506 -0.506  0.699
+## 2 1       1   cp      1.9  3.37 -1.47 1.45   0.446  0.840  -0.506 -0.506  0.699
+## 3 1       2   cp      3.3  7.51 -4.21 3.96  -0.660 -1.03   -0.506 -0.506  0.699
+## # … with 480 more rows, and 23 more variables: eta.v &lt;dbl&gt;, eta.emax &lt;dbl&gt;,
+## #   eta.ec50 &lt;dbl&gt;, eta.kout &lt;dbl&gt;, eta.e0 &lt;dbl&gt;, cp &lt;dbl&gt;, depot &lt;dbl&gt;,
+## #   gut &lt;dbl&gt;, center &lt;dbl&gt;, effect &lt;dbl&gt;, ktr &lt;dbl&gt;, ka &lt;dbl&gt;, cl &lt;dbl&gt;,
+## #   v &lt;dbl&gt;, emax &lt;dbl&gt;, ec50 &lt;dbl&gt;, kout &lt;dbl&gt;, e0 &lt;dbl&gt;, DCP &lt;dbl&gt;, PD &lt;dbl&gt;,
+## #   kin &lt;dbl&gt;, tad &lt;dbl&gt;, dosenum &lt;dbl&gt;</code></pre>
+<p>That is in this case:</p>
+<pre><code>    IPRED relative difference compared to Nonmem IPRED: 0%; 95% percentile: (0%,0%); rtol=7.3e-06
+    PRED relative difference compared to Nonmem PRED: 0%; 95% percentile: (0%,0%); rtol=6.57e-06
+    IPRED absolute difference compared to Nonmem IPRED: atol=7.97e-05; 95% percentile: (2.18e-06, 0.00064)
+    PRED absolute difference compared to Nonmem PRED: atol=6.57e-06; 95% percentile: (2.75e-07,0.00337)
+</code></pre>
+<p>Which means there is very little differences between the predictions
+of <code>rxode2</code> and <code>NONMEM</code>, or this model is validated.</p>
+<p>Since it <em>is</em> a <code>nlmixr2</code> fit, you can do interesting things with this fit that you couldn’t do in <code>NONMEM</code> or even in another translator. For example, if you wanted to add a covariance step you can with <code>getVarCov()</code>:</p>
+<pre class="r"><code>getVarCov(f)</code></pre>
+<pre><code>## calculating covariance matrix</code></pre>
+<pre><code>## Warning in foceiFitCpp_(.ret): using R matrix to calculate covariance, can check
+## sandwich or S matrix with $covRS and $covS</code></pre>
+<pre><code>## Warning in foceiFitCpp_(.ret): gradient problems with covariance; see $scaleInfo</code></pre>
+<pre><code>## → compress origData in nlmixr2 object, save 27560</code></pre>
+<pre><code>## Updated original fit object f</code></pre>
+<pre><code>##                tktr           tka           tcl           tv         temax
+## tktr   1.888444e-02 -1.579566e-02 -2.576721e-05 3.256515e-04  0.0020867628
+## tka   -1.579566e-02  1.885801e-02 -1.961542e-05 3.189213e-04  0.0006458796
+## tcl   -2.576721e-05 -1.961542e-05  2.506537e-04 1.164154e-05 -0.0009010621
+## tv     3.256515e-04  3.189213e-04  1.164154e-05 3.203423e-04  0.0011770977
+## temax  2.086763e-03  6.458796e-04 -9.010621e-04 1.177098e-03  7.6229199375
+## tec50  1.547409e-04  1.198034e-04 -3.649092e-04 1.259303e-04  0.0490803775
+## tkout  1.031314e-04  1.038571e-04 -9.919826e-05 1.202430e-04 -0.0189871884
+## te0    1.309982e-05  1.413793e-05 -9.672009e-06 1.233405e-05 -0.0004784888
+##               tec50         tkout           te0
+## tktr   0.0001547409  1.031314e-04  1.309982e-05
+## tka    0.0001198034  1.038571e-04  1.413793e-05
+## tcl   -0.0003649092 -9.919826e-05 -9.672009e-06
+## tv     0.0001259303  1.202430e-04  1.233405e-05
+## temax  0.0490803775 -1.898719e-02 -4.784888e-04
+## tec50  0.0018653219  1.581718e-04 -1.380514e-04
+## tkout  0.0001581718  6.355457e-04  5.255702e-05
+## te0   -0.0001380514  5.255702e-05  8.897611e-05</code></pre>
+<p>nlmixr2 is more generous in what constitutes a covariance step. The
+<code>r,s</code> covariance matrix is the “most” successful covariance step for
+<code>focei</code>, but will fall back to other methods.</p>
+<p>While this covariance is not <code>r,s</code>, and should be regarded with
+caution, it scan still give clues on why this is not working in
+<code>NONMEM</code>.</p>
+<p>When examining the fit, you can see the shrinkage is high for temax tktr and tka, so they could be dropped with a model in nonmem that is more likely to converge in NONMEM.</p>
+<p>If we use model piping to remove the parameters, then the new run will
+start at the last model’s best estimates (saving my model development
+time too).</p>
+<p>In this case, I specify the output directory <code>pk.turnover.emax4</code> with
+the control and get the following:</p>
+<pre class="r"><code>f2 &lt;- f %&gt;% model(ktr &lt;- exp(tktr)) %&gt;%
+  model(ka &lt;- exp(tka)) %&gt;%
+  model(emax = expit(temax)) %&gt;%
+  nlmixr(data=nlmixr2data::warfarin, est=&quot;nonmem&quot;,
+         control=nonmemControl(readRounding=FALSE,
+                               modelName=&quot;pk.turnover.emax4&quot;))</code></pre>
+<pre><code>## ! remove between subject variability `eta.ktr`</code></pre>
+<pre><code>## ! remove between subject variability `eta.ka`</code></pre>
+<pre><code>## ! remove between subject variability `eta.emax`</code></pre>
+<pre><code>## ℹ load saved nlmixr2 object</code></pre>
+<p>You can see the <code>NONMEM</code> run is now successful and validates against
+the <code>rxode2</code> model.</p>
+<p>One thing to note, you will know immediately if the translation is off
+because the model will not validate. Hence you can start this process
+with confidence that you will know immediately if something is wrong.</p>
 </div>
 <div id="conclusion" class="section level1">
 <h1>Conclusion</h1>
-<p>Well that is everything for now. This illustrates a few things:</p>
+<p>The first release of <code>babelmixr2</code> includes a <code>NONMEM</code> translation.
+The advantages of this are:</p>
 <ul>
-<li><p>How to get individual likelihoods</p></li>
-<li><p>How to split apart the likelihood contribution from the Normal
-assumption of the observations and the contribution from the
-hessian. (Note this works with generalized likelihood too)</p></li>
-<li><p>Where to get standard errors of <code>etas</code></p></li>
+<li><p>For <code>nlmixr2</code> development, we can easily compare to NONMEM to try to
+make this competitive with commercial software.</p></li>
+<li><p>For people who are using <code>rxode2</code> and <code>NONMEM</code>, writing a model with
+nlmixr2 syntax and using it to run NONMEM will make sure you only
+write one model and save you time debugging and coding it yourself.</p></li>
+<li><p>For users, you can take an unsuccessful NONMEM step, get information
+(ie covariance shrikage etc) about the model and you will be able to
+make informed decisions on how to proceed.</p></li>
 </ul>
-<p>I wish I had known where these came from earlier, but I seem to want
-to know how things work. For a more in-depth reference you could use
-the paper by Almquist <span class="citation">(<a href="#ref-Almquist2015" role="doc-biblioref">1</a>)</span> to dig into the full likelihood
-math.</p>
-<div id="references" class="section level3 unnumbered">
-<h3>References</h3>
-<div id="refs" class="references csl-bib-body">
-<div id="ref-Almquist2015" class="csl-entry">
-<div class="csl-left-margin">1. </div><div class="csl-right-inline">Almquist J, Leander J, Jirstrand M. <a href="https://doi.org/10.1007/s10928-015-9409-1"><span class="nocase">Using sensitivity equations for computing gradients of the FOCE and FOCEI approximations to the population likelihood</span></a>. Journal of Pharmacokinetics and Pharmacodynamics. 2015 Jun;42(3):191–209. </div>
-</div>
-</div>
-</div>
+<p>Many of these advantages are because <code>babelmixr2</code> is not platform
+agnostic, rather it leans into helping <code>nlmixr2</code> development and
+having <code>nlmixr2</code> help pharmcometricans in daily tasks.</p>
+<p>If you are an astute reader, you will also notice that the full model
+runs in <code>nlmixr2</code>’s focei without adjustment. I would like to caution
+that this doesn’t mean that <code>nlmixr2</code>’s focei is <em>better</em> rather it is
+<em>different</em> (as mentioned in the previous blog post). I have seen cases
+in the past where something runs better in <code>NONMEM</code> than <code>nlmixr2</code> so
+comparisons based on a single model should be regarded with caution (I
+no longer have these examples though so I can display them in the blog
+either).</p>
 </div>

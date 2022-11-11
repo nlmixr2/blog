@@ -6,12 +6,25 @@ slug: []
 bibliography: [refs.bib]
 link-citations: true
 csl: vancouver.csl
-categories: [nlmixr2]
-tags: [new-version]
+categories: [babelmixr2]
+tags: [new-version, NONMEM]
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+if (dir.exists("content")) {
+  setwd("content/blog/2022-11-11-babelmixr2-nonmem")
+}
+if (!dir.exists("pk.turnover.emax3-nonmem")) {
+  stop("not setup correctly")
+}
+if (file.exists("pk.turnover.emax3-nonmem/pk.turnover.emax3-rounding.qs")) {
+  unlink("pk.turnover.emax3-nonmem/pk.turnover.emax3-rounding.qs")
+}
+if (file.exists("pk.turnover.emax3-nonmem/pk.turnover.emax4.qs")) {
+  unlink("pk.turnover.emax3-nonmem/pk.turnover.emax4.qs")
+}
+
 library(rxode2)
 library(tidyverse)
 library(babelmixr2)
@@ -253,12 +266,9 @@ having `nlmixr2` help pharmcometricans in daily tasks.
 If you are an astute reader, you will also notice that the full model
 runs in `nlmixr2`'s focei without adjustment.  I would like to caution
 that this doesn't mean that `nlmixr2`'s focei is *better* rather it is
-different (as mentioned in the previous blog post).  I have seen cases
+*different* (as mentioned in the previous blog post).  I have seen cases
 in the past where something runs better in `NONMEM` than `nlmixr2` so
 comparisons based on a single model should be regarded with caution (I
 no longer have these examples though so I can display them in the blog
 either).
 
-
-
-### References
