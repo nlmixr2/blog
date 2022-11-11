@@ -19,8 +19,9 @@ links:
   name: code
   url: "https://github.com/nlmixr2/courses/tree/main/ACoP2022"
 - icon: PowerPoint
-  icon_pack: fa-regular
+  icon_pack: fa
   name: powerpoint
+  url: https://github.com/nlmixr2/courses/raw/main/ACoP2022/ACoP13%20-%20nlmixr2.pdf
 location: "Aurora, Colorado, USA"
 show_post_time: true
 subtitle: ACoP 2022
