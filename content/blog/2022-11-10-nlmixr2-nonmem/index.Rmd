@@ -1,0 +1,104 @@
+---
+title: "Lag-time with NONMEM and nlmixr2"
+author: "Matt Fidler and the nlmixr2 Development Team"
+date: "2022-10-25"
+slug: []
+bibliography: [refs.bib]
+link-citations: true
+csl: vancouver.csl
+categories: [nlmixr2]
+tags: [new-version]
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rxode2)
+library(tidyverse)
+library(nlmixr2)
+```
+
+This is more of a methodology post, pointing out how things are done
+in `nlmixr2` and how it likely doesn't match what is done in `NONMEM`
+(and at least one reason why a drop-in replacement of `rxode2` by
+another tool like `PKPDsim`, `mrgslve`, or `deSolve` is not an easy
+project); 
+
+For the impatient, in `focei` lag time (and other dose based
+events) have improved in stability for this release of `nlmixr2`.
+
+## A little background about `focei`
+
+## Gradients and Sensitivities
+
+One of the differences between `focei` and `saem` is that `focei`
+needs gradients to determine the best solution for the individual and
+for the population best fit.  (For the population fit you may not need
+the gradient depending on the outer optimization method, for example
+`outerOpt="bobyqa"` does not need gradients).
+
+For `nlmixr2` (and likely for `NONMEM`, based on some discussions with
+others) the gradients for each individual are calculated based on the
+forward sensitivity equations.
+
+These forward sensitivity equations expand the ODE systems with extra
+compartments.  Each extra compartment will give the gradient of the
+original compartment with respect to one of the between subject
+variability (or etas).  This means that the ODE system is expanded by
+the number of ODEs in the original system multiplied by the number
+etas in the system (hence the stability of `focei` is dependent on the
+number of etas and ODEs in the original problem).  The forward
+sensitivities also has a way to handle changes in initial conditions.
+
+As an aside, this needed sensitivity expansion is one (of a few)
+reasons why `nlmixr2` and `rxode2` are bound so tightly together (and
+other tools cannot be easily used or adapted).
+
+## Where sensitivities fall short
+
+What the method cannot handle is parameter-based changes in dosing.
+This includes lag-time, bio-availability, as well as modeled duration
+of infusion or modeled rate of infusion in `nlmixr2` models.
+
+These are types of gradients are undetermined by pure forward
+sensitivities.  The last few releases of `nlmixr2` took the first
+observation and tried to figure out the best step-size to calculate
+the gradients for the whole individual based on the Gill, Murray,
+Saunders, and Wright (1983) method.
+
+## New method for handling dose-based sensitivities
+
+Now in `nlmixr2`, we use the method proposed in Shi 2021
+(https://doi.org/10.48550/arXiv.2110.06380).  This method is extended
+so that instead of optimizing the gradient of one rate, we take the
+harmonic mean of all the calculated rates for each observation and
+optimize the best step size for that value (which is the same method
+we use for the Hessian calculation in the generalized log-likelihood).
+
+In our limited testing of lag-times, this seems to perform better than
+the previous method.
+
+Because this method was only proposed last year, I don't believe that
+`NONMEM` uses this method.  This is one of the many things that are
+different between `NONMEM` focei and `nlmixr2` focei.
+
+# Overall conclusions
+
+In my estimation, this should show:
+
+- Dose-related parameters perform better when they have `etas` than
+  the did before the log-likelihood release
+  
+- `roxde2` integration is more than simply a solver you can replace
+  with another solver.
+  
+- `NONMEM` and `nlmixr2` while producing similar objective functions
+  for `focei`, have different internal choices and it should not be
+  considered exactly identical. (ie `nlmixr2` is not a R version of
+  `NONMEM`)
+
+
+
+
