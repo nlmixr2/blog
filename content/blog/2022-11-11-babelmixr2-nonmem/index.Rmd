@@ -242,7 +242,7 @@ the `rxode2` model below:
 f2
 ```
 
-One thing to note, unlike other translators, you will know immediately
+One thing to emphasize, unlike other translators, you will know immediately
 if the translation is off because the model will not validate.  Hence
 you can start this process with confidence that you will know
 immediately if something is wrong.
@@ -259,9 +259,10 @@ The advantages of this are:
   nlmixr2 syntax and using it to run NONMEM will make sure you only
   write one model and save you time debugging and coding it yourself.
   
-- For users, you can take an unsuccessful NONMEM step, get information
-  (ie covariance shrikage etc) about the model and you will be able to
-  make informed decisions on how to proceed.
+- For pharmacometricians using NONMEM, you can take an unsuccessful
+  NONMEM step, get information (ie covariance shrikage etc) about the
+  model and you will be able to make informed decisions on how to
+  proceed.
 
 Many of these advantages are because `babelmixr2` is not platform
 agnostic, rather it leans into helping `nlmixr2` development and
@@ -275,4 +276,6 @@ in the past where something runs better in `NONMEM` than `nlmixr2` so
 comparisons based on a single model should be regarded with caution (I
 no longer have these examples though so I can display them in the blog
 either).
+
+Thanks for reading!
 

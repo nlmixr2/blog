@@ -179,7 +179,7 @@ have a validated <code>roxde2</code>/<code>nlmixr2</code> model.</p>
 ## ── Time (sec $time): ──
 ## 
 ##            setup table compress    other
-## elapsed 0.005316 0.135    0.032 5.769684
+## elapsed 0.005688 0.145    0.031 6.214312
 ## 
 ## ── Population Parameters ($parFixed or $parFixedDf): ──
 ## 
@@ -312,7 +312,7 @@ the <code>rxode2</code> model below:</p>
 ## ── Time (sec f2$time): ──
 ## 
 ##            setup table compress    other
-## elapsed 0.004381 0.134    0.028 5.195619
+## elapsed 0.004323 0.138    0.031 5.495677
 ## 
 ## ── Population Parameters (f2$parFixed or f2$parFixedDf): ──
 ## 
@@ -378,7 +378,7 @@ the <code>rxode2</code> model below:</p>
 ## #   cp &lt;dbl&gt;, depot &lt;dbl&gt;, gut &lt;dbl&gt;, center &lt;dbl&gt;, effect &lt;dbl&gt;, ktr &lt;dbl&gt;,
 ## #   ka &lt;dbl&gt;, cl &lt;dbl&gt;, v &lt;dbl&gt;, emax &lt;dbl&gt;, ec50 &lt;dbl&gt;, kout &lt;dbl&gt;, e0 &lt;dbl&gt;,
 ## #   DCP &lt;dbl&gt;, PD &lt;dbl&gt;, kin &lt;dbl&gt;, tad &lt;dbl&gt;, dosenum &lt;dbl&gt;</code></pre>
-<p>One thing to note, unlike other translators, you will know immediately
+<p>One thing to emphasize, unlike other translators, you will know immediately
 if the translation is off because the model will not validate. Hence
 you can start this process with confidence that you will know
 immediately if something is wrong.</p>
@@ -393,9 +393,10 @@ make this competitive with commercial software.</p></li>
 <li><p>For people who are using <code>rxode2</code> and <code>NONMEM</code>, writing a model with
 nlmixr2 syntax and using it to run NONMEM will make sure you only
 write one model and save you time debugging and coding it yourself.</p></li>
-<li><p>For users, you can take an unsuccessful NONMEM step, get information
-(ie covariance shrikage etc) about the model and you will be able to
-make informed decisions on how to proceed.</p></li>
+<li><p>For pharmacometricians using NONMEM, you can take an unsuccessful
+NONMEM step, get information (ie covariance shrikage etc) about the
+model and you will be able to make informed decisions on how to
+proceed.</p></li>
 </ul>
 <p>Many of these advantages are because <code>babelmixr2</code> is not platform
 agnostic, rather it leans into helping <code>nlmixr2</code> development and
@@ -408,4 +409,5 @@ in the past where something runs better in <code>NONMEM</code> than <code>nlmixr
 comparisons based on a single model should be regarded with caution (I
 no longer have these examples though so I can display them in the blog
 either).</p>
+<p>Thanks for reading!</p>
 </div>
