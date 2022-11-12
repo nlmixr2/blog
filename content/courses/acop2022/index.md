@@ -18,6 +18,10 @@ links:
   icon_pack: fab
   name: code
   url: "https://github.com/nlmixr2/courses/tree/main/ACoP2022"
+- icon: file-powerpoint
+  icon_pack: fa
+  name: powerpoint
+  url: https://github.com/nlmixr2/courses/raw/main/ACoP2022/ACoP13%20-%20nlmixr2.pdf
 location: "Aurora, Colorado, USA"
 show_post_time: true
 subtitle: ACoP 2022
@@ -26,7 +30,9 @@ title: "Using nlmixr2 for automatically selecting PK models with PKNCA"
 
 ## Workshop target audience
 
-Pharmacometricians/modelers with basic knowledge on model building, evaluation and qualification. Basic knowledge of writing and executing R scripts is required.
+Pharmacometricians/modelers with basic knowledge on model building,
+evaluation and qualification. Basic knowledge of writing and executing
+R scripts is required.
 
 ## Workshop overview
 
