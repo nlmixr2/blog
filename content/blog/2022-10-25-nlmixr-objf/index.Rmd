@@ -8,6 +8,9 @@ link-citations: true
 csl: vancouver.csl
 categories: [nlmixr2]
 tags: [new-version]
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ```{r setup, include=FALSE}
@@ -17,49 +20,61 @@ library(tidyverse)
 library(nlmixr2)
 ```
 
-Last time I blogged promised to talk about a few other things, including:
+Last time I blogged promised to talk about a few other things,
+including:
 
 -   Likelihood based on each observation (and how to get it)
 
--   Standard Errors / Hessians, etc for between subject variabilities
-    or `eta`s (and how to get them)
+-   Standard Errors / Hessians, etc for between subject variabilities or
+    `eta`s (and how to get them)
 
-Hessians for the individual between subject variability is also used
-for the `focei` calculation.  So, if you are impatient, I will give
-you brief instructions on where to get each component of the
-likelihood:
+Hessians for the individual between subject variability is also used for
+the `focei` calculation. So, if you are impatient, I will give you brief
+instructions on where to get each component of the likelihood:
 
-- The individual observation's likelihood contribution is contained in
-  the datasets where the original (left) merged with the fit (right)
-  in any of the following accessor methods: `fit$dataMergeLeft`,
-  `fit$dataMergeRight`, `fit$dataMergeInner`, or `fit$dataMergeFull`.
-  In these dataset an new column is added `$nlmixrLlikObs`
-  
-  - The individual -Hessian `etas` can be accessed by `fit$etaH` or `fit$phiH`
+-   The individual observation's likelihood contribution is contained in
+    the datasets where the original (left) merged with the fit (right)
+    in any of the following accessor methods: `fit$dataMergeLeft`,
+    `fit$dataMergeRight`, `fit$dataMergeInner`, or `fit$dataMergeFull`.
+    In these dataset an new column is added `$nlmixrLlikObs`
+
+-   The individual -Hessian `etas` can be accessed by `fit$etaH` or
+    `fit$phiH`
 
 Other components may be accessed as well:
 
++------------------+---------------------------------------------------+
+| Syntax           | Values returned                                   |
++==================+===================================================+
+| `$phiH`, `$etaH` | Hessian matrix                                   |
++------------------+---------------------------------------------------+
+| `$phiC`, `$etaC` | Covariance matrix, standard deviations on         |
+|                  | diagonals, correlations on off-diagonals          |
++------------------+---------------------------------------------------+
+| `$phiR`, `$etaR` | Correlation matrix, standard deviations on        |
+|                  | diagonals, correlations on off-diagonals          |
++------------------+---------------------------------------------------+
+| `$phiSE`,        | Standard error of each individual's eta           |
+| `$etaSE`         |                                                   |
++------------------+---------------------------------------------------+
+| `$phiRSE`,       | Relative standard error of each individual's eta  |
+| `$etaRSE`        |                                                   |
++------------------+---------------------------------------------------+
 
-| Syntax               | Values returned                                                                                   |
-|----------------------|---------------------------------------------------------------------------------------------------|
-| `$phiH`, `$etaH`     |  Hessian matrix                                                                                   |  
-| `$phiC`, `$etaC`     |  Covariance matrix, standard deviations on diagonals, correlations on off-diagonals          | 
-| `$phiR`, `$etaR`     | Correlation matrix, standard deviations on diagonals, correlations on off-diagonals          | 
-| `$phiSE`, `$etaSE`   | standard error of each individual's eta                                                           |
-| `$phiRSE`, `$etaRSE` | relative standard error of each individual's eta                                                  |
-
-These all require that the `cwres` are in the fit because they come from the `focei` calculations
+These all require that the `cwres` are in the fit because they come from
+the `focei` calculations (and are also under the `focei` assumption).
 
 # Objective function Motivating example
 
-I was working with Bill Denney to prepare the upcoming
-[`babelmixr2`](https://github.com/nlmixr2/babelmixr2). In this package, you can perform an `NCA` analysis (using
-[`PKNCA`](https://github.com/billdenney/pknca)), then use these values (and possibly calculate a unit conversion) to create a initial `nlmixr2` PK model. This model has
-derived initial estimates and ranges with `NCA` (and needed unit
-conversions too)!
+I was working with Bill Denney to prepare a recent course that features
+[`babelmixr2`](https://github.com/nlmixr2/babelmixr2). In this course, you can perform a `NCA` analysis (using
+[`PKNCA`](https://github.com/billdenney/pknca)), then use these values (and possibly calculate a unit
+conversion) to create a initial `nlmixr2` PK model. This model has with
+`NCA` derived initial estimates and ranges (and needed unit conversions
+too)!
 
-This is exciting to me, as someone who has been wanting this feature
-in nonlinear mixed effects modeling packages like `nlmixr2` for quite
+This is exciting to me, as someone who has been wanting this feature in
+nonlinear mixed effects modeling packages like `nlmixr2` for quite
 awhile.
 
 ## Two nearly identical models
@@ -93,8 +108,8 @@ fit1 <- nlmixr(one.compartment, nlmixr2data::theo_sd,
                est="focei", control=list(print=0))
 ```
 
-Now multiply the `cp` by 1000 and the observations by 1000 for a
-nearly identical model (ie, change the scale for different units)
+Now multiply the `cp` by 1000 and the observations by 1000 for a nearly
+identical model (ie, change the scale for different units)
 
 ```{r theo2}
 d2 <- nlmixr2data::theo_sd %>%
@@ -124,7 +139,8 @@ print(fixef(fit1))
 print(fixef(fit2))
 ```
 
-Note that the additive error is (unsurprisingly) larger by a factor of about 1000.
+Note that the additive error is (unsurprisingly) larger by a factor of
+about 1000.
 
 Still, the Omega matrices are similar too:
 
@@ -145,8 +161,8 @@ print(fit2$etaObf)
 ```
 
 The ETAs are similar too; You can also see the individual contribution
-to the objective functions are quite different (`OBJI`). So it should
-be no surprise that the objective functions are different:
+to the objective functions are quite different (`OBJI`). So it should be
+no surprise that the objective functions are different:
 
 ```{r compareObjf}
 # fit 1
@@ -157,21 +173,18 @@ print(fit2$objf)
 
 ## What about NONMEM?
 
-You might say, well, maybe `nlmixr2` is broken? (If you see anything
-surprising of course submit a bug report if you can).
+You might say, well are these objective functions off? maybe `nlmixr2`
+is broken? (If you see anything surprising of course submit a bug report
+if you can).
 
-Well, with the coming `babelmixr2` you can run the same models in
-NONMEM (with certain caveats we will discuss later).
+Well, with the coming `babelmixr2` you can run the same models in NONMEM
+(with certain caveats we will discuss later), and these objective
+functions also are similar NONMEM between `nlmixr2` and `NONMEM` (which
+is unsurprising since we use the NONMEM objective functions in Wang 2007
+[@Wang2007] to validate our likelihood)
 
-So...
-
-The objective functions are basically the same between `NONMEM` and
-`nlmixr2`. So it is still matching NONMEM's `focei` approximation
-here. The small differences in the `NONMEM` and `nlmixr2` model is
-likely differences optimization. (we use different optimization
-procedures).
-
-Note we still validate against known `focei` objective functions in `NONMEM`.
+This means that `nlmixr2` is constitent with `NONMEM` and these
+objective function differences are due to other factors.
 
 ## Exploring more with individual observation contribution
 
@@ -180,9 +193,9 @@ contribution to the likelihood in `focei` related methods.
 
 This can help us explore the differences.
 
-In `nlmixr2`, you can use the `fit$dataMergeInner` to merge the
-original data and the fit data. During this merge process it will also
-add the column `$nlmixrLlikObs`:
+In `nlmixr2`, you can use the `fit$dataMergeInner` to merge the original
+data and the fit data. During this merge process it will also add the
+column `$nlmixrLlikObs`:
 
 ```{r, obsLlik}
 dm1 <- fit1$dataMergeInner
@@ -206,25 +219,28 @@ print(dm2ll)
 # It is clear that there are individual differences in log-likelihood
 ```
 
-In the normal (non generalized likelihood) the observation likelihoods are given by $l_{i, obs}$:
+In the normal (non generalized likelihood) the observation likelihoods
+are given by $l_{i, obs}$:
 
 $$l_{i, obs} = -0.5\times\left(\frac{\textsf{IPRED}-\textsf{DV}}{v}\right)^2-0.5*\log(v)$$
 
-Where $v=$ variance of the estimate at that point.  In this case it is $\textsf{add.sd}^2$
+Where $v=$ variance of the estimate at that point. In this case it is
+$\textsf{add.sd}^2$
 
 You can see part of the difference is the relative differences of this
-term for subjects. If you want, you can see which observations give
-the biggest difference by comparing point by point.  In this case the
-variances are larger since everything is multiplied by `1000`.  Hence
-the objective function difference.
+term for subjects. Most of this is likely driven by the large (and
+unsurprising) differences in the variance component.
+
+If you want, you can see which observations give the biggest difference
+by comparing point by point.
 
 ## Finishing up the likelihood calculation
 
 A part of the individual Hessians are the other component that is used
-in the likelihood calculation.  With the new tools you can also see
-what this contribution to each individual's likelihood is:
+in the likelihood calculation. With the new tools you can also see what
+this contribution to each individual's likelihood is:
 
-```r
+``` r
 hess1 <- merge(fit1$etaObf, dm1ll) %>%
   mutate(hessLlik=OBJI-sllik)
 
@@ -237,27 +253,24 @@ print(hess1)
 print(hess2)
 ```
 
-You can see the individual Hessian contribution is acutally large in
-this particular implementation.
-
+You can see the individual Hessian contribution is actually large in
+this particular likelihood as well. (You can explore their difference
+more using `$etaH` if you wish)
 
 # Conclusion
 
-Well that is everything for now.  This illustrates a few things:
+Well that is everything for now. This illustrates a few things:
 
- - How to get individual likelihoods
- 
- - How to split apart the likelihood contribution from the Normal
-   assumption of the observations and the contribution from the
-   hessian. (Note this works with generalized likelihood too)
-   
- - Where to get standard errors of `etas`
- 
- 
- I wish I had known where these came from earlier, but I seem to want
- to know how things work.  For a more in-depth reference you could use
- the paper by Almquist [@Almquist2015] to dig into the full likelihood
- math.
- 
- 
+-   How to get individual likelihoods
+
+-   How to split apart the likelihood contribution from the Normal
+    assumption of the observations and the contribution from the
+    hessian. (Note this works with generalized likelihood too)
+
+-   Where to get standard errors of `etas`
+
+I wish I had known where these came from earlier, but I seem to want to
+know how things work. For a more in-depth reference you could use the
+paper by Almquist [@Almquist2015] to dig into the full likelihood math.
+
 ### References

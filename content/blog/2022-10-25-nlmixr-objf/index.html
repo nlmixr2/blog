@@ -8,35 +8,39 @@ link-citations: true
 csl: vancouver.csl
 categories: [nlmixr2]
 tags: [new-version]
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 
 
-<p>Last time I blogged promised to talk about a few other things, including:</p>
+<p>Last time I blogged promised to talk about a few other things,
+including:</p>
 <ul>
 <li><p>Likelihood based on each observation (and how to get it)</p></li>
-<li><p>Standard Errors / Hessians, etc for between subject variabilities
-or <code>eta</code>s (and how to get them)</p></li>
+<li><p>Standard Errors / Hessians, etc for between subject variabilities or
+<code>eta</code>s (and how to get them)</p></li>
 </ul>
-<p>Hessians for the individual between subject variability is also used
-for the <code>focei</code> calculation. So, if you are impatient, I will give
-you brief instructions on where to get each component of the
-likelihood:</p>
+<p>Hessians for the individual between subject variability is also used for
+the <code>focei</code> calculation. So, if you are impatient, I will give you brief
+instructions on where to get each component of the likelihood:</p>
 <ul>
 <li><p>The individual observation’s likelihood contribution is contained in
 the datasets where the original (left) merged with the fit (right)
 in any of the following accessor methods: <code>fit$dataMergeLeft</code>,
 <code>fit$dataMergeRight</code>, <code>fit$dataMergeInner</code>, or <code>fit$dataMergeFull</code>.
-In these dataset an new column is added <code>$nlmixrLlikObs</code></p>
-<ul>
-<li>The individual -Hessian <code>etas</code> can be accessed by <code>fit$etaH</code> or <code>fit$phiH</code></li>
-</ul></li>
+In these dataset an new column is added <code>$nlmixrLlikObs</code></p></li>
+<li><p>The individual -Hessian <code>etas</code> can be accessed by <code>fit$etaH</code> or
+<code>fit$phiH</code></p></li>
 </ul>
 <p>Other components may be accessed as well:</p>
-<table>
+
+<table style="width:99%;">
 <colgroup>
-<col width="18%" />
-<col width="81%" />
+<col width="26%" />
+<col width="72%" />
+
 </colgroup>
 <thead>
 <tr class="header">
@@ -65,18 +69,42 @@ In these dataset an new column is added <code>$nlmixrLlikObs</code></p>
 <td><code>$phiRSE</code>, <code>$etaRSE</code></td>
 <td>relative standard error of each individual’s eta</td>
 </tr>
+<tr class="even">
+<td><code>$phiC</code>, <code>$etaC</code></td>
+<td>Covariance matrix, standard deviations on
+diagonals, correlations on off-diagonals</td>
+</tr>
+<tr class="odd">
+<td><code>$phiR</code>, <code>$etaR</code></td>
+<td>Correlation matrix, standard deviations on
+diagonals, correlations on off-diagonals</td>
+</tr>
+<tr class="even">
+<td><code>$phiSE</code>,
+<code>$etaSE</code></td>
+<td>Standard error of each individual’s eta</td>
+</tr>
+<tr class="odd">
+<td><code>$phiRSE</code>,
+<code>$etaRSE</code></td>
+<td><div class="line-block"></div>
+<p>relative standard error of each individual’s eta</p></td>
+</tr>
 </tbody>
 </table>
-<p>These all require that the <code>cwres</code> are in the fit because they come from the <code>focei</code> calculations</p>
+
+<p>These all require that the <code>cwres</code> are in the fit because they come from
+the <code>focei</code> calculations (and are also under the <code>focei</code> assumption).</p>
 <div id="objective-function-motivating-example" class="section level1">
 <h1>Objective function Motivating example</h1>
-<p>I was working with Bill Denney to prepare the upcoming
-<a href="https://github.com/nlmixr2/babelmixr2"><code>babelmixr2</code></a>. In this package, you can perform an <code>NCA</code> analysis (using
-<a href="https://github.com/billdenney/pknca"><code>PKNCA</code></a>), then use these values (and possibly calculate a unit conversion) to create a initial <code>nlmixr2</code> PK model. This model has
-derived initial estimates and ranges with <code>NCA</code> (and needed unit
-conversions too)!</p>
-<p>This is exciting to me, as someone who has been wanting this feature
-in nonlinear mixed effects modeling packages like <code>nlmixr2</code> for quite
+<p>I was working with Bill Denney to prepare past course that features
+<code>babelmixr2</code>. In this course, you can perform a <code>NCA</code> analysis (using
+<code>PKNCA</code>), then use these values (and possibly calculate a unit
+conversion) to create a initial <code>nlmixr2</code> PK model. This model has with
+<code>NCA</code> derived initial estimates and ranges (and needed unit conversions
+too)!</p>
+<p>This is exciting to me, as someone who has been wanting this feature in
+nonlinear mixed effects modeling packages like <code>nlmixr2</code> for quite
 awhile.</p>
 <div id="two-nearly-identical-models" class="section level2">
 <h2>Two nearly identical models</h2>
@@ -140,9 +168,11 @@ fit1 &lt;- nlmixr(one.compartment, nlmixr2data::theo_sd,
 <pre><code>## → Calculating residuals/tables
 ## ✔ done</code></pre>
 <pre><code>## → compress origData in nlmixr2 object, save 5952</code></pre>
-<pre><code>## → compress parHist in nlmixr2 object, save 2392</code></pre>
-<p>Now multiply the <code>cp</code> by 1000 and the observations by 1000 for a
-nearly identical model (ie, change the scale for different units)</p>
+
+<pre><code>## → compress parHist in nlmixr2 object, save 2400</code></pre>
+<p>Now multiply the <code>cp</code> by 1000 and the observations by 1000 for a nearly
+identical model (ie, change the scale for different units)</p>
+
 <pre class="r"><code>d2 &lt;- nlmixr2data::theo_sd %&gt;%
   mutate(DV=ifelse(AMT==0, DV*1000, DV))
 
@@ -237,8 +267,11 @@ print(fixef(fit1))</code></pre>
 <pre class="r"><code>#fit2 
 print(fixef(fit2))</code></pre>
 <pre><code>##         tka         tcl          tv      add.sd 
-##   0.4683352   1.0115432   3.4607923 694.4413168</code></pre>
-<p>Note that the additive error is (unsurprisingly) larger by a factor of about 1000.</p>
+
+##   0.4632747   1.0116245   3.4602015 695.3004086</code></pre>
+<p>Note that the additive error is (unsurprisingly) larger by a factor of
+about 1000.</p>
+
 <p>Still, the Omega matrices are similar too:</p>
 <pre class="r"><code># fit 1
 print(fit1$omega)</code></pre>
@@ -284,8 +317,8 @@ print(fit2$etaObf)</code></pre>
 ## 11 11  0.74951270  0.28749652  0.135469658 155.3285
 ## 12 12 -0.52263038 -0.12521875 -0.202224009 161.2270</code></pre>
 <p>The ETAs are similar too; You can also see the individual contribution
-to the objective functions are quite different (<code>OBJI</code>). So it should
-be no surprise that the objective functions are different:</p>
+to the objective functions are quite different (<code>OBJI</code>). So it should be
+no surprise that the objective functions are different:</p>
 <pre class="r"><code># fit 1
 print(fit1$objf)</code></pre>
 <pre><code>## [1] 116.8111</code></pre>
@@ -296,26 +329,25 @@ print(fit2$objf)</code></pre>
 </div>
 <div id="what-about-nonmem" class="section level2">
 <h2>What about NONMEM?</h2>
-<p>You might say, well, maybe <code>nlmixr2</code> is broken? (If you see anything
-surprising of course submit a bug report if you can).</p>
-<p>Well, with the coming <code>babelmixr2</code> you can run the same models in
-NONMEM (with certain caveats we will discuss later).</p>
-<p>So…</p>
-<p>The objective functions are basically the same between <code>NONMEM</code> and
-<code>nlmixr2</code>. So it is still matching NONMEM’s <code>focei</code> approximation
-here. The small differences in the <code>NONMEM</code> and <code>nlmixr2</code> model is
-likely differences optimization. (we use different optimization
-procedures).</p>
-<p>Note we still validate against known <code>focei</code> objective functions in <code>NONMEM</code>.</p>
+<p>You might say, well are these objective functions off? maybe <code>nlmixr2</code>
+is broken? (If you see anything surprising of course submit a bug report
+if you can).</p>
+<p>Well, with the coming <code>babelmixr2</code> you can run the same models in NONMEM
+(with certain caveats we will discuss later), and these objective
+functions also are similar NONMEM between <code>nlmixr2</code> and <code>NONMEM</code> (which
+is unsurprising since we use the NONMEM objective functions in Wang 2007
+<span class="citation">(<a href="#ref-Wang2007" role="doc-biblioref">1</a>)</span> to validate our likelihood)</p>
+<p>This means that <code>nlmixr2</code> is constitent with <code>NONMEM</code> and these
+objective function differences are due to other factors.</p>
 </div>
 <div id="exploring-more-with-individual-observation-contribution" class="section level2">
 <h2>Exploring more with individual observation contribution</h2>
 <p>One of the new features is the ability to see individual observations
 contribution to the likelihood in <code>focei</code> related methods.</p>
 <p>This can help us explore the differences.</p>
-<p>In <code>nlmixr2</code>, you can use the <code>fit$dataMergeInner</code> to merge the
-original data and the fit data. During this merge process it will also
-add the column <code>$nlmixrLlikObs</code>:</p>
+<p>In <code>nlmixr2</code>, you can use the <code>fit$dataMergeInner</code> to merge the original
+data and the fit data. During this merge process it will also add the
+column <code>$nlmixrLlikObs</code>:</p>
 <pre class="r"><code>dm1 &lt;- fit1$dataMergeInner
 
 dm1ll &lt;- dm1 %&gt;%
@@ -363,20 +395,22 @@ print(dm1ll)</code></pre>
 ## 11 11    -81.3
 ## 12 12    -76.7</code></pre>
 <pre class="r"><code># It is clear that there are individual differences in log-likelihood</code></pre>
-<p>In the normal (non generalized likelihood) the observation likelihoods are given by <span class="math inline">\(l_{i, obs}\)</span>:</p>
+<p>In the normal (non generalized likelihood) the observation likelihoods
+are given by <span class="math inline">\(l_{i, obs}\)</span>:</p>
 <p><span class="math display">\[l_{i, obs} = -0.5\times\left(\frac{\textsf{IPRED}-\textsf{DV}}{v}\right)^2-0.5*\log(v)\]</span></p>
-<p>Where <span class="math inline">\(v=\)</span> variance of the estimate at that point. In this case it is <span class="math inline">\(\textsf{add.sd}^2\)</span></p>
+<p>Where <span class="math inline">\(v=\)</span> variance of the estimate at that point. In this case it is
+<span class="math inline">\(\textsf{add.sd}^2\)</span></p>
 <p>You can see part of the difference is the relative differences of this
-term for subjects. If you want, you can see which observations give
-the biggest difference by comparing point by point. In this case the
-variances are larger since everything is multiplied by <code>1000</code>. Hence
-the objective function difference.</p>
+term for subjects. Most of this is likely driven by the large (and
+unsurprising) differences in the variance component.</p>
+<p>If you want, you can see which observations give the biggest difference
+by comparing point by point.</p>
 </div>
 <div id="finishing-up-the-likelihood-calculation" class="section level2">
 <h2>Finishing up the likelihood calculation</h2>
 <p>A part of the individual Hessians are the other component that is used
-in the likelihood calculation. With the new tools you can also see
-what this contribution to each individual’s likelihood is:</p>
+in the likelihood calculation. With the new tools you can also see what
+this contribution to each individual’s likelihood is:</p>
 <pre class="r"><code>hess1 &lt;- merge(fit1$etaObf, dm1ll) %&gt;%
   mutate(hessLlik=OBJI-sllik)
 
@@ -387,8 +421,9 @@ hess2 &lt;- merge(fit2$etaObf, dm2ll) %&gt;%
 print(hess1)
 # Hess2
 print(hess2)</code></pre>
-<p>You can see the individual Hessian contribution is acutally large in
-this particular implementation.</p>
+<p>You can see the individual Hessian contribution is actually large in
+this particular likelihood as well. (You can explore their difference
+more using <code>$etaH</code> if you wish)</p>
 </div>
 </div>
 <div id="conclusion" class="section level1">
@@ -401,15 +436,17 @@ assumption of the observations and the contribution from the
 hessian. (Note this works with generalized likelihood too)</p></li>
 <li><p>Where to get standard errors of <code>etas</code></p></li>
 </ul>
-<p>I wish I had known where these came from earlier, but I seem to want
-to know how things work. For a more in-depth reference you could use
-the paper by Almquist <span class="citation">(<a href="#ref-Almquist2015" role="doc-biblioref">1</a>)</span> to dig into the full likelihood
-math.</p>
+<p>I wish I had known where these came from earlier, but I seem to want to
+know how things work. For a more in-depth reference you could use the
+paper by Almquist <span class="citation">(<a href="#ref-Almquist2015" role="doc-biblioref">2</a>)</span> to dig into the full likelihood math.</p>
 <div id="references" class="section level3 unnumbered">
 <h3>References</h3>
 <div id="refs" class="references csl-bib-body">
+<div id="ref-Wang2007" class="csl-entry">
+<div class="csl-left-margin">1. </div><div class="csl-right-inline">Wang Y. <a href="https://doi.org/10.1007/s10928-007-9060-6"><span class="nocase">Derivation of various NONMEM estimation methods</span></a>. Journal of Pharmacokinetics and Pharmacodynamics. 2007;34(5):575–93. </div>
+</div>
 <div id="ref-Almquist2015" class="csl-entry">
-<div class="csl-left-margin">1. </div><div class="csl-right-inline">Almquist J, Leander J, Jirstrand M. <a href="https://doi.org/10.1007/s10928-015-9409-1"><span class="nocase">Using sensitivity equations for computing gradients of the FOCE and FOCEI approximations to the population likelihood</span></a>. Journal of Pharmacokinetics and Pharmacodynamics. 2015 Jun;42(3):191–209. </div>
+<div class="csl-left-margin">2. </div><div class="csl-right-inline">Almquist J, Leander J, Jirstrand M. <a href="https://doi.org/10.1007/s10928-015-9409-1"><span class="nocase">Using sensitivity equations for computing gradients of the FOCE and FOCEI approximations to the population likelihood</span></a>. Journal of Pharmacokinetics and Pharmacodynamics. 2015 Jun;42(3):191–209. </div>
 </div>
 </div>
 </div>
