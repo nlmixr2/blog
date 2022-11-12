@@ -23,10 +23,10 @@ library(nlmixr2)
 This is more of a methodology post, pointing out how things are done
 in `nlmixr2` and how it likely doesn't match what is done in `NONMEM`
 (and at least one reason why a drop-in replacement of `rxode2` by
-another tool like `PKPDsim`, `mrgslve`, or `deSolve` is not an easy
-project); 
+another tool like [`PKPDsim`](https://github.com/InsightRX/PKPDsim), [`mrgsolve`](https://github.com/metrumresearchgroup/mrgsolve), or [`deSolve`](http://desolve.r-forge.r-project.org/) is not an easy
+project). 
 
-For the impatient, in `focei` lag time (and other dose based
+For the impatient, adding `focei` lag time (and other dose-based
 events) have improved in stability for this release of `nlmixr2`.
 
 ## A little background about `focei`
@@ -91,10 +91,10 @@ In my estimation, this should show:
 - Dose-related parameters perform better when they have `etas` than
   the did before the log-likelihood release
   
-- `roxde2` integration is more than simply a solver you can replace
+- `rxode2` integration is more than simply a solver you can replace
   with another solver.
   
-- `NONMEM` and `nlmixr2` while producing similar objective functions
+- `NONMEM` and `nlmixr2`, while producing similar objective functions
   for `focei`, have different internal choices and it should not be
   considered exactly identical. (ie `nlmixr2` is not a R version of
   `NONMEM`)
