@@ -1,7 +1,7 @@
 ---
 title: "Lag-time with NONMEM and nlmixr2"
 author: "Matt Fidler and the nlmixr2 Development Team"
-date: "2022-10-25"
+date: "2022-11-10"
 slug: []
 bibliography: [refs.bib]
 link-citations: true
@@ -98,7 +98,3 @@ In my estimation, this should show:
   for `focei`, have different internal choices and it should not be
   considered exactly identical. (ie `nlmixr2` is not a R version of
   `NONMEM`)
-
-
-
-
