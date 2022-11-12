@@ -77,8 +77,8 @@ harmonic mean of all the calculated rates for each observation and
 optimize the best step size for that value (which is the same method
 we use for the Hessian calculation in the generalized log-likelihood).
 
-In our limited testing of lag-times, this seems to perform better than
-the previous method.
+In our testing of lag-times, this seems to perform better than the previous
+method.
 
 Because this method was only proposed last year, I don't believe that
 `NONMEM` uses this method.  This is one of the many things that are
