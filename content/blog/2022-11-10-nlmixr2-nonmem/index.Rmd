@@ -66,11 +66,11 @@ These are types of gradients are undetermined by pure forward
 sensitivities.  The last few releases of `nlmixr2` took the first
 observation and tried to figure out the best step-size to calculate
 the gradients for the whole individual based on the Gill, Murray,
-Saunders, and Wright (1983) method.
+Saunders, and Wright [@Gill1983] method.
 
 ## New method for handling dose-based sensitivities
 
-Now in `nlmixr2`, we use the method proposed in Shi 2021
+Now in `nlmixr2`, we use the method proposed in Shi et al [@Shi2022] 
 (https://doi.org/10.48550/arXiv.2110.06380).  This method is extended
 so that instead of optimizing the gradient of one rate, we take the
 harmonic mean of all the calculated rates for each observation and
@@ -99,6 +99,7 @@ In my estimation, this should show:
   considered exactly identical. (ie `nlmixr2` is not a R version of
   `NONMEM`)
 
+### References
 
 
 
