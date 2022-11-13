@@ -1,0 +1,129 @@
+@article{Fidler2021,
+  abstract = {In pharmacometrics, we try to understand how the dose of a drug and measurable attributes of patients influence their drug concentration-time profiles, and to relate drug concentration-time profiles and patient attributes to the time profile of drug effects. Using this information, we can use tools like "nlmixr" to try to identify the right dose for the right patient. Our discipline is a fusion of pharmacol-ogy, physiology, and quantitative sciences, such as statistics. Statistical methods commonly practiced in the analysis of clinical studies often utilize linear mixed models to investigate trial outcomes. The characterization of longitudinal concentration and drug effect in pharmacometrics extends this statistical paradigm to include nonlinear models, which are often based on ordinary differential equations (ODEs). These ODEs are required to describe complex systems affecting concentrations and effects of drugs that often cannot be described by simple linear models. Nonlinear models can be fitted using the statistical language R 1 with its included "nlme" package. The nlme package allows the expression of nonlinear functions in R and fitting these models in a nonlinear mixed effect (NLME) modeling statistical framework. Only nonlinear equations with closed-form solutions can be used, however, and if more than one dose is administered to a patient, these equations quickly become extremely complex. The nlmixr package 2 extends nlme by providing the ability to add flexible individual-based dosing regimens, and to describe the models using both ODEs and solved systems when these are available. The nlmixr package has made these ODEs easy to express by using Leibniz notation (see below). To run the model, one specifies the ODE/solved system and provides initial estimates for the model as described in the nlmixr tuto-rial. 2 The model then can be solved using the nlme algorithm, or, more optimally, using more advanced algorithms that have been shown to provide more accurate parameter estimates like first-order conditional estimation with interaction (FOCEI) 3 and stochastic approximation expectation maximization (SAEM). 3 Statisticians who are familiar with nlme and are becoming familiar with population pharmacokinetics (PKs) and pharmacodynamics (PDs) may thus find it relatively straightforward to transition from nlme to more robust methodologies and more complex models and data structures. An example of nlmixr applied to a simple PK system serves to illustrate the uncomplicated syntax and how a transition to more complex and robust NLME methodologies might be accomplished without leaving the familiar R environment. Theophylline is used to inhibit phosphodiesterase and is used as treatment in many respiratory diseases. The analysis of the theophylline dataset of Dr. Upton 4 is one of the most common introductory applications of NLME modeling, and is a common introductory dataset for learning nlme (it is included in the base R distribution as the Theoph and reformatted and supplied in nlmixr as theo_sd and extrapolated to multiple doses with theo_ md). If a single dose is given at time zero, the equations can be expressed as the closed-form solution to a one-compartment oral absorption system, and analyzed using nlme. In the syntax of nlmixr, fitting of the theophylline PK can be specified as: This is an open access article under the terms of the Creative Commons Attribution-NonCommercial License, which permits use, distribution and reproduction in any medium, provided the original work is properly cited and is not used for commercial purposes.},
+  author = {Fidler, Matthew and Hooijmaijers, Richard and Schoemaker, Rik and Wilkins, Justin J. and Xiong, Yuan and Wang, Wenping},
+  doi = {10.1002/psp4.12618},
+  file = {:C\:/Users/justi/AppData/Local/Mendeley Ltd./Mendeley Desktop/Downloaded/Fidler et al. - 2021 - R and nlmixr as a gateway between statistics and pharmacometrics(2).pdf:pdf},
+  issn = {21638306},
+  journal = {CPT: Pharmacometrics and Systems Pharmacology},
+  month = {apr},
+  number = {4},
+  pages = {283--285},
+  pmid = {33951757},
+  publisher = {John Wiley & Sons, Ltd},
+  title = {{R and nlmixr as a gateway between statistics and pharmacometrics}},
+  volume = {10},
+  year = {2021}
+}
+@article{Schoemaker2019,
+  abstract = {The free and open-source package nlmixr implements pharmacometric nonlinear mixed effects model parameter estimation in R. It provides a uniform language to define pharmacometric models using ordinary differential equations. Performances of the stochastic approximation expectation-maximization (SAEM) and first order-conditional estimation with interaction (FOCEI) algorithms in nlmixr were compared with those found in the industry standards, Monolix and NONMEM, using the following two scenarios: a simple model fit to 500 sparsely sampled data sets and a range of more complex compartmental models with linear and nonlinear clearance fit to data sets with rich sampling. Estimation results obtained from nlmixr for FOCEI and SAEM matched the corresponding output from NONMEM/FOCEI and Monolix/SAEM closely both in terms of parameter estimates and associated standard errors. These results indicate that nlmixr may provide a viable alternative to existing tools for pharmacometric parameter estimation.},
+  author = {Schoemaker, Rik and Fidler, Matthew and Laveille, Christian and Wilkins, Justin J. and Hooijmaijers, Richard and Post, Teun M. and Trame, Mirjam N. and Xiong, Yuan and Wang, Wenping},
+  doi = {10.1002/psp4.12471},
+  file = {:C\:/Users/justi/AppData/Local/Mendeley Ltd./Mendeley Desktop/Downloaded/Schoemaker et al. - 2019 - Performance of the SAEM and FOCEI algorithms in the open-source non-linear mixed effect modelling tool nlmixr.pdf:pdf},
+  issn = {21638306},
+  journal = {CPT: Pharmacometrics and Systems Pharmacology},
+  number = {12},
+  pages = {923--930},
+  pmid = {31654482},
+  title = {{Performance of the SAEM and FOCEI Algorithms in the Open-Source, Nonlinear Mixed Effect Modeling Tool nlmixr}},
+  volume = {8},
+  year = {2019}
+}
+@article{Fidler2019,
+  abstract = {nlmixr is a free and open-source R package for fitting nonlinear pharmacokinetic (PK), pharmacodynamic (PD), joint PK-PD, and quantitative systems pharmacology mixed-effects models. Currently, nlmixr is capable of fitting both traditional compartmental PK models as well as more complex models implemented using ordinary differential equations. We believe that, over time, it will become a capable, credible alternative to commercial software tools, such as NONMEM, Monolix, and Phoenix NLME.},
+  author = {Fidler, Matthew and Wilkins, Justin J. and Hooijmaijers, Richard and Post, Teun M. and Schoemaker, Rik and Trame, Mirjam N. and Xiong, Yuan and Wang, Wenping},
+  doi = {10.1002/psp4.12445},
+  file = {:C\:/Users/justi/AppData/Local/Mendeley Ltd./Mendeley Desktop/Downloaded/Fidler et al. - 2019 - Nonlinear Mixed-Effects Model Development and Simulation Using nlmixr and Related R Open-Source Packages.pdf:pdf},
+  issn = {21638306},
+  journal = {CPT: Pharmacometrics and Systems Pharmacology},
+  month = {sep},
+  number = {9},
+  pages = {621--633},
+  pmid = {31207186},
+  publisher = {John Wiley & Sons, Ltd},
+  title = {{Nonlinear Mixed-Effects Model Development and Simulation Using nlmixr and Related R Open-Source Packages}},
+  volume = {8},
+  year = {2019}
+}
+@article{Almquist2015,
+  abstract = {The first order conditional estimation (FOCE) method is still one of the 
+      parameter estimation workhorses for nonlinear mixed effects (NLME) modeling used 
+      in population pharmacokinetics and pharmacodynamics. However, because this method 
+      involves two nested levels of optimizations, with respect to the empirical Bayes 
+      estimates and the population parameters, FOCE may be numerically unstable and 
+      have long run times, issues which are most apparent for models requiring 
+      numerical integration of differential equations. We propose an alternative 
+      implementation of the FOCE method, and the related FOCEI, for parameter 
+      estimation in NLME models. Instead of obtaining the gradients needed for the two 
+      levels of quasi-Newton optimizations from the standard finite difference 
+      approximation, gradients are computed using so called sensitivity equations. The 
+      advantages of this approach were demonstrated using different versions of a 
+      pharmacokinetic model defined by nonlinear differential equations. We show that 
+      both the accuracy and precision of gradients can be improved extensively, which 
+      will increase the chances of a successfully converging parameter estimation. We 
+      also show that the proposed approach can lead to markedly reduced computational 
+      times. The accumulated effect of the novel gradient computations ranged from a 
+      10-fold decrease in run times for the least complex model when comparing to 
+      forward finite differences, to a substantial 100-fold decrease for the most 
+      complex model when comparing to central finite differences. Considering the use 
+      of finite differences in for instance NONMEM and Phoenix NLME, our results 
+      suggests that significant improvements in the execution of FOCE are possible and 
+      that the approach of sensitivity equations should be carefully considered for 
+      both levels of optimization.},
+  doi = {10.1007/s10928-015-9409-1},
+  author = {Joachim Almquist and Jacob Leander and Mats Jirstrand},
+  journal = {Journal of Pharmacokinetics and Pharmacodynamics},
+  month = {Jun},
+  number = {3},
+  pages = {191--209},
+  title = {{Using sensitivity equations for computing gradients of the FOCE and FOCEI approximations to the population likelihood}},
+  volume = {42},
+  year = {2015}
+}
+
+@article{Wang2007, 
+  author={Wang, Yaning}, 
+  title={{Derivation of various NONMEM estimation methods}},
+  journal={Journal of Pharmacokinetics and Pharmacodynamics},
+  pages={575--593},
+  volume={34},
+  year={2007},
+  number={5},
+  doi={10.1007/s10928-007-9060-6}
+}
+@article{Gill1983,
+abstract = {When minimizing a smooth nonlinear function whose derivatives are not available, a popular approach is to use a gradient method with a finite-difference approximation substituted for the exact gradient. In order for such a method to be effective, it must be possible to compute "good" derivative approximations without requiring a large number of function evaluations. Certain "standard" choices for the finite-difference interval may lead to poor derivative approximations for badly scaled problems. We present an algorithm for computing a set of intervals to be used in a forward-difference approximation of the gradient.},
+author = {Gill, Philip E. and Murray, Walter and Saunders, Michael A. and Wright, Margaret H.},
+doi = {10.1137/0904025},
+issn = {0196-5204},
+journal = {SIAM Journal on Scientific and Statistical Computing},
+keywords = {finite-difference approximation,nonderivative method,nonlinear optimization},
+month = {jun},
+number = {2},
+pages = {310--321},
+publisher = {Society for Industrial and Applied Mathematics PUB1333 Philadelphia, PA, USA},
+title = {{Computing Forward-Difference Intervals for Numerical Optimization}},
+url = {https://dl.acm.org/doi/10.1137/0904025},
+volume = {4},
+year = {1983}
+}
+@article{Shi2022,
+abstract = {A common approach for minimizing a smooth nonlinear function is to employ finite-difference approximations to the gradient. While this can be easily performed when no error is present within the function evaluations, when the function is noisy, the optimal choice requires information about the noise level and higher-order derivatives of the function, which is often unavailable. Given the noise level of the function, we propose a bisection search for finding a finite-difference interval for any finite-difference scheme that balances the truncation error, which arises from the error in the Taylor series approximation, and the measurement error, which results from noise in the function evaluation. Our procedure produces reliable estimates of the finite-difference interval at low cost without explicitly approximating higher-order derivatives. We show its numerical reliability and accuracy on a set of test problems. When combined with limited memory BFGS, we obtain a robust method for minimizing noisy black-box functions, as illustrated on a subset of unconstrained CUTEst problems with synthetically added noise.},
+archivePrefix = {arXiv},
+arxivId = {2110.06380},
+author = {Shi, Hao Jun Michael and Xie, Yuchen and Xuan, Melody Qiming and Nocedal, Jorge},
+doi = {10.1137/21M1452470},
+eprint = {2110.06380},
+file = {:C\:/Users/justin/AppData/Local/Mendeley Ltd./Mendeley Desktop/Downloaded/Shi et al. - 2021 - Adaptive Finite-Difference Interval Estimation for Noisy Derivative-Free Optimization.pdf:pdf},
+issn = {10957197},
+journal = {SIAM Journal on Scientific Computing},
+keywords = {derivative-free optimization,finite differences,noisy optimization,nonlinear optimization,zeroth-order optimization},
+month = {oct},
+number = {4},
+pages = {A2302--A2321},
+publisher = {Society for Industrial and Applied Mathematics Publications},
+title = {{Adaptive Finite-Difference Interval Eestimation for Noisy Derivative-Free Optimization}},
+url = {https://arxiv.org/abs/2110.06380v2},
+volume = {44},
+year = {2022}
+}
+
