@@ -1,7 +1,7 @@
 ---
 title: "Lag-time with NONMEM and nlmixr2"
 author: "Matt Fidler and the nlmixr2 Development Team"
-date: "2022-10-25"
+date: "2022-11-10"
 slug: []
 bibliography: [refs.bib]
 link-citations: true
@@ -18,9 +18,9 @@ editor_options:
 <p>This is more of a methodology post, pointing out how things are done
 in <code>nlmixr2</code> and how it likely doesn’t match what is done in <code>NONMEM</code>
 (and at least one reason why a drop-in replacement of <code>rxode2</code> by
-another tool like <code>PKPDsim</code>, <code>mrgslve</code>, or <code>deSolve</code> is not an easy
-project);</p>
-<p>For the impatient, in <code>focei</code> lag time (and other dose based
+another tool like <a href="https://github.com/InsightRX/PKPDsim"><code>PKPDsim</code></a>, <a href="https://github.com/metrumresearchgroup/mrgsolve"><code>mrgsolve</code></a>, or <a href="http://desolve.r-forge.r-project.org/"><code>deSolve</code></a> is not an easy
+project).</p>
+<p>For the impatient, adding <code>focei</code> lag time (and other dose-based
 events) have improved in stability for this release of <code>nlmixr2</code>.</p>
 <div id="a-little-background-about-focei" class="section level2">
 <h2>A little background about <code>focei</code></h2>
@@ -56,11 +56,11 @@ of infusion or modeled rate of infusion in <code>nlmixr2</code> models.</p>
 sensitivities. The last few releases of <code>nlmixr2</code> took the first
 observation and tried to figure out the best step-size to calculate
 the gradients for the whole individual based on the Gill, Murray,
-Saunders, and Wright (1983) method.</p>
+Saunders, and Wright <span class="citation">(<a href="#ref-Gill1983" role="doc-biblioref">1</a>)</span> method.</p>
 </div>
 <div id="new-method-for-handling-dose-based-sensitivities" class="section level2">
 <h2>New method for handling dose-based sensitivities</h2>
-<p>Now in <code>nlmixr2</code>, we use the method proposed in Shi 2021
+<p>Now in <code>nlmixr2</code>, we use the method proposed in Shi et al <span class="citation">(<a href="#ref-Shi2022" role="doc-biblioref">2</a>)</span>
 (<a href="https://doi.org/10.48550/arXiv.2110.06380" class="uri">https://doi.org/10.48550/arXiv.2110.06380</a>). This method is extended
 so that instead of optimizing the gradient of one rate, we take the
 harmonic mean of all the calculated rates for each observation and
@@ -78,11 +78,22 @@ different between <code>NONMEM</code> focei and <code>nlmixr2</code> focei.</p>
 <ul>
 <li><p>Dose-related parameters perform better when they have <code>etas</code> than
 the did before the log-likelihood release</p></li>
-<li><p><code>roxde2</code> integration is more than simply a solver you can replace
+<li><p><code>rxode2</code> integration is more than simply a solver you can replace
 with another solver.</p></li>
-<li><p><code>NONMEM</code> and <code>nlmixr2</code> while producing similar objective functions
+<li><p><code>NONMEM</code> and <code>nlmixr2</code>, while producing similar objective functions
 for <code>focei</code>, have different internal choices and it should not be
 considered exactly identical. (ie <code>nlmixr2</code> is not a R version of
 <code>NONMEM</code>)</p></li>
 </ul>
+<div id="references" class="section level3 unnumbered">
+<h3>References</h3>
+<div id="refs" class="references csl-bib-body">
+<div id="ref-Gill1983" class="csl-entry">
+<div class="csl-left-margin">1. </div><div class="csl-right-inline">Gill PE, Murray W, Saunders MA, Wright MH. <span class="nocase">Computing Forward-Difference Intervals for Numerical Optimization</span>. SIAM Journal on Scientific and Statistical Computing [Internet]. 1983 Jun;4(2):310–21. Available from: <a href="https://dl.acm.org/doi/10.1137/0904025">https://dl.acm.org/doi/10.1137/0904025</a></div>
+</div>
+<div id="ref-Shi2022" class="csl-entry">
+<div class="csl-left-margin">2. </div><div class="csl-right-inline">Shi HJM, Xie Y, Xuan MQ, Nocedal J. <span class="nocase">Adaptive Finite-Difference Interval Eestimation for Noisy Derivative-Free Optimization</span>. SIAM Journal on Scientific Computing [Internet]. 2022 Oct;44(4):A2302–21. Available from: <a href="https://arxiv.org/abs/2110.06380v2">https://arxiv.org/abs/2110.06380v2</a></div>
+</div>
+</div>
+</div>
 </div>
