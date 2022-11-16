@@ -17,34 +17,33 @@ person is so convincing that the could sell NONMEM to a nlmixr
 developer”. I was in the wrong meeting so I laughed and connected to
 the correct meeting.</p>
 <p>While he is correct, I don’t really want to purchase a NONMEM license,
-I would believe that individual pharmacometricians are the same, they
-do not want to buy a license of the software the use at work (although
-CROs are different here).</p>
-<p>That being said, I have used <code>NOMMEM</code> long before I helped develop
-<code>nlmixr2</code>, and has always appreciated all that <code>NONMEM</code> brought to the
+and I would think that individual pharmacometricians are the same: they
+don’t want to buy a personal license for the software they use at work (although
+CROs might be different here).</p>
+<p>That being said, I have used <code>NONMEM</code> long before I helped develop
+<code>nlmixr2</code>, and I’ve always appreciated all that <code>NONMEM</code> brings to the
 pharmacometrics community. I remember when I ran my first <code>NONMEM</code> model
 I was amazed and wondered how it could calculate both individual and
 population effects of a complicated system.</p>
-<p>I still think <code>NONMEM</code> has an important part in our pharmacometrics
+<p>I still think <code>NONMEM</code> has an important role in our pharmacometrics
 ecosystem today.</p>
-<p>Still our vision stands:</p>
+<p>Still, our vision stands:</p>
 <blockquote>
 <p>To develop an R-based open-source nonlinear mixed-effects modeling
 software that can compete with commercial tools and is suitable for
 regulatory submissions.</p>
 </blockquote>
 <p>which means it would be really convenient to have an interface to
-convert to <code>NONMEM</code> and other tools to make sure we can compete with
-the commercial tools.</p>
+convert <code>nlmixr2</code> models to <code>NONMEM</code>, and other tools, to make everyone’s lives easier.</p>
 <p>With this in mind, I am proud to announce the first <code>nlmixr2</code> to
-<code>NONMEM</code> translator in <code>babelmixr2</code>.</p>
-<p>While this has been done before, the <em>method</em> that we are converting
+<code>NONMEM</code> translator in <a href="https://github.com/nlmixr2/babelmixr2"><code>babelmixr2</code></a>.</p>
+<p>While this has been done before, the <em>method</em> whereby we are converting
 between the two is novel and has some surprising advantages.</p>
 <div id="how-to-use-nonmem-with-nlmixr2" class="section level1">
 <h1>How to use <code>NONMEM</code> with <code>nlmixr2</code></h1>
 <p>To use <code>NONMEM</code> in nlmixr, you do not need to change your data or your
-nlmixr2 dataset. <code>babelmixr2</code> will do the heavy lifting here.</p>
-<p>Lets take the classic <code>warfarin</code> example to start the comparison with:</p>
+<code>nlmixr2</code> dataset. <code>babelmixr2</code> will do the heavy lifting here.</p>
+<p>Lets take the classic warfarin example to start the comparison with…</p>
 <p>The model we use in the <code>nlmixr2</code> vignettes is:</p>
 <pre class="r"><code>library(babelmixr2)
 # The nonmem translation requires the package pmxTools as well.
@@ -101,8 +100,8 @@ pk.turnover.emax3 &lt;- function() {
     effect ~ add(pdadd.err) | pca
   })
 }</code></pre>
-<p>Next you have to figure out the command to run <code>NONMEM</code> it is often
-useful to use the full command path. You can use it in
+<p>Next you have to figure out the command to run <code>NONMEM</code> (it is often
+useful to use the full command path). You can set it in
 <code>options("babelmixr2.nonmem"="nmfe743")</code> or use
 <code>nonmemControl(runCommand="nmfe743")</code>. I prefer the <code>options()</code>
 method since you only need to set it once. This could also be a
@@ -131,7 +130,7 @@ function if you prefer (but I will not cover using the function here).</p>
 <code>modelName</code> which helps control the output directory of <code>NONMEM</code> (if
 not specified <code>babelmixr2</code> tries to guess based on the model name based on the input).</p>
 <p>Now if you wanted, you could do the standard approach of changing
-<code>sigdig</code>, <code>sigl</code>, <code>tol</code> etc., to get a successful <code>NONMEM</code> model
+<code>sigdig</code>, <code>sigl</code>, <code>tol</code> etc, to get a successful <code>NONMEM</code> model
 convergence, of course that is supported.</p>
 <p>One of the other approaches is to <strong>ignore</strong> the rounding errors that
 have occurred and read into <code>nlmixr2</code> anyway:</p>
@@ -151,7 +150,7 @@ f &lt;- nlmixr(pk.turnover.emax3, nlmixr2data::warfarin, &quot;nonmem&quot;,
 <pre><code>## ✔ done</code></pre>
 <pre><code>## → compress origData in nlmixr2 object, save 27560</code></pre>
 <pre><code>## → compress parHist in nlmixr2 object, save 4760</code></pre>
-<p>You may see more work than you expected to read in an already
+<p>You may see more work happening than you expected to need for an already
 completed model. When reading in a NONMEM model, <code>babelmixr2</code> grabs:</p>
 <ul>
 <li><code>NONMEM</code>’s objective function value</li>
@@ -160,15 +159,15 @@ completed model. When reading in a NONMEM model, <code>babelmixr2</code> grabs:<
 <li><code>NONMEM</code>’s final parameter estimates (including the ETAs)</li>
 <li><code>NONMEM</code>’s <code>PRED</code> and <code>IPRED</code> values (for validation purposes)</li>
 </ul>
-<p>These are used to solve the ODEs <em>as if they came from a nlmixr2</em>
+<p>These are used to solve the ODEs <em>as if they came from an nlmixr2</em>
 optimization procedure.</p>
 <p>This means that you can compare the <code>IPRED</code> and <code>PRED</code> values of
 <code>nlmixr2</code>/<code>rxode2</code> and <em>know immediately</em> if your model validates.
 This is similar to the procedure Kyle Baron advocates for validating a
 NONMEM model against a <code>mrgsolve</code> model (see
 <a href="https://mrgsolve.org/blog/posts/2022-05-validate-translation/" class="uri">https://mrgsolve.org/blog/posts/2022-05-validate-translation/</a>).</p>
-<p>The advantage of this method is that you simply write one model to
-have a validated <code>roxde2</code>/<code>nlmixr2</code> model.</p>
+<p>The advantage of this method is that you need to simply write one model to
+get a validated <code>roxde2</code>/<code>nlmixr2</code> model.</p>
 <p>In this case you can see the validation when you print the fit object:</p>
 <pre class="r"><code>print(f)</code></pre>
 <pre><code>## ── nlmixr² nonmem ver 7.4.3 ──
@@ -178,8 +177,8 @@ have a validated <code>roxde2</code>/<code>nlmixr2</code> model.</p>
 ## 
 ## ── Time (sec $time): ──
 ## 
-##            setup table compress    other
-## elapsed 0.005688 0.145    0.031 6.214312
+##         setup optimize covariance table other
+## elapsed 0.004    0.001      0.001  0.06 6.914
 ## 
 ## ── Population Parameters ($parFixed or $parFixedDf): ──
 ## 
@@ -241,10 +240,28 @@ have a validated <code>roxde2</code>/<code>nlmixr2</code> model.</p>
     IPRED absolute difference compared to Nonmem IPRED: atol=7.97e-05; 95% percentile: (2.18e-06, 0.00064)
     PRED absolute difference compared to Nonmem PRED: atol=6.57e-06; 95% percentile: (2.75e-07,0.00337)
 </code></pre>
-<p>Which means there is very little differences between the predictions
-of <code>rxode2</code> and <code>NONMEM</code>, or this model is validated.</p>
+<p>Which means there are very few differences between the predictions
+of <code>rxode2</code> and <code>NONMEM</code>, or this model is “validated”.</p>
 <p>Since it <em>is</em> a <code>nlmixr2</code> fit, you can do interesting things with this fit that you couldn’t do in <code>NONMEM</code> or even in another translator. For example, if you wanted to add a covariance step you can with <code>getVarCov()</code>:</p>
 <pre class="r"><code>getVarCov(f)</code></pre>
+<pre><code>## → loading into symengine environment...</code></pre>
+<pre><code>## → pruning branches (`if`/`else`) of full model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → calculate jacobian</code></pre>
+<pre><code>## → calculate sensitivities</code></pre>
+<pre><code>## → calculate ∂(f)/∂(η)</code></pre>
+<pre><code>## → finding duplicate expressions in inner model...</code></pre>
+<pre><code>## → optimizing duplicate expressions in inner model...</code></pre>
+<pre><code>## → finding duplicate expressions in EBE model...</code></pre>
+<pre><code>## → optimizing duplicate expressions in EBE model...</code></pre>
+<pre><code>## → compiling inner model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → finding duplicate expressions in FD model...</code></pre>
+<pre><code>## → optimizing duplicate expressions in FD model...</code></pre>
+<pre><code>## → compiling EBE model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → compiling events FD model...</code></pre>
+<pre><code>## ✔ done</code></pre>
 <pre><code>## calculating covariance matrix</code></pre>
 <pre><code>## Warning in foceiFitCpp_(.ret): using R matrix to calculate covariance, can check
 ## sandwich or S matrix with $covRS and $covS</code></pre>
@@ -252,33 +269,33 @@ of <code>rxode2</code> and <code>NONMEM</code>, or this model is validated.</p>
 <pre><code>## → compress origData in nlmixr2 object, save 27560</code></pre>
 <pre><code>## Updated original fit object f</code></pre>
 <pre><code>##                tktr           tka           tcl           tv         temax
-## tktr   1.888444e-02 -1.579566e-02 -2.576721e-05 3.256515e-04  0.0020867628
-## tka   -1.579566e-02  1.885801e-02 -1.961542e-05 3.189213e-04  0.0006458796
-## tcl   -2.576721e-05 -1.961542e-05  2.506537e-04 1.164154e-05 -0.0009010621
-## tv     3.256515e-04  3.189213e-04  1.164154e-05 3.203423e-04  0.0011770977
-## temax  2.086763e-03  6.458796e-04 -9.010621e-04 1.177098e-03  7.6229199375
-## tec50  1.547409e-04  1.198034e-04 -3.649092e-04 1.259303e-04  0.0490803775
-## tkout  1.031314e-04  1.038571e-04 -9.919826e-05 1.202430e-04 -0.0189871884
-## te0    1.309982e-05  1.413793e-05 -9.672009e-06 1.233405e-05 -0.0004784888
+## tktr   1.892598e-02 -1.582985e-02 -1.981657e-05 3.266277e-04  0.0015335469
+## tka   -1.582985e-02  1.888286e-02 -2.652577e-05 3.175901e-04  0.0011916368
+## tcl   -1.981657e-05 -2.652577e-05  2.505341e-04 1.152329e-05 -0.0008937098
+## tv     3.266277e-04  3.175901e-04  1.152329e-05 3.202883e-04  0.0011777851
+## temax  1.533547e-03  1.191637e-03 -8.937098e-04 1.177785e-03  7.6242618702
+## tec50  1.333488e-04  1.435212e-04 -3.647821e-04 1.262144e-04  0.0490792404
+## tkout  1.033562e-04  1.030440e-04 -9.918052e-05 1.201488e-04 -0.0189849996
+## te0    1.506058e-05  1.176585e-05 -9.650248e-06 1.229662e-05 -0.0004769028
 ##               tec50         tkout           te0
-## tktr   0.0001547409  1.031314e-04  1.309982e-05
-## tka    0.0001198034  1.038571e-04  1.413793e-05
-## tcl   -0.0003649092 -9.919826e-05 -9.672009e-06
-## tv     0.0001259303  1.202430e-04  1.233405e-05
-## temax  0.0490803775 -1.898719e-02 -4.784888e-04
-## tec50  0.0018653219  1.581718e-04 -1.380514e-04
-## tkout  0.0001581718  6.355457e-04  5.255702e-05
-## te0   -0.0001380514  5.255702e-05  8.897611e-05</code></pre>
-<p>nlmixr2 is more generous in what constitutes a covariance step. The
+## tktr   0.0001333488  1.033562e-04  1.506058e-05
+## tka    0.0001435212  1.030440e-04  1.176585e-05
+## tcl   -0.0003647821 -9.918052e-05 -9.650248e-06
+## tv     0.0001262144  1.201488e-04  1.229662e-05
+## temax  0.0490792404 -1.898500e-02 -4.769028e-04
+## tec50  0.0018652677  1.582355e-04 -1.380255e-04
+## tkout  0.0001582355  6.353965e-04  5.249358e-05
+## te0   -0.0001380255  5.249358e-05  8.894088e-05</code></pre>
+<p><code>nlmixr2</code> is more generous in what constitutes a covariance step. The
 <code>r,s</code> covariance matrix is the “most” successful covariance step for
-<code>focei</code>, but will fall back to other methods.</p>
-<p>While this covariance is not <code>r,s</code>, and should be regarded with
-caution, it scan still give clues on why this is not working in
+<code>focei</code>, but the system will fall back to other methods if necessary.</p>
+<p>While this covariance matrix is not <code>r,s</code>, and should be regarded with
+caution, it can still give us some clues on why this things are not working in
 <code>NONMEM</code>.</p>
-<p>When examining the fit, you can see the shrinkage is high for temax tktr and tka, so they could be dropped with a model in nonmem that is more likely to converge in NONMEM.</p>
-<p>If we use model piping to remove the parameters, then the new run will
-start at the last model’s best estimates (saving my model development
-time too).</p>
+<p>When examining the fit, you can see the shrinkage is high for <code>temax</code>, <code>tktr</code> and <code>tka</code>, so they could be dropped, makiing things more likely to converge in <code>NONMEM</code>.</p>
+<p>If we use model piping to remove the parameters, the new run will
+start at the last model’s best estimates (saving a bunch of model development
+time).</p>
 <p>In this case, I specify the output directory <code>pk.turnover.emax4</code> with
 the control and get the following:</p>
 <pre class="r"><code>f2 &lt;- f %&gt;% model(ktr &lt;- exp(tktr)) %&gt;%
@@ -311,8 +328,8 @@ the <code>rxode2</code> model below:</p>
 ## 
 ## ── Time (sec f2$time): ──
 ## 
-##            setup table compress    other
-## elapsed 0.004323 0.138    0.031 5.495677
+##         setup table compress other
+## elapsed 0.003  0.05     0.02 6.347
 ## 
 ## ── Population Parameters (f2$parFixed or f2$parFixedDf): ──
 ## 
@@ -378,36 +395,33 @@ the <code>rxode2</code> model below:</p>
 ## #   cp &lt;dbl&gt;, depot &lt;dbl&gt;, gut &lt;dbl&gt;, center &lt;dbl&gt;, effect &lt;dbl&gt;, ktr &lt;dbl&gt;,
 ## #   ka &lt;dbl&gt;, cl &lt;dbl&gt;, v &lt;dbl&gt;, emax &lt;dbl&gt;, ec50 &lt;dbl&gt;, kout &lt;dbl&gt;, e0 &lt;dbl&gt;,
 ## #   DCP &lt;dbl&gt;, PD &lt;dbl&gt;, kin &lt;dbl&gt;, tad &lt;dbl&gt;, dosenum &lt;dbl&gt;</code></pre>
-<p>One thing to emphasize, unlike other translators, you will know immediately
+<p>One thing to emphasize: unlike other translators, you will know immediately
 if the translation is off because the model will not validate. Hence
-you can start this process with confidence that you will know
+you can start this process with confidence - you will know
 immediately if something is wrong.</p>
 </div>
 <div id="conclusion" class="section level1">
 <h1>Conclusion</h1>
-<p>The first release of <code>babelmixr2</code> includes a <code>NONMEM</code> translation.
+<p>The first release of <code>babelmixr2</code> includes a <code>NONMEM</code> translation function.
 The advantages of this are:</p>
 <ul>
-<li><p>For <code>nlmixr2</code> development, we can easily compare to NONMEM to try to
-make this competitive with commercial software.</p></li>
+<li><p>For <code>nlmixr2</code> development, we can easily compare to <code>NONMEM</code> to see how we’re doing with respect to the current gold standard.</p></li>
 <li><p>For people who are using <code>rxode2</code> and <code>NONMEM</code>, writing a model with
-nlmixr2 syntax and using it to run NONMEM will make sure you only
-write one model and save you time debugging and coding it yourself.</p></li>
-<li><p>For pharmacometricians using NONMEM, you can take an unsuccessful
-NONMEM step, get information (ie covariance shrikage etc) about the
+<code>nlmixr2</code> syntax and using it to run <code>NONMEM</code> will let you only
+write one model, and save you time debugging and coding it yourself.</p></li>
+<li><p>For pharmacometricians using <code>NONMEM</code>, you can take an unsuccessful
+<code>NONMEM</code> fit, get information (covariance shrinkage, etc) about the
 model and you will be able to make informed decisions on how to
 proceed.</p></li>
 </ul>
-<p>Many of these advantages are because <code>babelmixr2</code> is not platform
-agnostic, rather it leans into helping <code>nlmixr2</code> development and
-having <code>nlmixr2</code> help pharmcometricans in daily tasks.</p>
-<p>If you are an astute reader, you will also notice that the full model
-runs in <code>nlmixr2</code>’s focei without adjustment. I would like to caution
-that this doesn’t mean that <code>nlmixr2</code>’s focei is <em>better</em> rather it is
-<em>different</em> (as mentioned in the previous blog post). I have seen cases
+<p>Many of these advantages come from the fact that <code>babelmixr2</code> leans into supporting <code>nlmixr2</code> development for those fluent in <code>NONMEM</code> and
+having <code>nlmixr2</code> available can help pharmacometricans in daily tasks, even when they need to use another tool.</p>
+<p>The astute reader will also notice that the full model
+runs in <code>nlmixr2</code>’s <code>focei</code> without adjustment. I would like to caution
+that this doesn’t mean that <code>nlmixr2</code>’s focei is <em>better</em>: rather, it is
+<em>different</em> (as mentioned in a previous blog post). I have seen cases
 in the past where something runs better in <code>NONMEM</code> than <code>nlmixr2</code> so
 comparisons based on a single model should be regarded with caution (I
-no longer have these examples though so I can display them in the blog
-either).</p>
+no longer have these examples available, though, soyou’ll have to take my word for it).</p>
 <p>Thanks for reading!</p>
 </div>
