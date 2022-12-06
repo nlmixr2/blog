@@ -155,4 +155,20 @@ v1s</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
 <pre class="r"><code>v2s</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-2.png" width="672" /></p>
+<div id="note-about-data" class="section level2">
+<h2>Note about data</h2>
+<p>The input dataset expected to be compatible with <code>rxode2</code> or
+<code>nlmixr2</code>. This dataset is then converted to monolix format:</p>
+<ul>
+<li><p>The combination of <code>CMT</code> and Dose type creates a unique <code>ADM</code> variable.</p></li>
+<li><p>The <code>ADM</code> definition is saved in the monolix model file</p></li>
+<li><p><code>babelmixr2</code> creates a macro describing the compartment, ie <code>compartment(cmt=#, amount=stateName)</code></p></li>
+<li><p><code>babelmixr2</code> also creates a macro for each type of dosing:</p>
+<ul>
+<li><p>Bolus/infusion uses<code>depot()</code> and adds modeled lag time (<code>Tlag</code>) or bioavailibilty (<code>p</code>) if specified</p></li>
+<li><p>Modeled rate uses <code>depot()</code> with <code>Tk0=amtDose/rate</code>. <code>babelmixr2</code> also adds modeled lag time (<code>Tlag</code>) or bioavailibilty (<code>p</code>) if specified</p></li>
+<li><p>Modeled duration uses <code>depot()</code> with <code>Tk0=dur</code>, also add adds modeled lag time (<code>Tlag</code>) or bioavailibilty (<code>p</code>) if specified Turning off a compartment uses empty macro</p></li>
+</ul></li>
+</ul>
+</div>
 </div>
