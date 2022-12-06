@@ -165,7 +165,7 @@ v1s</code></pre>
 <li><p><code>babelmixr2</code> creates a macro describing the compartment, ie <code>compartment(cmt=#, amount=stateName)</code></p></li>
 <li><p><code>babelmixr2</code> also creates a macro for each type of dosing:</p>
 <ul>
-<li><p>Bolus/infusion uses<code>depot()</code> and adds modeled lag time (<code>Tlag</code>) or bioavailibilty (<code>p</code>) if specified</p></li>
+<li><p>Bolus/infusion uses <code>depot()</code> and adds modeled lag time (<code>Tlag</code>) or bioavailibilty (<code>p</code>) if specified</p></li>
 <li><p>Modeled rate uses <code>depot()</code> with <code>Tk0=amtDose/rate</code>. <code>babelmixr2</code> also adds modeled lag time (<code>Tlag</code>) or bioavailibilty (<code>p</code>) if specified</p></li>
 <li><p>Modeled duration uses <code>depot()</code> with <code>Tk0=dur</code>, also add adds modeled lag time (<code>Tlag</code>) or bioavailibilty (<code>p</code>) if specified Turning off a compartment uses empty macro</p></li>
 </ul></li>

@@ -211,7 +211,7 @@ The input dataset expected to be compatible with `rxode2` or
 
 - `babelmixr2` also creates a macro for each type of dosing:
 
-   - Bolus/infusion uses`depot()` and adds modeled lag time (`Tlag`) or bioavailibilty (`p`) if specified
+   - Bolus/infusion uses `depot()` and adds modeled lag time (`Tlag`) or bioavailibilty (`p`) if specified
    
    - Modeled rate uses `depot()` with `Tk0=amtDose/rate`. `babelmixr2` also adds modeled lag time (`Tlag`) or bioavailibilty (`p`) if specified
    
