@@ -1,0 +1,64 @@
+---
+title: Automated Reporting of nlmixr2 Fit Results in Word and PowerPoint
+author: 'John Harrold'
+date: '2022-12-06'
+slug: []
+categories: ["Word", "PowerPoint", "Reporting", "nlmixr2rpt"]
+tags: []
+---
+
+
+
+<p>I’m happy to announce the initial release of <code>nlmixr2rpt</code>: a package designed to automate reporting of <code>nlmixr2</code> results to Word and PowerPoint. The <code>nlmixr2rpt</code> package is attempting to save you time on the back-end of your analysis so you can focus on the analysis itself. There are three main issues we are attempting to address:</p>
+<ul>
+<li><p>Interoperability: While I am personally a fan of LaTeX, corporations tend to favor Word and PowerPoint. If the files coming out of our workflows are the same type used in the corporate setting, we can work better within an organization.</p></li>
+<li><p>Reducing tedium: At any point if you wish to share results you would need to copy and paste information from figures and csv files into report documents.</p></li>
+<li><p>Reproducibility: Manually creating Office documents with tweaks here and there is difficult to QC and difficult to replicate in a regulatory environment.</p></li>
+</ul>
+<div id="but-how-does-it-work" class="section level1">
+<h1>But how does it work?</h1>
+<p>Lets say you have an <code>nlmixr2</code> fit object like the one found in <code>nlmixr2extra</code>:</p>
+<pre class="r"><code>library(nlmixr2extra)
+library(nlmixr2rpt)
+library(onbrand)
+fit = nlmixr2extra::theoFitOde</code></pre>
+<p>The first thing you need to do is create an <code>onbrand</code> report object. Here we will create one for PowerPoint:</p>
+<pre class="r"><code>obnd_pptx = read_template(
+  template = system.file(package=&quot;nlmixr2rpt&quot;, &quot;templates&quot;,&quot;nlmixr_obnd_template.pptx&quot;),
+  mapping  = system.file(package=&quot;nlmixr2rpt&quot;, &quot;templates&quot;,&quot;nlmixr_obnd_template.yaml&quot;))</code></pre>
+<p>This uses the <code>onbrand</code> templates from the <code>nlmxir2rpt</code> package, but you could create custom templates for your organization. You add any report information you might want (e.g. a title slide, overview of methods etc.). Once your done you can then append the fit results:</p>
+<pre class="r"><code>obnd_pptx = report_fit(
+  fit     = fit, 
+  obnd    = obnd_pptx)</code></pre>
+<p>Now you could further append slides and when you’re read you could write the report to a file:</p>
+<pre class="r"><code>save_report(obnd_pptx, &quot;report.pptx&quot;)</code></pre>
+<pre><code>## $isgood
+## [1] TRUE
+## 
+## $msgs
+## NULL</code></pre>
+<p>The work flow is similar for Word reports. You simply create an onbrand object from a Word template, and then save it to a <code>docx</code> file.</p>
+</div>
+<div id="how-does-nlmixr2rpt-know-what-to-do" class="section level1">
+<h1>How does <code>nlmixr2rpt</code> know what to do?</h1>
+<p>The contents of the report and their arrangement is controlled by a customizable YAML file. You can create a copy of that file and use it as a starting point for automating your own workflows:</p>
+<pre class="r"><code>file.copy(system.file(package=&quot;nlmixr2rpt&quot;, &quot;templates&quot;, &quot;report_fit.yaml&quot;), 
+          &quot;my_report.yaml&quot;)</code></pre>
+<p>There is a <a href="https://nlmixr2.github.io/nlmixr2rpt/articles/Reporting_nlmixr_Fit_Results.html">vignette</a> that describes the format of that YAML file in detail but at a high level there are sections where figures and tables are defined. This is where you would create the code to say build out your observed vs predicted figure. Any packages you would normally use (<a href="https://cran.r-project.org/package=xpose.nlmixr2">xpose.nlmixr2</a>, <a href="https://cran.r-project.org/package=ggPMX">ggPMX</a>, etc.) can be used here. You can construct these generically with placeholders that can be defined in the YAML file and overwritten when generating the report.</p>
+<p>This way you can create a template for specific types of analyses. Say when you run a Population PK analysis you create essentially the same set of figures and tables at each iteration. You could create a YAML file for PopPK. Then a separate YAML file for exposure-response, etc. Then these can be tweaked during the analysis as needed.</p>
+<p>The next sections are where you tell <code>nlmixr2rpt</code> how use those reporting elements in Word and PowerPoint. This just takes ids you define in the previous sections for tables and figures and inserts them into the document being generated.</p>
+<p>But how do I…</p>
+<ul>
+<li>use my own organizational template?</li>
+<li>change the figures and tables that are reported?</li>
+<li>use the figures and tables being generated outside of reporting?</li>
+</ul>
+<p>Try the <a href="https://nlmixr2.github.io/nlmixr2rpt/articles/Reporting_nlmixr_Fit_Results.html">pkgdown website</a> and see if that has answers.</p>
+<p>What about this…</p>
+<ul>
+<li>this question that isn’t addressed at the link above?</li>
+<li>really important feature that is missing?</li>
+<li>this cryptic error I keep getting?</li>
+</ul>
+<p>Go to the <a href="https://github.com/nlmixr2/nlmixr2rpt/issues">GitHub issues</a> page and create a new issue.</p>
+</div>
