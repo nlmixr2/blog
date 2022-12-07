@@ -103,10 +103,10 @@ pk.turnover.emax3 <- function() {
 Next you have to either figure out the command to run `Monolix`, or
 simply install the `lixoftConnectors` package
 (https://monolix.lixoft.com/monolix-api/lixoftconnectors_installation/).
-If the `lixoftConnectors` package is available, it will run monolix
+If the `lixoftConnectors` package is available, it will run Monolix
 from R using that package.
 
-If the way you run monolix is a command, you can also set that command for the session by `options("babelmixr2.monolix"="monolixRunCommand")` or you can use it directly based on
+If the way you run Monolix is a command, you can also set that command for the session by `options("babelmixr2.monolix"="monolixRunCommand")` or you can use it directly based on
 `monolixControl(runCommand="nmfe743")`. This could also be a
 function if you prefer (but I will not cover using the function here).
 
@@ -118,7 +118,7 @@ fit <- nlmixr(pk.turnover.emax3, nlmixr2data::warfarin, "monolix",
                               monolixControl(modelName="pk.turnover.emax3"))
 ```
 
-This fit issues an informational tidbit
+This fit issues an informational tidbit -
 
 - monolix parameter history needs expoted charts, please export charts
 
@@ -156,7 +156,7 @@ gives a validated Monolix model.
 
 
 As in the case of `NONMEM`, this gives some things that are not
-available to monolix, like adding conditional weighted residuals:
+available to Monolix, like adding conditional weighted residuals:
 
 ```{r}
 fit <- addCwres(fit)
@@ -172,7 +172,7 @@ monolix  1522.704 2448.398 2527.819      -1205.199         2203.836
 ```
 
 Because you now have an objective function compared based on the same
-assumptions, you could compare the performance of monolix and NONMEM
+assumptions, you could compare the performance of Monolix and NONMEM
 based on objective function.
 
 To be fair, objective function values must always be used with
@@ -201,7 +201,7 @@ v2s
 ## Note about data
 
 The input dataset expected to be compatible with `rxode2` or
-`nlmixr2`.  This dataset is then converted to monolix format:
+`nlmixr2`.  This dataset is then converted to Monolix format:
 
 - The combination of `CMT` and Dose type creates a unique `ADM` variable. 
 

@@ -79,9 +79,9 @@ pk.turnover.emax3 &lt;- function() {
 <p>Next you have to either figure out the command to run <code>Monolix</code>, or
 simply install the <code>lixoftConnectors</code> package
 (<a href="https://monolix.lixoft.com/monolix-api/lixoftconnectors_installation/" class="uri">https://monolix.lixoft.com/monolix-api/lixoftconnectors_installation/</a>).
-If the <code>lixoftConnectors</code> package is available, it will run monolix
+If the <code>lixoftConnectors</code> package is available, it will run Monolix
 from R using that package.</p>
-<p>If the way you run monolix is a command, you can also set that command for the session by <code>options("babelmixr2.monolix"="monolixRunCommand")</code> or you can use it directly based on
+<p>If the way you run Monolix is a command, you can also set that command for the session by <code>options("babelmixr2.monolix"="monolixRunCommand")</code> or you can use it directly based on
 <code>monolixControl(runCommand="nmfe743")</code>. This could also be a
 function if you prefer (but I will not cover using the function here).</p>
 <p>Lets assume you have <code>lixoftConnectors</code> or something similar setup appropriately. To run the
@@ -102,7 +102,7 @@ function if you prefer (but I will not cover using the function here).</p>
 <pre><code>## ✔ done</code></pre>
 <pre><code>## → compress origData in nlmixr2 object, save 27560</code></pre>
 <pre><code>## ℹ monolix parameter history needs expoted charts, please export charts</code></pre>
-<p>This fit issues an informational tidbit</p>
+<p>This fit issues an informational tidbit -</p>
 <ul>
 <li>monolix parameter history needs expoted charts, please export charts</li>
 </ul>
@@ -127,7 +127,7 @@ close as they were with NONMEM because Monolix does not use the
 <code>lsoda</code> ODE solver. Hence this small deviation is expected, but still
 gives a validated Monolix model.</p>
 <p>As in the case of <code>NONMEM</code>, this gives some things that are not
-available to monolix, like adding conditional weighted residuals:</p>
+available to Monolix, like adding conditional weighted residuals:</p>
 <pre class="r"><code>fit &lt;- addCwres(fit)</code></pre>
 <pre><code>## → Calculating residuals/tables</code></pre>
 <pre><code>## ✔ done</code></pre>
@@ -136,7 +136,7 @@ available to monolix, like adding conditional weighted residuals:</p>
 FOCEi    1335.312 2261.007 2340.427      -1111.503         2203.836
 monolix  1522.704 2448.398 2527.819      -1205.199         2203.836</code></pre>
 <p>Because you now have an objective function compared based on the same
-assumptions, you could compare the performance of monolix and NONMEM
+assumptions, you could compare the performance of Monolix and NONMEM
 based on objective function.</p>
 <p>To be fair, objective function values must always be used with
 caution. How the model performs and predicts the data is far more
@@ -158,7 +158,7 @@ v1s</code></pre>
 <div id="note-about-data" class="section level2">
 <h2>Note about data</h2>
 <p>The input dataset expected to be compatible with <code>rxode2</code> or
-<code>nlmixr2</code>. This dataset is then converted to monolix format:</p>
+<code>nlmixr2</code>. This dataset is then converted to Monolix format:</p>
 <ul>
 <li><p>The combination of <code>CMT</code> and Dose type creates a unique <code>ADM</code> variable.</p></li>
 <li><p>The <code>ADM</code> definition is saved in the monolix model file</p></li>
