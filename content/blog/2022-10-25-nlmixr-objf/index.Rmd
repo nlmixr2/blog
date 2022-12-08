@@ -247,9 +247,9 @@ hess1 <- merge(fit1$etaObf, dm1ll) %>%
 hess2 <- merge(fit2$etaObf, dm2ll) %>%
   mutate(hessLlik=OBJI-sllik)
 
-# Hess1
+
 print(hess1)
-# Hess2
+
 print(hess2)
 ```
 
