@@ -240,7 +240,7 @@ A part of the individual Hessians are the other component that is used
 in the likelihood calculation. With the new tools you can also see what
 this contribution to each individual's likelihood is:
 
-``` r
+```{r}
 hess1 <- merge(fit1$etaObf, dm1ll) %>%
   mutate(hessLlik=OBJI-sllik)
 

@@ -35,12 +35,10 @@ In these dataset an new column is added <code>$nlmixrLlikObs</code></p></li>
 <code>fit$phiH</code></p></li>
 </ul>
 <p>Other components may be accessed as well:</p>
-
 <table style="width:99%;">
 <colgroup>
 <col width="26%" />
 <col width="72%" />
-
 </colgroup>
 <thead>
 <tr class="header">
@@ -52,22 +50,6 @@ In these dataset an new column is added <code>$nlmixrLlikObs</code></p></li>
 <tr class="odd">
 <td><code>$phiH</code>, <code>$etaH</code></td>
 <td>Hessian matrix</td>
-</tr>
-<tr class="even">
-<td><code>$phiC</code>, <code>$etaC</code></td>
-<td>Covariance matrix, standard deviations on diagonals, correlations on off-diagonals</td>
-</tr>
-<tr class="odd">
-<td><code>$phiR</code>, <code>$etaR</code></td>
-<td>Correlation matrix, standard deviations on diagonals, correlations on off-diagonals</td>
-</tr>
-<tr class="even">
-<td><code>$phiSE</code>, <code>$etaSE</code></td>
-<td>standard error of each individual’s eta</td>
-</tr>
-<tr class="odd">
-<td><code>$phiRSE</code>, <code>$etaRSE</code></td>
-<td>relative standard error of each individual’s eta</td>
 </tr>
 <tr class="even">
 <td><code>$phiC</code>, <code>$etaC</code></td>
@@ -87,19 +69,17 @@ diagonals, correlations on off-diagonals</td>
 <tr class="odd">
 <td><code>$phiRSE</code>,
 <code>$etaRSE</code></td>
-<td><div class="line-block"></div>
-<p>relative standard error of each individual’s eta</p></td>
+<td>Relative standard error of each individual’s eta</td>
 </tr>
 </tbody>
 </table>
-
 <p>These all require that the <code>cwres</code> are in the fit because they come from
 the <code>focei</code> calculations (and are also under the <code>focei</code> assumption).</p>
 <div id="objective-function-motivating-example" class="section level1">
 <h1>Objective function Motivating example</h1>
-<p>I was working with Bill Denney to prepare past course that features
-<code>babelmixr2</code>. In this course, you can perform a <code>NCA</code> analysis (using
-<code>PKNCA</code>), then use these values (and possibly calculate a unit
+<p>I was working with Bill Denney to prepare a recent course that features
+<a href="https://github.com/nlmixr2/babelmixr2"><code>babelmixr2</code></a>. In this course, you can perform a <code>NCA</code> analysis (using
+<a href="https://github.com/billdenney/pknca"><code>PKNCA</code></a>), then use these values (and possibly calculate a unit
 conversion) to create a initial <code>nlmixr2</code> PK model. This model has with
 <code>NCA</code> derived initial estimates and ranges (and needed unit conversions
 too)!</p>
@@ -154,7 +134,11 @@ fit1 &lt;- nlmixr(one.compartment, nlmixr2data::theo_sd,
 <pre><code>## → optimizing duplicate expressions in EBE model...</code></pre>
 <pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre><code>## → compiling inner model...</code></pre>
-<pre><code>## ✔ done</code></pre>
+<pre><code>## → creating rxode2 include directory</code></pre>
+<pre><code>## → getting R compile options</code></pre>
+<pre><code>## → precompiling headers</code></pre>
+<pre><code>## ✔ done
+## ✔ done</code></pre>
 <pre><code>## → finding duplicate expressions in FD model...</code></pre>
 <pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre><code>## → optimizing duplicate expressions in FD model...</code></pre>
@@ -164,15 +148,14 @@ fit1 &lt;- nlmixr(one.compartment, nlmixr2data::theo_sd,
 <pre><code>## → compiling events FD model...</code></pre>
 <pre><code>## ✔ done</code></pre>
 <pre><code>## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====] 0:00:01 
 ## done</code></pre>
 <pre><code>## → Calculating residuals/tables
 ## ✔ done</code></pre>
 <pre><code>## → compress origData in nlmixr2 object, save 5952</code></pre>
-
 <pre><code>## → compress parHist in nlmixr2 object, save 2400</code></pre>
 <p>Now multiply the <code>cp</code> by 1000 and the observations by 1000 for a nearly
 identical model (ie, change the scale for different units)</p>
-
 <pre class="r"><code>d2 &lt;- nlmixr2data::theo_sd %&gt;%
   mutate(DV=ifelse(AMT==0, DV*1000, DV))
 
@@ -185,7 +168,7 @@ one.compartment %&gt;%
 <pre><code>## ℹ change initial estimate of `add.sd` to `700`</code></pre>
 <pre class="r"><code># Verify the new model
 print(m2)</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────── 
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ─────────────────────────────────────────────────────────────────────── 
 ##  ── Initalization: ──  
 ## Fixed Effects ($theta): 
 ##    tka    tcl     tv add.sd 
@@ -236,95 +219,104 @@ print(m2)</code></pre>
 <pre><code>## → pruning branches (`if`/`else`) of full model...</code></pre>
 <pre><code>## ✔ done</code></pre>
 <pre><code>## → calculate jacobian</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre><code>## → calculate sensitivities</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre><code>## → calculate ∂(f)/∂(η)</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre><code>## → calculate ∂(R²)/∂(η)</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre><code>## → finding duplicate expressions in inner model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre><code>## → optimizing duplicate expressions in inner model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre><code>## → finding duplicate expressions in EBE model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre><code>## → optimizing duplicate expressions in EBE model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre><code>## → compiling inner model...</code></pre>
 <pre><code>## ✔ done</code></pre>
 <pre><code>## → finding duplicate expressions in FD model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre><code>## → optimizing duplicate expressions in FD model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre><code>## → compiling EBE model...</code></pre>
 <pre><code>## ✔ done</code></pre>
 <pre><code>## → compiling events FD model...</code></pre>
 <pre><code>## ✔ done</code></pre>
 <pre><code>## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====] 0:00:01 
 ## done</code></pre>
 <pre><code>## → Calculating residuals/tables
 ## ✔ done</code></pre>
 <pre><code>## → compress origData in nlmixr2 object, save 6400</code></pre>
-<pre><code>## → compress parHist in nlmixr2 object, save 2024</code></pre>
+<pre><code>## → compress parHist in nlmixr2 object, save 1856</code></pre>
 <div id="comparing-estimates" class="section level3">
 <h3>Comparing Estimates</h3>
 <p>As expected the population estimates are similar:</p>
 <pre class="r"><code>#fit1
 print(fixef(fit1))</code></pre>
 <pre><code>##       tka       tcl        tv    add.sd 
-## 0.4681803 1.0108966 3.4603969 0.6969408</code></pre>
+## 0.4755982 1.0152032 3.4605765 0.6964329</code></pre>
 <pre class="r"><code>#fit2 
 print(fixef(fit2))</code></pre>
 <pre><code>##         tka         tcl          tv      add.sd 
-
 ##   0.4632747   1.0116245   3.4602015 695.3004086</code></pre>
 <p>Note that the additive error is (unsurprisingly) larger by a factor of
 about 1000.</p>
-
 <p>Still, the Omega matrices are similar too:</p>
 <pre class="r"><code># fit 1
 print(fit1$omega)</code></pre>
-<pre><code>##           eta.ka     eta.cl      eta.v
-## eta.ka 0.3905671 0.00000000 0.00000000
-## eta.cl 0.0000000 0.06868965 0.00000000
-## eta.v  0.0000000 0.00000000 0.01900547</code></pre>
+<pre><code>##           eta.ka     eta.cl     eta.v
+## eta.ka 0.3965371 0.00000000 0.0000000
+## eta.cl 0.0000000 0.06609421 0.0000000
+## eta.v  0.0000000 0.00000000 0.0189034</code></pre>
 <pre class="r"><code># fit 2 
 print(fit2$omega)</code></pre>
 <pre><code>##           eta.ka     eta.cl      eta.v
-## eta.ka 0.3950723 0.00000000 0.00000000
-## eta.cl 0.0000000 0.06806684 0.00000000
-## eta.v  0.0000000 0.00000000 0.01905419</code></pre>
+## eta.ka 0.3892106 0.00000000 0.00000000
+## eta.cl 0.0000000 0.06839672 0.00000000
+## eta.v  0.0000000 0.00000000 0.01885031</code></pre>
 <p>And the etas:</p>
 <pre class="r"><code># fit 1
 print(fit1$etaObf)</code></pre>
-<pre><code>##    ID      eta.ka      eta.cl        eta.v       OBJI
-## 1   1  0.08208665 -0.47259882 -0.091897473 12.5606972
-## 2   2  0.19410054  0.14488970  0.004567050 17.7860972
-## 3   3  0.36685381  0.02921334  0.052141272  0.2980393
-## 4   4 -0.28483616 -0.01755511 -0.013311522 10.9727363
-## 5   5 -0.04614196 -0.14932588 -0.143715338 29.0206253
-## 6   6 -0.38880790  0.37194163  0.193020540  7.7759907
-## 7   7 -0.77296044  0.14601460  0.055578295  2.2571264
-## 8   8 -0.17120576  0.16513639  0.093028469  6.9589644
-## 9   9  1.35263334  0.04662980 -0.001322353  8.5170235
-## 10 10 -0.73447486 -0.38123254 -0.171485167  7.9744277
-## 11 11  0.74760924  0.28858115  0.135248561  3.4258868
-## 12 12 -0.52143688 -0.12502814 -0.201272246  9.2635184</code></pre>
+<pre><code>##    ID      eta.ka      eta.cl        eta.v      OBJI
+## 1   1  0.07380512 -0.47377507 -0.092726943 12.731100
+## 2   2  0.18745323  0.14029818  0.004629602 17.761561
+## 3   3  0.36028190  0.02522593  0.052062437  0.241700
+## 4   4 -0.29241554 -0.02115808 -0.013641003 10.966127
+## 5   5 -0.05365737 -0.15263117 -0.144045845 29.068040
+## 6   6 -0.39525871  0.36564639  0.193421905  7.797285
+## 7   7 -0.78074888  0.14163632  0.055298747  2.226522
+## 8   8 -0.17817254  0.16047222  0.093002288  6.936265
+## 9   9  1.34938977  0.04245204 -0.001210923  8.356287
+## 10 10 -0.74338444 -0.38309248 -0.172511056  8.096207
+## 11 11  0.74253294  0.28298630  0.135626472  3.353714
+## 12 12 -0.52921042 -0.12846924 -0.201645041  9.287018</code></pre>
 <pre class="r"><code># fit 2
 print(fit2$etaObf)</code></pre>
 <pre><code>##    ID      eta.ka      eta.cl        eta.v     OBJI
-## 1   1  0.08180853 -0.47296571 -0.092397056 164.5851
-## 2   2  0.19429924  0.14418654  0.004310170 169.8321
-## 3   3  0.36757318  0.02842365  0.052022866 152.2118
-## 4   4 -0.28524042 -0.01807046 -0.013762949 162.9714
-## 5   5 -0.04661044 -0.14973343 -0.144315774 181.1468
-## 6   6 -0.38822210  0.37075684  0.193368002 159.7219
-## 7   7 -0.77379790  0.14547001  0.055117184 154.1658
-## 8   8 -0.17103635  0.16431876  0.092932433 158.9221
-## 9   9  1.35579162  0.04576087 -0.001438554 160.4134
-## 10 10 -0.73590990 -0.38125995 -0.172486227 159.9292
-## 11 11  0.74951270  0.28749652  0.135469658 155.3285
-## 12 12 -0.52263038 -0.12521875 -0.202224009 161.2270</code></pre>
+## 1   1  0.08676139 -0.47321299 -0.091753369 164.5500
+## 2   2  0.19859995  0.14435666  0.004612295 169.7950
+## 3   3  0.37118976  0.02871478  0.052154278 152.2332
+## 4   4 -0.28032986 -0.01807234 -0.013271402 162.9404
+## 5   5 -0.04139780 -0.14997041 -0.143548796 181.0793
+## 6   6 -0.38511801  0.37180668  0.192607687 159.7349
+## 7   7 -0.76890394  0.14568098  0.055362585 154.1730
+## 8   8 -0.16701882  0.16475592  0.092908448 158.9137
+## 9   9  1.35698124  0.04608685 -0.001213913 160.5138
+## 10 10 -0.72976734 -0.38187406 -0.171329853 159.9207
+## 11 11  0.75188271  0.28813929  0.135213191 155.3850
+## 12 12 -0.51666992 -0.12569554 -0.201079720 161.2189</code></pre>
 <p>The ETAs are similar too; You can also see the individual contribution
 to the objective functions are quite different (<code>OBJI</code>). So it should be
 no surprise that the objective functions are different:</p>
 <pre class="r"><code># fit 1
 print(fit1$objf)</code></pre>
-<pre><code>## [1] 116.8111</code></pre>
+<pre><code>## [1] 116.8218</code></pre>
 <pre class="r"><code># fit 2
 print(fit2$objf)</code></pre>
-<pre><code>## [1] 1940.455</code></pre>
+<pre><code>## [1] 1940.458</code></pre>
 </div>
 </div>
 <div id="what-about-nonmem" class="section level2">
@@ -366,18 +358,18 @@ print(dm1ll)</code></pre>
 <pre><code>## # A tibble: 12 × 2
 ##    ID     sllik
 ##    &lt;fct&gt;  &lt;dbl&gt;
-##  1 1      0.644
-##  2 2      3.23 
+##  1 1      0.648
+##  2 2      3.24 
 ##  3 3      2.29 
-##  4 4      0.896
-##  5 5      0.124
-##  6 6      2.86 
-##  7 7      1.11 
-##  8 8     -9.97 
+##  4 4      0.916
+##  5 5      0.126
+##  6 6      2.87 
+##  7 7      1.10 
+##  8 8     -9.99 
 ##  9 9     -1.94 
 ## 10 10     3.47 
-## 11 11    -5.26 
-## 12 12    -0.674</code></pre>
+## 11 11    -5.27 
+## 12 12    -0.691</code></pre>
 <pre class="r"><code>print(dm2ll)</code></pre>
 <pre><code>## # A tibble: 12 × 2
 ##    ID    sllik
@@ -386,7 +378,7 @@ print(dm1ll)</code></pre>
 ##  2 2     -72.7
 ##  3 3     -73.7
 ##  4 4     -75.1
-##  5 5     -75.8
+##  5 5     -75.9
 ##  6 6     -73.1
 ##  7 7     -74.9
 ##  8 8     -86.0
@@ -417,10 +409,35 @@ this contribution to each individual’s likelihood is:</p>
 hess2 &lt;- merge(fit2$etaObf, dm2ll) %&gt;%
   mutate(hessLlik=OBJI-sllik)
 
-# Hess1
-print(hess1)
-# Hess2
-print(hess2)</code></pre>
+
+print(hess1)</code></pre>
+<pre><code>##    ID      eta.ka      eta.cl        eta.v      OBJI      sllik  hessLlik
+## 1   1  0.07380512 -0.47377507 -0.092726943 12.731100  0.6483445 12.082755
+## 2  10 -0.74338444 -0.38309248 -0.172511056  8.096207  3.4738096  4.622398
+## 3  11  0.74253294  0.28298630  0.135626472  3.353714 -5.2668018  8.620516
+## 4  12 -0.52921042 -0.12846924 -0.201645041  9.287018 -0.6914396  9.978458
+## 5   2  0.18745323  0.14029818  0.004629602 17.761561  3.2441449 14.517416
+## 6   3  0.36028190  0.02522593  0.052062437  0.241700  2.2925777 -2.050878
+## 7   4 -0.29241554 -0.02115808 -0.013641003 10.966127  0.9159529 10.050174
+## 8   5 -0.05365737 -0.15263117 -0.144045845 29.068040  0.1263595 28.941680
+## 9   6 -0.39525871  0.36564639  0.193421905  7.797285  2.8691600  4.928125
+## 10  7 -0.78074888  0.14163632  0.055298747  2.226522  1.1031798  1.123342
+## 11  8 -0.17817254  0.16047222  0.093002288  6.936265 -9.9852521 16.921517
+## 12  9  1.34938977  0.04245204 -0.001210923  8.356287 -1.9405163 10.296803</code></pre>
+<pre class="r"><code>print(hess2)</code></pre>
+<pre><code>##    ID      eta.ka      eta.cl        eta.v     OBJI     sllik hessLlik
+## 1   1  0.08676139 -0.47321299 -0.091753369 164.5500 -75.32152 239.8715
+## 2  10 -0.72976734 -0.38187406 -0.171329853 159.9207 -72.50307 232.4237
+## 3  11  0.75188271  0.28813929  0.135213191 155.3850 -81.26471 236.6497
+## 4  12 -0.51666992 -0.12569554 -0.201079720 161.2189 -76.65736 237.8763
+## 5   2  0.19859995  0.14435666  0.004612295 169.7950 -72.74190 242.5369
+## 6   3  0.37118976  0.02871478  0.052154278 152.2332 -73.66908 225.9023
+## 7   4 -0.28032986 -0.01807234 -0.013271402 162.9404 -75.10030 238.0407
+## 8   5 -0.04139780 -0.14997041 -0.143548796 181.0793 -75.85543 256.9347
+## 9   6 -0.38511801  0.37180668  0.192607687 159.7349 -73.09561 232.8305
+## 10  7 -0.76890394  0.14568098  0.055362585 154.1730 -74.87371 229.0467
+## 11  8 -0.16701882  0.16475592  0.092908448 158.9137 -85.99411 244.9078
+## 12  9  1.35698124  0.04608685 -0.001213913 160.5138 -77.92497 238.4387</code></pre>
 <p>You can see the individual Hessian contribution is actually large in
 this particular likelihood as well. (You can explore their difference
 more using <code>$etaH</code> if you wish)</p>
@@ -441,12 +458,12 @@ know how things work. For a more in-depth reference you could use the
 paper by Almquist <span class="citation">(<a href="#ref-Almquist2015" role="doc-biblioref">2</a>)</span> to dig into the full likelihood math.</p>
 <div id="references" class="section level3 unnumbered">
 <h3>References</h3>
-<div id="refs" class="references csl-bib-body">
-<div id="ref-Wang2007" class="csl-entry">
-<div class="csl-left-margin">1. </div><div class="csl-right-inline">Wang Y. <a href="https://doi.org/10.1007/s10928-007-9060-6"><span class="nocase">Derivation of various NONMEM estimation methods</span></a>. Journal of Pharmacokinetics and Pharmacodynamics. 2007;34(5):575–93. </div>
+<div id="refs" class="references">
+<div id="ref-Wang2007">
+<p>1. Wang Y. Derivation of various NONMEM estimation methods. Journal of Pharmacokinetics and Pharmacodynamics. 2007;34(5):575–93. </p>
 </div>
-<div id="ref-Almquist2015" class="csl-entry">
-<div class="csl-left-margin">2. </div><div class="csl-right-inline">Almquist J, Leander J, Jirstrand M. <a href="https://doi.org/10.1007/s10928-015-9409-1"><span class="nocase">Using sensitivity equations for computing gradients of the FOCE and FOCEI approximations to the population likelihood</span></a>. Journal of Pharmacokinetics and Pharmacodynamics. 2015 Jun;42(3):191–209. </div>
+<div id="ref-Almquist2015">
+<p>2. Almquist J, Leander J, Jirstrand M. Using sensitivity equations for computing gradients of the FOCE and FOCEI approximations to the population likelihood. Journal of Pharmacokinetics and Pharmacodynamics. 2015 Jun;42(3):191–209. </p>
 </div>
 </div>
 </div>
