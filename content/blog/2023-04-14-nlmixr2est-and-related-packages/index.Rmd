@@ -1,0 +1,334 @@
+---
+title: nlmixr2 family releases
+author: 'the nlmixr2 Development Team'
+date: '2023-04-14'
+slug: []
+categories: [nlmixr2]
+tags: [new-version]
+---
+
+This is another release of a group of `nlmixr2`-related packages.
+
+# Feature Highlights
+
+There are a few things I would like to highlight in this release:
+
+
+## Highly requested feature(s)
+
+- A much requested feature has been added for rxode2; Diagonal zeros
+  in the `omega` and `sigma` matrices are treated as zeros in the
+  model. The corresponding `omega` and `sigma` matrices drop
+  columns/rows where the diagonals are zero to create a new `omega`
+  and `sigma` matrix for simulation.  This is the same idiom that
+  NONMEM uses for simulation from these matrices.
+ 
+- With that new feature, a new function `zeroRe()` allows simple
+  setting of omega and/or sigma values to zero for a model
+  (#456). This is a similar idiom to `mrgsolve` which should allow
+  easier transitioning of code.
+
+## Model piping changes
+
+Model piping is still one of my favorite features of rxode2, and I
+would like to highlight a few more features.
+
+- Add the ability to append model statements with piping using `%>%
+  model(x=3, append=d/dt(depot))`, still supports appending with
+  `append=TRUE` and pre-pending with `append=NA` (the default is to
+  replace lines with `append=FALSE`)
+  
+
+ ```{r pipeAppend}
+ library(rxode2)
+ # using the nlmixr2 theo example:
+ one.compartment <- function() {
+   ini({
+     tka <- 0.45 # Log Ka
+     tcl <- 1 # Log Cl
+     tv <- 3.45    # Log V
+     eta.ka ~ 0.6
+     eta.cl ~ 0.3
+     eta.v ~ 0.1
+     add.sd <- 0.7
+   })
+   model({
+     ka <- exp(tka + eta.ka)
+     cl <- exp(tcl + eta.cl)
+     v <- exp(tv + eta.v)
+     d/dt(depot) = -ka * depot
+     d/dt(center) = ka * depot - cl / v * center
+     cp = center / v
+     cp ~ add(add.sd)
+   })
+ }
+
+ one.compartment |> # could use %>% as well
+   model(x<-20+ka, append=d/dt(depot))
+
+ ```
+
+- Add the ability to pipe model estimates from another model by
+  `parentModel %>% ini(modelWithNewEsts)`
+
+- Parameter labels may now be modified via `ini(param = label("text"))` (#351).
+
+- Parameter order may be modified via the `append` argument to `ini()`
+  when piping a model.  For example, `ini(param = 1, append = 0)` or
+  `ini(param = label("text"), append = "param2")` (#352).
+  
+## nlmixr2 estimation changes
+
+- nlmixr2 fits now include both the correlation and covariance
+  condition numbers; nlmixr2 has included the covariance condition numbers
+  (https://doi.org/10.1080/16000870.2019.1696646 and
+  https://en.wikipedia.org/wiki/Condition_number).
+  However, correlation matrix condition numbers have been used as well
+  and are what are used in NONMEM (as discussed in the NONMEM help
+  https://nmhelp.tingjieguo.com/$covar.htm). This release will report both
+  
+- `vpcSim()` which is used for NPDE and VPC calculations will now
+  re-simulate anything that is not solved correctly (solved with
+  replacement).
+  
+## More features
+
+There some more features and bug-fixes for certain problems you may
+have had in this release.  You can see a more in-depth look at these
+in the consolidated news below.
+
+# nlmixr2
+
+## nlmixr2 2.0.9
+
+* The new function `nlmixr2CheckInstall()` helps to check if your installation
+  is setup correctly with the required compilers and packages.
+
+* This version adds `crayon` as an imported dependency
+
+# nlmixr2est
+
+## nlmixr2est 2.1.4
+
+- Breaking change, now calculate condition number based on covariance
+  and correlation, the names have changed to be more explicit.
+  `conditionNumber` changed to `conditionNumberCov` and a new metric
+  `conditionNumberCor` has been added.
+
+- A bug in boundary value detection prevented automatic covariance calculation
+  with FOCEi estimation (#318)
+
+- Fix `vpcSim` so that it will be a bit more robust when it is
+  difficult to simulate.
+
+- A bug in model piping which did not allow models to be appended to was fixed
+  (rxode2#364)
+  
+- An internal change was made in `nlmixr2.rxUi()` to better support the
+  babelmixr2 PKNCA estimation method (babelmixr2#75)
+
+- Fixed bug where `$iniUi` did not return the initial ui when running
+  non `focei` related methods.  Also added alias of `$uiIni` to the
+  same function.
+  
+- Dropped Stan headers for this package, also updated to C++17
+
+# rxode2
+
+## rxode2 2.0.12
+
+- A new function `zeroRe()` allows simple setting of omega and/or sigma values
+  to zero for a model (#456)
+
+- Diagonal zeros in the `omega` and `sigma` matrices are treated as
+  zeros in the model. The corresponding `omega` and `sigma` matrices
+  drop columns/rows where the diagonals are zero to create a new
+  `omega` and `sigma` matrix for simulation.  This is the same idiom
+  that NONMEM uses for simulation from these matrices.
+
+- Add the ability to pipe model estimates from another model by
+  `parentModel %>% ini(modelWithNewEsts)`
+
+- Add the ability to append model statements with piping using `%>%
+  model(x=3, append=d/dt(depot))`, still supports appending with
+  `append=TRUE` and pre-pending with `append=NA` (the default is to
+  replace lines with `append=FALSE`)
+
+- rxSolve's keep argument will now maintain character and factor classes from
+  input data with the same class (#190)
+
+- Parameter labels may now be modified via `ini(param = label("text"))` (#351).
+
+- Parameter order may be modified via the `append` argument to `ini()`
+  when piping a model.  For example, `ini(param = 1, append = 0)` or
+  `ini(param = label("text"), append = "param2")` (#352).
+
+### Internal changes
+
+- If lower/upper bounds are outside the required bounds, the
+  adjustment is displayed.
+
+- When initial values are piped that break the model's boundary
+  condition reset the boundary to unbounded and message which boundary
+  was reset.
+
+- Added `as.rxUi()` function to convert the following objects to
+  `rxUi` objects: `rxode2`, `rxModelVars`, `function`.  Converting
+  nlmixr2 fits to `rxUi` will be placed in the `s3` method in the
+  corresponding package.
+
+- `assertRxUi(x)` now uses `as.rxUi()` so that it can be extended
+  outside of `rxode2`/`nlmixr2`.
+
+- `rxode2` now supports `addl` with `ss` doses
+
+- Moved `rxDerived` to `rxode2parse` (and re-exported it here).
+
+- Added test for transit compartment solving in absence of dosing to the
+  transit compartment (fixed in `rxode2parse` but solving tested
+  here)
+
+- Using `ini()` without any arguments on a `rxode2` type function will
+  return the `ini()` block.  Also added a method `ini(mod) <-
+  iniBlock` to modify the `ini` block is you wish.  `iniBlock` should
+  be an expression.
+
+- Using `model()` without any arguments on a `rxode2` type function
+  will return the `model()` block.  Also added a new method
+  `model(mod) <- modelBlock`
+
+- Added a new method `rxode2(mod) <- modFunction` which allows
+  replacing the function with a new function while maintaining the
+  meta information about the ui (like information that comes from
+  `nonmem2rx` models).  The `modFunction` should be the body of the
+  new function, the new function, or a new `rxode2` ui.
+
+- `rxode2` ui objects now have a `$sticky` item inside the internal
+  (compressed) environment.  This `$sticky` tells what variables to
+  keep if there is a "significant" change in the ui during piping or
+  other sort of model change.  This is respected during model piping,
+  or modifying the model with `ini(mod)<-`, `model(mod)<-`,
+  `rxode2(mod)<-`.  A significant change is a change in the model
+  block, a change in the number of estimates, or a change to the value
+  of the estimates.  Estimate bounds, weather an estimate is fixed or
+  estimate label changes are not considered significant.
+
+- Added `as.ini()` method to convert various formats to an ini
+  expression.  It is used internally with `ini(mod)<-`.  If you want to
+  assign something new that you can convert to an ini expression, add
+  a method for `as.ini()`.
+
+- Added `as.model()` method to convert various formats to a model
+  expression.  It is used internally with `model(mod)<-`.  If you want to
+  assign something new that you can convert to a model expression, add
+  a method for `as.model()`.
+
+# rxode2random
+
+## rxode2random 2.0.11
+
+- Fix qassert LTO
+
+## rxode2random 2.0.10
+
+- Moved fast factor to `rxode2parse` to allow `etTrans` to be moved there
+
+# rxode2et
+
+# rxode2et 2.0.10
+
+* Fix dollar sign accessing of objects (like data frames), as pointed
+  out by @frbrz (issue #16)
+
+* Use `rxode2parse` functions for internal event table creation (where
+  they were moved to).
+
+* Dropped C++14 and let the system decide.
+
+
+# rxode2parse
+
+## rxode2parse 2.0.16
+
+* Import `data.table` explicitly in the R code (before was imported only in C/C++ code)
+
+## rxode2parse 2.0.15
+
+* Updates the make flags to support CXX17.
+
+## rxode2parse 2.0.14
+
+* 'linCmt()' translations of 'alpha', 'beta', 'gamma', 'k21', 'k31',
+  'vc' now error instead of ignoring 'gamma' and 'k31' to give 2 cmt
+  solution
+
+* transit compartment internal code now changes dose to 0.0 when no
+  dose has been administered to the depot compartment. This way dosing
+  to the central compartment (without dosing to the transit
+  compartment) will not give a `NA` for the depot compartment (and
+  consequently for the central compartment)
+
+* Moved `rxDerived` here and added tests for it here as well.
+
+* Moved `etTransParse` here and added tests for it here as well (makes
+  up most of `etTrans`). In addition the following changes were made
+  to `etTransParse()`/`etTrans()`:
+
+  * The internal translation (`etTrans()`) will not drop times when
+    infusions stop. Before, if the infusion stopped after the last
+    observation the time when the infusion stopped would be dropped.
+    This interferes with `linCmt()` models.
+
+  * Breaking change/bug fix `evid=2` are considered observations when
+    translating data to internal `rxode2` event structure
+
+  * Fix edge case to find infusion duration when it is the first item
+    of the dosing record at time 0.
+
+ * Fixed a bug for certain infusions where the `rate`, `ii` and/or
+   `ss` data items were dropped from the output when `addDosing=TRUE`
+
+
+* Also have internal functions to convert between classic NONMEM
+  events and rxode2 events
+
+* Have an internal function that gives information on the linear
+  compartmental model translation type, which could be useful for
+  babelmixr2
+
+* 'time' in model is now case insensitive
+
+* Use function declaration in `rxode2parseGetTranslation()` to
+  determine thread safety of functions available to rxode2
+
+* Add check for correct number of function arguments to parser.
+
+* Like R, known functions can be assigned as a variable and the
+  function can still be called (while not changing the variable
+  value).  For example you can have a variable `gamma` as well as a
+  function `gamma()`.
+
+* Fix garbled error messages that occur with certain messages.
+
+* Fixed errors that occurred when using capitalized AMT variables in
+  the model.
+
+# rxode2ll
+
+This release was to support the new release of the StanHeaders that we
+use for automatic differentiation.
+
+## rxode2ll 2.0.11
+
+* Update compile flags based on CRAN C++17 requirement (Issue #5)
+
+## rxode2ll 2.0.10
+
+* Update compile flags based on StanHeaders change.
+
+
+## lotri 0.4.3
+
+* Bug fix for etas that were not named correctly for large order problems
+
+ 
