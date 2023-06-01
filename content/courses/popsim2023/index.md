@@ -1,5 +1,5 @@
 ---
-author: Rik Schoemaker
+author: Rik Schoemaker & Theodoros Papathanasiou
 categories:
 - workshop
 date: "2023-05-31"
@@ -26,14 +26,14 @@ links:
 location: Copenhagen, Denmark
 show_post_time: false
 subtitle: PopSim 2023
-title: "Introduction to PK/PD modeling with basic examples using nlmixr2/rxode2"
+title: "Advanced modelling workshop in nlmixr2"
 ---
 
-## Workshop target audience
+## Workshop target audience 
 
-Pharmacometricians/modelers with basic knowledge on model building, evaluation and qualification. Basic knowledge of writing and executing R scripts is required.
+The advanced workshop can be attended after attending the beginner’s workshop, or it can be attended stand-alone for participants already familiar with pharmacometrics.
 
-## Workshop overview
+## Workshop overview 
 
-The workshop will provide a tutorial on introductory PK/PD model development using `nlmixr2` and `rxode2`, presented by Rik Schoemaker on Thursday 15 June 2023 in Copenhagen.
+A hands-on workshop and tutorial on PK/PD model development using `nlmixr2` and `rxode2`, presented by Rik Schoemaker (Occams) and Theodoros Papathanasiou (GSK) on Friday 16 June 2023 in Copenhagen.
 
