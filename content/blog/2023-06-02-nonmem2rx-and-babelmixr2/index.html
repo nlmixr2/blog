@@ -1,0 +1,115 @@
+---
+title: nonmem2rx and babelmixr2
+author: 'Matt Fidler and the nlmixr2 Development Team'
+date: '2023-06-02'
+slug: []
+categories: [nlmixr2, babelmixr2, nonmem2rx, nonmem]
+tags: [new-version]
+---
+
+
+
+<div class="figure">
+<img src="featured.png" alt="" />
+<p class="caption">nonmem2rx/babelmixr2</p>
+</div>
+<p>I am really excited to announce that the <code>nlmixr2</code> team has released a
+new version of <code>babelmixr2</code> and a new package <code>nonmem2rx</code> that allows
+you to convert <code>NONMEM</code> to <code>rxode2</code> or even a <code>nlmixr2</code> object. To
+install, simply upgrade <code>babelmixr2</code> with:</p>
+<pre class="r"><code>install.packages(c(&quot;nonmem2rx&quot;, &quot;babelmixr2&quot;))</code></pre>
+<div id="what-you-can-do-with-nonmem2rx" class="section level2">
+<h2>What you can do with <code>nonmem2rx</code></h2>
+<p>Here is a list of things that you can do with
+<code>nonmem2rx</code>/<code>babelmixr2</code>:</p>
+<ul>
+<li><p><a href="https://nlmixr2.github.io/nonmem2rx/articles/import-nonmem.html">Convert a <code>NONMEM</code> model to a <code>rxode2</code>
+model</a></p></li>
+<li><p><a href="https://nlmixr2.github.io/nonmem2rx/articles/rxode2-validate.html">Make sure the model is translated correctly</a></p></li>
+<li><p>Then with this model, you can:</p>
+<ul>
+<li><p>Perform <a href="https://nlmixr2.github.io/nonmem2rx/articles/simulate-new-dosing.html">simulations of new
+dosing</a>
+from the NONMEM model or even <a href="https://nlmixr2.github.io/nonmem2rx/articles/simulate-uncertainty.html">simulate using the uncertainty in your model</a>
+to simulate new scenarios</p></li>
+<li><p><a href="https://nlmixr2.github.io/nonmem2rx/articles/simulate-extra-items.html">Modify the model to calculate derived
+parameters</a>
+(like AUC). These parameters slow down NONMEM’s optimization, but
+can help in your simulation scenario.</p></li>
+</ul></li>
+<li><p>With <code>nonmem2rx</code> and <code>babelmixr2</code>, <a href="https://nlmixr2.github.io/nonmem2rx/articles/convert-nlmixr2.html">convert the imported <code>rxode2</code>
+model to a <code>nlmixr2</code> object</a>, allowing:</p>
+<ul>
+<li><p><a href="https://nlmixr2.github.io/nonmem2rx/articles/create-office.html">Generation of Word and PowerPoint plots with <code>nlmixr2rpt</code></a></p></li>
+<li><p><a href="https://nlmixr2.github.io/nonmem2rx/articles/create-vpc.html">Easy VPC creation (with <code>vpcPlot()</code>)</a></p></li>
+<li><p><a href="https://nlmixr2.github.io/nonmem2rx/articles/create-augPred.html">Easy Individual plots with extra solved
+points</a>.
+This will show the curvature of individual and population fits for sparse
+data-sets (with <code>augPred()</code>)</p></li>
+</ul></li>
+<li><p>You can even use this conversion to help debug your NONMEM model (or
+even try it in <code>nlmixr2</code> instead)</p>
+<ul>
+<li><p>Understand <a href="https://nlmixr2.github.io/nonmem2rx/articles/read-rounding.html">how to simplify the NONMEM model to avoid rounding errors</a></p></li>
+<li><p><a href="https://nlmixr2.github.io/nonmem2rx/articles/read-rounding.html#step-5-get-the-covariance-of-the-model">Run <code>nlmixr2</code>’s covariance step when <code>NONMEM</code>s covariance step
+has
+failed</a>
+(in the linked example, there was no covariance step because
+rounding errors)</p></li>
+</ul></li>
+</ul>
+<p>I am most excited about the ability to help debug <code>NONMEM</code> models
+since I spent so much time of my life trying to figure out rounding
+errors and covariance steps.</p>
+</div>
+<div id="another-validation-metric-why" class="section level2">
+<h2>Another validation metric – why?</h2>
+<p>With <code>nonmem2rx</code> we introduce a new validation metric: <code>IWRES</code>.</p>
+<p>Both <code>babelmixr2</code> and <code>mrgsolve</code> have used <code>IPRED</code> and <code>PRED</code> (see
+<a href="https://blog.nlmixr2.org/blog/2022-11-11-babelmixr2-nonmem/">nlmixr2
+blog</a> and
+<a href="https://mrgsolve.org/blog/posts/2022-05-validate-translation/">mrgsolve blog
+#1</a>,
+<a href="https://mrgsolve.org/blog/posts/2023-update-validation.html">mrgsolve blog
+#2</a>). They
+validate the model for each eta and the population.</p>
+<p>What the previous approaches miss is the way the unexplained
+variability is coded. In general, <code>nlmixr2</code> estimates residual
+standard deviation instead of variability. The <code>IWRES</code> allows the
+model translations to be back-checked to make sure that the residual
+variability is coded correctly.</p>
+<p>It is quite handy to finish the <code>rxode2</code> conversion from <code>NONMEM</code> and
+make sure it matches <code>nlmixr2</code>-type model.</p>
+<p>With this extra check, you may wonder will there be any other checks
+of model coding or translation? The current checks check the overall
+model, the individual model, and the residual model.</p>
+<p>The only other item that isn’t validated by the checks is the between
+subject variability covariance matrix. Note that the structure of the
+between subject variability etas is tested with the <code>IPRED</code>s. This
+means as long as the covariance matrix is imported correctly, all
+simulations should be reasonable.</p>
+<p>One way to validate a reasonable between subject variability
+covariance matrix is simply to perform a <code>VPC</code>. If the <code>PRED</code>, <code>IPRED</code>
+and <code>IWRES</code> all validate, a good <code>VPC</code> will also show that the
+imported between subject variability matrix is correct (otherwise the
+simulated values would not match).</p>
+<p>The other way is to do a manual check of the covariance matrix import.
+With simple covariance matrices this shouldn’t take too much time.</p>
+</div>
+<div id="visit-our-poster-at-page" class="section level2">
+<h2>Visit our poster at PAGE</h2>
+<p>We will have a poster about this at PAGE. Stop by and say hi and get
+some hex stickers for these new projects. Also let us know what you
+think about <code>nlmixr2</code> right now.</p>
+<p>We are grateful for all the community support and hope this is useful
+for your analysis as well.</p>
+</div>
+<div id="next-steps" class="section level2">
+<h2>Next steps</h2>
+<p>For <code>babelmixr2</code> the next steps include creating other estimation
+methods (like <code>nlmer</code> from <code>lme4</code> and <code>saemmix</code>) and importing models
+from other tools (like Monolix)</p>
+<p>I think this would be useful for many people; Let us know what you
+think! If there is something missing or something doesn’t work quite
+right, let us know with a github issue or discussion!</p>
+</div>
