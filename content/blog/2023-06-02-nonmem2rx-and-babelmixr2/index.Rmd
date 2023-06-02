@@ -99,26 +99,92 @@ between subject variability etas is tested with the `IPRED`s. This
 means as long as the covariance matrix is imported correctly, all
 simulations should be reasonable.
 
-One way to validate a reasonable between subject variability
+There a three different things that can be used to validate the
+imported covariance matrix:
+
+1. Manual check of between subject variability covariance matrix
+
+2. Indirect check of between subject variability covariance matrix
+   with a `VPC`
+   
+3. Direct check of between subject variability covariance matrix with
+   conditional weighted residuals
+   
+### Manual check of imported between subject variability matrix
+
+The other way is to do a manual check of the covariance matrix import.
+With simple covariance matrices this shouldn't take too much time and
+is simply checking that the listed covariance matches the `NONMEM`
+output.  In all likelihood this is going to match if you a importing
+the matrix with `nonmem2rx`, so this check isn't included at this
+time.
+
+### Indirect check of imported between subject variability matrix
+
+Another way to validate a reasonable between subject variability
 covariance matrix is simply to perform a `VPC`. If the `PRED`, `IPRED`
 and `IWRES` all validate, a good `VPC` will also show that the
 imported between subject variability matrix is correct (otherwise the
 simulated values would not match).
 
-The other way is to do a manual check of the covariance matrix import.
-With simple covariance matrices this shouldn't take too much time.
+### nlmixr2 `CWRES` vs NONMEM `CWRES` validation of between subject covariance matrix
+
+The last way is to directly compare `nlmixr2` and `NONMEM`'s `CWRES`
+values (noting that nlmixr2 will have simulated `CWRES` values when
+censored; `NONMEM` does not output values for censored values). If
+they match for non-censored observations, then the between subject
+variability also match.
+
+This checks between subject covariance matrix because `CWRES` uses the
+matrix in its calculation. Therefore if these values match, everything
+will match.
+
+## One last question about validation metrics
+
+So, if `CWRES` validates all components, why not use it exclusively?
+Well, by using the incremental approach you can see where the model
+may start to fall apart in the validation:
+
+- When `PRED` validation fails tells the structural model or population
+  parameters are not describing the same model
+  
+- When `IPRED` validation fails means that there are some individuals that
+  behave differently between `rxode2` and `NONMEM`; Perhaps `NONMEM`
+  or `rxode2` is using different protection algorithms for divide by
+  zero etc.
+  
+ - When `IWRES` validation fails, the residual specification is likely
+   different between the two models.
+   
+- When `CWRES` validation fails (currently a manual step), the
+  imported between subject variability matrix is likely incorrect.
+  
+  
+**Future work for automatic validation:**
+
+In the future, when a model is completely translated to a `nlmixr2`
+fit, `IWRES` and `CWRES` validation will be performed in addition to
+the `PRED`/`IPRED` validation that is currently performed.
 
 ## Visit our poster at PAGE
 
 We will have a poster about this at PAGE.  Stop by and say hi and get
 some hex stickers for these new projects.  Also let us know what you
-think about `nlmixr2` right now.
+think about `nlmixr2` right now. 
+
+If you are astute, you may see a communication suggestion from Stacey
+Tannenbaum on the poster; We are open to new ideas about how to
+effectively communicate our open-source tools (if you have any ideas
+also let us know).
 
 We are grateful for all the community support and hope this is useful
 for your analysis as well.
 
 ## Next steps
 
+In addition to expanding our validation in `babelmixr2`, we want to
+extend even more. 
+ 
 For `babelmixr2` the next steps include creating other estimation
 methods (like `nlmer` from `lme4` and `saemmix`) and importing models
 from other tools (like Monolix)
