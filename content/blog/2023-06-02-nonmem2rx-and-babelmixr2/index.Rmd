@@ -112,12 +112,12 @@ imported covariance matrix:
    
 ### Manual check of imported between subject variability matrix
 
-The other way is to do a manual check of the covariance matrix import.
-With simple covariance matrices this shouldn't take too much time and
-is simply checking that the listed covariance matches the `NONMEM`
-output.  In all likelihood this is going to match if you a importing
-the matrix with `nonmem2rx`, so this check isn't included at this
-time.
+The most straightforward way to validate this matrix is to do a manual
+check of the covariance matrix import.  With simple covariance
+matrices this shouldn't take too much time and is simply checking that
+the listed covariance matches the `NONMEM` output.  In all likelihood
+this is going to match if you a importing the matrix with `nonmem2rx`,
+so this check isn't included at this time.
 
 ### Indirect check of imported between subject variability matrix
 
@@ -135,7 +135,7 @@ censored; `NONMEM` does not output values for censored values). If
 they match for non-censored observations, then the between subject
 variability also match.
 
-This checks between subject covariance matrix because `CWRES` uses the
+This check works because `CWRES` uses the between subject variability
 matrix in its calculation. Therefore if these values match, everything
 will match.
 
@@ -159,7 +159,6 @@ may start to fall apart in the validation:
 - When `CWRES` validation fails (currently a manual step), the
   imported between subject variability matrix is likely incorrect.
   
-  
 **Future work for automatic validation:**
 
 In the future, when a model is completely translated to a `nlmixr2`
@@ -177,18 +176,19 @@ Tannenbaum on the poster; We are open to new ideas about how to
 effectively communicate our open-source tools (if you have any ideas
 also let us know).
 
-We are grateful for all the community support and hope this is useful
-for your analysis as well.
+As always, we are grateful for all the community support and hope this
+is useful for your analysis as well.
 
 ## Next steps
 
 In addition to expanding our validation in `babelmixr2`, we want to
-extend even more. 
+extend `babelmixr2` even more!
  
 For `babelmixr2` the next steps include creating other estimation
-methods (like `nlmer` from `lme4` and `saemmix`) and importing models
-from other tools (like Monolix)
+methods (like `nlmer` from `lme4` and `saemix`) and importing models
+from other tools (like Monolix).
 
-I think this would be useful for many people; Let us know what you
-think!  If there is something missing or something doesn't work quite
-right, let us know with a github issue or discussion!
+I think these extra features could be useful for many people; Let us
+know what you think!  If there is something missing or something
+doesn't work quite right, let us know with a github issue or
+discussion!

@@ -99,12 +99,12 @@ conditional weighted residuals</p></li>
 </ol>
 <div id="manual-check-of-imported-between-subject-variability-matrix" class="section level3">
 <h3>Manual check of imported between subject variability matrix</h3>
-<p>The other way is to do a manual check of the covariance matrix import.
-With simple covariance matrices this shouldn’t take too much time and
-is simply checking that the listed covariance matches the <code>NONMEM</code>
-output. In all likelihood this is going to match if you a importing
-the matrix with <code>nonmem2rx</code>, so this check isn’t included at this
-time.</p>
+<p>The most straightforward way to validate this matrix is to do a manual
+check of the covariance matrix import. With simple covariance
+matrices this shouldn’t take too much time and is simply checking that
+the listed covariance matches the <code>NONMEM</code> output. In all likelihood
+this is going to match if you a importing the matrix with <code>nonmem2rx</code>,
+so this check isn’t included at this time.</p>
 </div>
 <div id="indirect-check-of-imported-between-subject-variability-matrix" class="section level3">
 <h3>Indirect check of imported between subject variability matrix</h3>
@@ -121,7 +121,7 @@ values (noting that nlmixr2 will have simulated <code>CWRES</code> values when
 censored; <code>NONMEM</code> does not output values for censored values). If
 they match for non-censored observations, then the between subject
 variability also match.</p>
-<p>This checks between subject covariance matrix because <code>CWRES</code> uses the
+<p>This check works because <code>CWRES</code> uses the between subject variability
 matrix in its calculation. Therefore if these values match, everything
 will match.</p>
 </div>
@@ -157,17 +157,18 @@ think about <code>nlmixr2</code> right now.</p>
 Tannenbaum on the poster; We are open to new ideas about how to
 effectively communicate our open-source tools (if you have any ideas
 also let us know).</p>
-<p>We are grateful for all the community support and hope this is useful
-for your analysis as well.</p>
+<p>As always, we are grateful for all the community support and hope this
+is useful for your analysis as well.</p>
 </div>
 <div id="next-steps" class="section level2">
 <h2>Next steps</h2>
 <p>In addition to expanding our validation in <code>babelmixr2</code>, we want to
-extend even more.</p>
+extend <code>babelmixr2</code> even more!</p>
 <p>For <code>babelmixr2</code> the next steps include creating other estimation
-methods (like <code>nlmer</code> from <code>lme4</code> and <code>saemmix</code>) and importing models
-from other tools (like Monolix)</p>
-<p>I think this would be useful for many people; Let us know what you
-think! If there is something missing or something doesn’t work quite
-right, let us know with a github issue or discussion!</p>
+methods (like <code>nlmer</code> from <code>lme4</code> and <code>saemix</code>) and importing models
+from other tools (like Monolix).</p>
+<p>I think these extra features could be useful for many people; Let us
+know what you think! If there is something missing or something
+doesn’t work quite right, let us know with a github issue or
+discussion!</p>
 </div>
