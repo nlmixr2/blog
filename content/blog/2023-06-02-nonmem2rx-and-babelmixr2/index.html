@@ -18,45 +18,37 @@ new version of <code>babelmixr2</code> and a new package <code>nonmem2rx</code> 
 you to convert <code>NONMEM</code> to <code>rxode2</code> or even a <code>nlmixr2</code> object. To
 install, simply upgrade <code>babelmixr2</code> with:</p>
 <pre class="r"><code>install.packages(c(&quot;nonmem2rx&quot;, &quot;babelmixr2&quot;))</code></pre>
-<div id="what-you-can-do-with-nonmem2rx" class="section level2">
-<h2>What you can do with <code>nonmem2rx</code></h2>
-<p>Here is a list of things that you can do with
-<code>nonmem2rx</code>/<code>babelmixr2</code>:</p>
+<div id="what-you-can-do-with-nonmem2rxbabelmixr2" class="section level2">
+<h2>What you can do with <code>nonmem2rx</code>/<code>babelmixr2</code></h2>
+<p>You can do many useful tasks directly converting between nlmixr2 and NONMEM models; you can:</p>
 <ul>
-<li><p><a href="https://nlmixr2.github.io/nonmem2rx/articles/import-nonmem.html">Convert a <code>NONMEM</code> model to a <code>rxode2</code>
-model</a></p></li>
-<li><p><a href="https://nlmixr2.github.io/nonmem2rx/articles/rxode2-validate.html">Make sure the model is translated correctly</a></p></li>
-<li><p>Then with this model, you can:</p>
+<li><p><a href="https://nlmixr2.github.io/nonmem2rx/articles/import-nonmem.html">Convert a NONMEM model to a rxode2 model</a></p></li>
+<li><p><a href="https://nlmixr2.github.io/babelmixr2/articles/running-nonmem.html">Do development in nlmixr2 and then run NONMEM from a nlmixr2 model</a> for reviewers who want to know about NONMEM results.</p></li>
+<li><p>In both conversions, <a href="https://nlmixr2.github.io/nonmem2rx/articles/rxode2-validate.html">automatically make sure the model is translated correctly</a> (for <a href="https://nlmixr2.github.io/babelmixr2/articles/running-nonmem.html#optional-step-2-recover-a-failed-nonmem-run">babelmixr2</a>)</p></li>
+</ul>
+<p>Then with nlmixr2 fit models coming from both conversions, you can:</p>
 <ul>
-<li><p>Perform <a href="https://nlmixr2.github.io/nonmem2rx/articles/simulate-new-dosing.html">simulations of new
-dosing</a>
-from the NONMEM model or even <a href="https://nlmixr2.github.io/nonmem2rx/articles/simulate-uncertainty.html">simulate using the uncertainty in your model</a>
-to simulate new scenarios</p></li>
-<li><p><a href="https://nlmixr2.github.io/nonmem2rx/articles/simulate-extra-items.html">Modify the model to calculate derived
-parameters</a>
-(like AUC). These parameters slow down NONMEM’s optimization, but
-can help in your simulation scenario.</p></li>
-</ul></li>
-<li><p>With <code>nonmem2rx</code> and <code>babelmixr2</code>, <a href="https://nlmixr2.github.io/nonmem2rx/articles/convert-nlmixr2.html">convert the imported <code>rxode2</code>
-model to a <code>nlmixr2</code> object</a>, allowing:</p>
+<li><p><a href="https://nlmixr2.github.io/nonmem2rx/articles/simulate-new-dosing.html">Perform simulations of new
+dosing</a> from the NONMEM model or even <a href="https://nlmixr2.github.io/nonmem2rx/articles/simulate-uncertainty.html">simulate using the uncertainty in your model to simulate new scenarios</a></p></li>
+<li><p><a href="https://nlmixr2.github.io/nonmem2rx/articles/simulate-extra-items.html">Modify the model to calculate derived parameters</a> (like AUC). These parameters slow down NONMEM’s optimization, but can help in your simulation scenario.</p></li>
+</ul>
+<p>With nonmem2rx and babelmixr2, convert the imported rxode2 model to a nlmixr2 object, allowing:</p>
 <ul>
-<li><p><a href="https://nlmixr2.github.io/nonmem2rx/articles/create-office.html">Generation of Word and PowerPoint plots with <code>nlmixr2rpt</code></a></p></li>
-<li><p><a href="https://nlmixr2.github.io/nonmem2rx/articles/create-vpc.html">Easy VPC creation (with <code>vpcPlot()</code>)</a></p></li>
+<li><p><a href="https://nlmixr2.github.io/nonmem2rx/articles/create-office.html">Generation of Word and PowerPoint plots with
+nlmixr2rpt</a></p></li>
+<li><p><a href="https://nlmixr2.github.io/nonmem2rx/articles/create-vpc.html">Easy VPC
+creation</a>
+(with <code>vpcPlot()</code>)</p></li>
 <li><p><a href="https://nlmixr2.github.io/nonmem2rx/articles/create-augPred.html">Easy Individual plots with extra solved
-points</a>.
-This will show the curvature of individual and population fits for sparse
-data-sets (with <code>augPred()</code>)</p></li>
-</ul></li>
-<li><p>You can even use this conversion to help debug your NONMEM model (or
-even try it in <code>nlmixr2</code> instead)</p>
+points</a>. This
+will show the curvature of individual and population fits for
+sparse data-sets (with <code>augPred()</code>)</p></li>
+</ul>
+<p>You can even use this conversion to help debug your NONMEM model (or
+even try it in nlmixr2 instead)</p>
 <ul>
-<li><p>Understand <a href="https://nlmixr2.github.io/nonmem2rx/articles/read-rounding.html">how to simplify the NONMEM model to avoid rounding errors</a></p></li>
-<li><p><a href="https://nlmixr2.github.io/nonmem2rx/articles/read-rounding.html#step-5-get-the-covariance-of-the-model">Run <code>nlmixr2</code>’s covariance step when <code>NONMEM</code>s covariance step
-has
-failed</a>
-(in the linked example, there was no covariance step because
-rounding errors)</p></li>
-</ul></li>
+<li><p><a href="https://nlmixr2.github.io/nonmem2rx/articles/read-rounding.html">Understand how to simplify the NONMEM model to avoid rounding errors</a></p></li>
+<li><p><a href="https://nlmixr2.github.io/nonmem2rx/articles/read-rounding.html#step-5-get-the-covariance-of-the-model">Run nlmixr2’s covariance step when NONMEMs covariance step has failed</a> (in the linked example, there was no covariance step because rounding errors)</p></li>
 </ul>
 <p>I am most excited about the ability to help debug <code>NONMEM</code> models
 since I spent so much time of my life trying to figure out rounding
