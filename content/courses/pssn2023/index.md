@@ -29,12 +29,18 @@ subtitle: PssN 2023
 title: "Introduction to Pop PK and modeling in nlmixr2"
 ---
 
-## Workshop target audience 
+## Workshop Learning Objectives
 
-This introductory course is for people who are familiar with analytics
-but may be unfamiliar with drug development or pharmacometrics.  There
-will be an introduction to pharmacometrics and a training on how to
-use nlmixr2
+During the workshop, the participants will have the opportunity to
+become familiar with the basic PK/PD modeling and gain hands-on
+experience. Furthermore, workshop participants will learn the stepwise
+framework of the Pharmacometric’s workflow; starting with a
+question-based approach to graphical explorations intended to uncover
+useful insights prior to complex modeling. Next, nlmxir2 is used for
+building an adequate population model refined by the exploration of
+the data to characterize the dose-exposure-response
+relationship. Finally, the model evaluation, diagnostics, validation
+and reporting will be discussed.
 
 ## Workshop overview 
 
