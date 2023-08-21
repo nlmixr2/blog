@@ -59,3 +59,6 @@ We will be covering the following:
 - nlmixr2: Goodness of Fit Plots Using nlmixr2 – Matt Fidler
 
 - Hands-on Tutorial – Matt Fidler
+
+
+YouTube stream: https://www.youtube.com/watch?v=H_Nh74M9o5w
