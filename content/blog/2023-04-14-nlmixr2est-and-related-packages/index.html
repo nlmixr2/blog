@@ -38,7 +38,7 @@ would like to highlight a few more features.</p>
 replace lines with <code>append=FALSE</code>)</li>
 </ul>
 <pre class="r"><code>library(rxode2)</code></pre>
-<pre><code>## rxode2 2.0.12.9000 using 8 threads (see ?getRxThreads)
+<pre><code>## rxode2 2.0.13.9000 using 8 threads (see ?getRxThreads)
 ##   no cache: create with `rxCreateCache()`</code></pre>
 <pre class="r"><code># using the nlmixr2 theo example:
 one.compartment &lt;- function() {
@@ -65,7 +65,7 @@ one.compartment &lt;- function() {
 one.compartment |&gt; # could use %&gt;% as well
   model(x&lt;-20+ka, append=d/dt(depot))</code></pre>
 <pre><code>## ℹ parameter labels from comments will be replaced by &#39;label()&#39;</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────────────────────────── 
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
 ##  ── Initalization: ──  
 ## Fixed Effects ($theta): 
 ##    tka    tcl     tv add.sd 

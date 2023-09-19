@@ -41,7 +41,7 @@ one.compartment &lt;- function() {
 m &lt;- one.compartment()
 
 m</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────── 
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
 ## 
 ## States ($state or $stateDf): 
 ##   Compartment Number Compartment Name
@@ -74,12 +74,9 @@ et &lt;- et(amt=300) %&gt;%
   et(id=1:12)
 
 # simulate directly from the model
-s &lt;- rxSolve(m, et, theta, omega=omega)</code></pre>
-<pre><code>## → creating rxode2 include directory</code></pre>
-<pre><code>## → getting R compile options</code></pre>
-<pre><code>## → precompiling headers</code></pre>
-<pre><code>## ✔ done</code></pre>
-<pre class="r"><code>library(ggplot2 )
+s &lt;- rxSolve(m, et, theta, omega=omega)
+
+library(ggplot2 )
 
 plot(s, cp) + ylab(&quot;Concentration&quot;)</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/modelOnly-1.png" width="672" /></p>
@@ -96,7 +93,7 @@ plot(s, cp) + ylab(&quot;Concentration&quot;)</code></pre>
 <pre><code>## ℹ promote `eta.v` to between subject variability with initial estimate 0.1</code></pre>
 <pre><code>## ℹ change initial estimate of `eta.v` to `0.1`</code></pre>
 <pre class="r"><code>print(m2)</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────── 
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
 ##  ── Initalization: ──  
 ## 
 ## Omega ($omega): 
@@ -138,7 +135,7 @@ m2 &lt;- m2 %&gt;% ini(tka = 0.45, tcl = 1,tv = 3.45)</code></pre>
 <pre><code>## ℹ promote `tv` to population parameter with initial estimate 3.45</code></pre>
 <pre><code>## ℹ change initial estimate of `tv` to `3.45`</code></pre>
 <pre class="r"><code>print(m2)</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────── 
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
 ##  ── Initalization: ──  
 ## Fixed Effects ($theta): 
 ##  tka  tcl   tv 
@@ -154,6 +151,12 @@ m2 &lt;- m2 %&gt;% ini(tka = 0.45, tcl = 1,tv = 3.45)</code></pre>
 ##   Compartment Number Compartment Name
 ## 1                  1            depot
 ## 2                  2           center
+##  ── μ-referencing ($muRefTable): ──  
+##   theta    eta level
+## 1   tka eta.ka    id
+## 2   tcl eta.cl    id
+## 3    tv  eta.v    id
+## 
 ##  ── Model (Normalized Syntax): ── 
 ## function() {
 ##     ini({
@@ -195,7 +198,7 @@ plot(s, cp) + ylab(&quot;Concentration (model m2)&quot;)</code></pre>
 })
 
 print(rx)</code></pre>
-<pre><code>## rxode2 2.0.10 model named rx_3c919cdfd78bcd515c59521974200beb model (✔ ready). 
+<pre><code>## rxode2 2.0.13.9000 model named rx_d7f98f730f75df7088e53b4d63248cf4 model (✔ ready). 
 ## $state: depot, center
 ## $params: tka, eta.ka, tcl, eta.cl, tv, eta.v
 ## $lhs: ka, cl, v, cp</code></pre>
@@ -217,7 +220,7 @@ print(rx)</code></pre>
 <pre><code>## ℹ promote `tv` to population parameter with initial estimate 3.45</code></pre>
 <pre><code>## ℹ change initial estimate of `tv` to `3.45`</code></pre>
 <pre class="r"><code>print(m3)</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────── 
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
 ##  ── Initalization: ──  
 ## Fixed Effects ($theta): 
 ##  tka  tcl   tv 
@@ -233,6 +236,12 @@ print(rx)</code></pre>
 ##   Compartment Number Compartment Name
 ## 1                  1            depot
 ## 2                  2           center
+##  ── μ-referencing ($muRefTable): ──  
+##   theta    eta level
+## 1   tka eta.ka    id
+## 2   tcl eta.cl    id
+## 3    tv  eta.v    id
+## 
 ##  ── Model (Normalized Syntax): ── 
 ## function() {
 ##     ini({

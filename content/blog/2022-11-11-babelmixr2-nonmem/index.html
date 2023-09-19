@@ -149,7 +149,6 @@ f &lt;- nlmixr(pk.turnover.emax3, nlmixr2data::warfarin, &quot;nonmem&quot;,
 <pre><code>## → Calculating residuals/tables</code></pre>
 <pre><code>## ✔ done</code></pre>
 <pre><code>## → compress origData in nlmixr2 object, save 27560</code></pre>
-<pre><code>## → compress parHist in nlmixr2 object, save 4760</code></pre>
 <p>You may see more work happening than you expected to need for an already
 completed model. When reading in a NONMEM model, <code>babelmixr2</code> grabs:</p>
 <ul>
@@ -172,13 +171,15 @@ get a validated <code>roxde2</code>/<code>nlmixr2</code> model.</p>
 <pre class="r"><code>print(f)</code></pre>
 <pre><code>## ── nlmixr² nonmem ver 7.4.3 ──
 ## 
-##                 OBJF      AIC      BIC Log-likelihood Condition Number
-## nonmem focei 1326.91 2252.605 2332.025      -1107.302               NA
+##                 OBJF      AIC      BIC Log-likelihood Condition#(Cov)
+## nonmem focei 1326.91 2252.605 2332.025      -1107.302              NA
+##              Condition#(Cor)
+## nonmem focei              NA
 ## 
 ## ── Time (sec $time): ──
 ## 
-##         setup optimize covariance table other
-## elapsed 0.004    0.001      0.001  0.06 6.914
+##            setup table compress NONMEM
+## elapsed 0.001795 0.024    0.018 320.27
 ## 
 ## ── Population Parameters ($parFixed or $parFixedDf): ──
 ## 
@@ -189,7 +190,7 @@ get a validated <code>roxde2</code>/<code>nlmixr2</code> model.</p>
 ## tv             2.05             7.78           22.8      6.44% 
 ## prop.err     0.0986           0.0986                           
 ## pkadd.err     0.512            0.512                           
-## temax          6.42            0.998           3.00      100.% 
+## temax          6.42            0.998        0.00707      100.% 
 ## tec50         0.141             1.15           45.0      6.06% 
 ## tkout         -2.95           0.0522           9.16      32.4% 
 ## te0            4.57             96.6           5.24      18.1% 
@@ -215,10 +216,10 @@ get a validated <code>roxde2</code>/<code>nlmixr2</code> model.</p>
 ##  NO. OF SIG. DIGITS UNREPORTABLE
 ## 0PARAMETER ESTIMATE IS NEAR ITS BOUNDARY
 ## 
-##     IPRED relative difference compared to Nonmem IPRED: 0%; 95% percentile: (0%,0%); rtol=7.3e-06
-##     PRED relative difference compared to Nonmem PRED: 0%; 95% percentile: (0%,0%); rtol=6.57e-06
-##     IPRED absolute difference compared to Nonmem IPRED: atol=7.97e-05; 95% percentile: (2.18e-06, 0.00064)
-##     PRED absolute difference compared to Nonmem PRED: atol=6.57e-06; 95% percentile: (2.75e-07,0.00337)
+##     IPRED relative difference compared to Nonmem IPRED: 0%; 95% percentile: (0%,0%); rtol=6.36e-06
+##     PRED relative difference compared to Nonmem PRED: 0%; 95% percentile: (0%,0%); rtol=6.08e-06
+##     IPRED absolute difference compared to Nonmem IPRED: 95% percentile: (2.53e-06, 0.000502); atol=7.15e-05
+##     PRED absolute difference compared to Nonmem PRED: 95% percentile: (3.79e-07,0.00321); atol=6.08e-06
 ##     there are solving errors during optimization (see &#39;$prderr&#39;)
 ##     nonmem model: &#39;pk.turnover.emax3-nonmem/pk.turnover.emax3.nmctl&#39; 
 ## 
@@ -229,10 +230,11 @@ get a validated <code>roxde2</code>/<code>nlmixr2</code> model.</p>
 ## 1 1       0.5 cp      0    1.16 -1.16 0.444 -0.444 -0.864  -0.506 -0.506  0.699
 ## 2 1       1   cp      1.9  3.37 -1.47 1.45   0.446  0.840  -0.506 -0.506  0.699
 ## 3 1       2   cp      3.3  7.51 -4.21 3.96  -0.660 -1.03   -0.506 -0.506  0.699
-## # … with 480 more rows, and 23 more variables: eta.v &lt;dbl&gt;, eta.emax &lt;dbl&gt;,
-## #   eta.ec50 &lt;dbl&gt;, eta.kout &lt;dbl&gt;, eta.e0 &lt;dbl&gt;, cp &lt;dbl&gt;, depot &lt;dbl&gt;,
-## #   gut &lt;dbl&gt;, center &lt;dbl&gt;, effect &lt;dbl&gt;, ktr &lt;dbl&gt;, ka &lt;dbl&gt;, cl &lt;dbl&gt;,
-## #   v &lt;dbl&gt;, emax &lt;dbl&gt;, ec50 &lt;dbl&gt;, kout &lt;dbl&gt;, e0 &lt;dbl&gt;, DCP &lt;dbl&gt;, PD &lt;dbl&gt;,
+## # ℹ 480 more rows
+## # ℹ 23 more variables: eta.v &lt;dbl&gt;, eta.emax &lt;dbl&gt;, eta.ec50 &lt;dbl&gt;,
+## #   eta.kout &lt;dbl&gt;, eta.e0 &lt;dbl&gt;, cp &lt;dbl&gt;, depot &lt;dbl&gt;, gut &lt;dbl&gt;,
+## #   center &lt;dbl&gt;, effect &lt;dbl&gt;, ktr &lt;dbl&gt;, ka &lt;dbl&gt;, cl &lt;dbl&gt;, v &lt;dbl&gt;,
+## #   emax &lt;dbl&gt;, ec50 &lt;dbl&gt;, kout &lt;dbl&gt;, e0 &lt;dbl&gt;, DCP &lt;dbl&gt;, PD &lt;dbl&gt;,
 ## #   kin &lt;dbl&gt;, tad &lt;dbl&gt;, dosenum &lt;dbl&gt;</code></pre>
 <p>That is in this case:</p>
 <pre><code>    IPRED relative difference compared to Nonmem IPRED: 0%; 95% percentile: (0%,0%); rtol=7.3e-06
@@ -244,48 +246,32 @@ get a validated <code>roxde2</code>/<code>nlmixr2</code> model.</p>
 of <code>rxode2</code> and <code>NONMEM</code>, or this model is “validated”.</p>
 <p>Since it <em>is</em> a <code>nlmixr2</code> fit, you can do interesting things with this fit that you couldn’t do in <code>NONMEM</code> or even in another translator. For example, if you wanted to add a covariance step you can with <code>getVarCov()</code>:</p>
 <pre class="r"><code>getVarCov(f)</code></pre>
-<pre><code>## → loading into symengine environment...</code></pre>
-<pre><code>## → pruning branches (`if`/`else`) of full model...</code></pre>
-<pre><code>## ✔ done</code></pre>
-<pre><code>## → calculate jacobian</code></pre>
-<pre><code>## → calculate sensitivities</code></pre>
-<pre><code>## → calculate ∂(f)/∂(η)</code></pre>
-<pre><code>## → finding duplicate expressions in inner model...</code></pre>
-<pre><code>## → optimizing duplicate expressions in inner model...</code></pre>
-<pre><code>## → finding duplicate expressions in EBE model...</code></pre>
-<pre><code>## → optimizing duplicate expressions in EBE model...</code></pre>
-<pre><code>## → compiling inner model...</code></pre>
-<pre><code>## ✔ done</code></pre>
-<pre><code>## → finding duplicate expressions in FD model...</code></pre>
-<pre><code>## → optimizing duplicate expressions in FD model...</code></pre>
-<pre><code>## → compiling EBE model...</code></pre>
-<pre><code>## ✔ done</code></pre>
-<pre><code>## → compiling events FD model...</code></pre>
-<pre><code>## ✔ done</code></pre>
-<pre><code>## calculating covariance matrix</code></pre>
-<pre><code>## Warning in foceiFitCpp_(.ret): using R matrix to calculate covariance, can check
-## sandwich or S matrix with $covRS and $covS</code></pre>
-<pre><code>## Warning in foceiFitCpp_(.ret): gradient problems with covariance; see $scaleInfo</code></pre>
+<pre><code>## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====] 0:00:04</code></pre>
+<pre><code>## Warning in foceiFitCpp_(.ret): using R matrix to calculate covariance, can
+## check sandwich or S matrix with $covRS and $covS</code></pre>
+<pre><code>## Warning in foceiFitCpp_(.ret): gradient problems with covariance; see
+## $scaleInfo</code></pre>
 <pre><code>## → compress origData in nlmixr2 object, save 27560</code></pre>
 <pre><code>## Updated original fit object f</code></pre>
 <pre><code>##                tktr           tka           tcl           tv         temax
-## tktr   1.892598e-02 -1.582985e-02 -1.981657e-05 3.266277e-04  0.0015335469
-## tka   -1.582985e-02  1.888286e-02 -2.652577e-05 3.175901e-04  0.0011916368
-## tcl   -1.981657e-05 -2.652577e-05  2.505341e-04 1.152329e-05 -0.0008937098
-## tv     3.266277e-04  3.175901e-04  1.152329e-05 3.202883e-04  0.0011777851
-## temax  1.533547e-03  1.191637e-03 -8.937098e-04 1.177785e-03  7.6242618702
-## tec50  1.333488e-04  1.435212e-04 -3.647821e-04 1.262144e-04  0.0490792404
-## tkout  1.033562e-04  1.030440e-04 -9.918052e-05 1.201488e-04 -0.0189849996
-## te0    1.506058e-05  1.176585e-05 -9.650248e-06 1.229662e-05 -0.0004769028
+## tktr   1.814157e-02 -1.505648e-02 -2.502718e-05 3.218952e-04  0.0014584448
+## tka   -1.505648e-02  1.809586e-02 -2.033381e-05 3.174674e-04  0.0011038714
+## tcl   -2.502718e-05 -2.033381e-05  2.477213e-04 1.182292e-05 -0.0008007701
+## tv     3.218952e-04  3.174674e-04  1.182292e-05 3.184815e-04  0.0010901352
+## temax  1.458445e-03  1.103871e-03 -8.007701e-04 1.090135e-03  7.5815609072
+## tec50  1.409629e-04  1.275088e-04 -3.578267e-04 1.229804e-04  0.0483185664
+## tkout  1.021310e-04  1.012929e-04 -9.757645e-05 1.188315e-04 -0.0189645929
+## te0    1.271244e-05  1.432893e-05 -9.832256e-06 1.232100e-05 -0.0004366581
 ##               tec50         tkout           te0
-## tktr   0.0001333488  1.033562e-04  1.506058e-05
-## tka    0.0001435212  1.030440e-04  1.176585e-05
-## tcl   -0.0003647821 -9.918052e-05 -9.650248e-06
-## tv     0.0001262144  1.201488e-04  1.229662e-05
-## temax  0.0490792404 -1.898500e-02 -4.769028e-04
-## tec50  0.0018652677  1.582355e-04 -1.380255e-04
-## tkout  0.0001582355  6.353965e-04  5.249358e-05
-## te0   -0.0001380255  5.249358e-05  8.894088e-05</code></pre>
+## tktr   0.0001409629  1.021310e-04  1.271244e-05
+## tka    0.0001275088  1.012929e-04  1.432893e-05
+## tcl   -0.0003578267 -9.757645e-05 -9.832256e-06
+## tv     0.0001229804  1.188315e-04  1.232100e-05
+## temax  0.0483185664 -1.896459e-02 -4.366581e-04
+## tec50  0.0018346015  1.544076e-04 -1.357656e-04
+## tkout  0.0001544076  6.320305e-04  5.220283e-05
+## te0   -0.0001357656  5.220283e-05  8.843845e-05</code></pre>
 <p><code>nlmixr2</code> is more generous in what constitutes a covariance step. The
 <code>r,s</code> covariance matrix is the “most” successful covariance step for
 <code>focei</code>, but the system will fall back to other methods if necessary.</p>
@@ -311,25 +297,29 @@ the control and get the following:</p>
 <pre><code>## → pruning branches (`if`/`else`) of full model...</code></pre>
 <pre><code>## ✔ done</code></pre>
 <pre><code>## → finding duplicate expressions in EBE model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====
+## ====|====] 0:00:00</code></pre>
 <pre><code>## → optimizing duplicate expressions in EBE model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre><code>## → compiling EBE model...</code></pre>
 <pre><code>## ✔ done</code></pre>
 <pre><code>## → Calculating residuals/tables</code></pre>
 <pre><code>## ✔ done</code></pre>
 <pre><code>## → compress origData in nlmixr2 object, save 27560</code></pre>
-<pre><code>## → compress parHist in nlmixr2 object, save 7448</code></pre>
 <p>You can see the <code>NONMEM</code> run is now successful and validates against
 the <code>rxode2</code> model below:</p>
 <pre class="r"><code>f2</code></pre>
 <pre><code>## ── nlmixr² nonmem ver 7.4.3 ──
 ## 
-##                  OBJF      AIC      BIC Log-likelihood Condition Number
-## nonmem focei 1418.923 2338.618 2405.498      -1153.309     1.852796e+16
+##                  OBJF      AIC      BIC Log-likelihood Condition#(Cov)
+## nonmem focei 1418.923 2338.618 2405.498      -1153.309    1.852796e+16
+##              Condition#(Cor)
+## nonmem focei        18934770
 ## 
 ## ── Time (sec f2$time): ──
 ## 
-##         setup table compress other
-## elapsed 0.003  0.05     0.02 6.347
+##            setup table compress NONMEM
+## elapsed 0.001495 0.019    0.004 505.59
 ## 
 ## ── Population Parameters (f2$parFixed or f2$parFixedDf): ──
 ## 
@@ -378,10 +368,10 @@ the <code>rxode2</code> model below:</p>
 ##  NO. OF FUNCTION EVALUATIONS USED:     2391
 ##  NO. OF SIG. DIGITS IN FINAL EST.:  4.1
 ## 
-##     IPRED relative difference compared to Nonmem IPRED: 0%; 95% percentile: (0%,0%); rtol=7.82e-06
-##     PRED relative difference compared to Nonmem PRED: 0%; 95% percentile: (0%,0%); rtol=7.17e-06
-##     IPRED absolute difference compared to Nonmem IPRED: atol=7.42e-05; 95% percentile: (2.13e-06, 0.000645)
-##     PRED absolute difference compared to Nonmem PRED: atol=7.17e-06; 95% percentile: (3.11e-07,0.00342)
+##     IPRED relative difference compared to Nonmem IPRED: 0%; 95% percentile: (0%,0%); rtol=6.85e-06
+##     PRED relative difference compared to Nonmem PRED: 0%; 95% percentile: (0%,0%); rtol=6.45e-06
+##     IPRED absolute difference compared to Nonmem IPRED: 95% percentile: (2.89e-06, 0.000506); atol=7.19e-05
+##     PRED absolute difference compared to Nonmem PRED: 95% percentile: (5.14e-07,0.00318); atol=6.45e-06
 ##     nonmem model: &#39;pk.turnover.emax4-nonmem/pk.turnover.emax4.nmctl&#39; 
 ## 
 ## ── Fit Data (object f2 is a modified tibble): ──
@@ -391,10 +381,11 @@ the <code>rxode2</code> model below:</p>
 ## 1 1       0.5 cp      0    1.16 -1.16 0.920 -0.920 -1.56  0.689 0.228    0.160
 ## 2 1       1   cp      1.9  3.38 -1.48 2.68  -0.780 -1.09  0.689 0.228    0.160
 ## 3 1       2   cp      3.3  7.53 -4.23 5.94  -2.64  -2.36  0.689 0.228    0.160
-## # … with 480 more rows, and 20 more variables: eta.kout &lt;dbl&gt;, eta.e0 &lt;dbl&gt;,
-## #   cp &lt;dbl&gt;, depot &lt;dbl&gt;, gut &lt;dbl&gt;, center &lt;dbl&gt;, effect &lt;dbl&gt;, ktr &lt;dbl&gt;,
-## #   ka &lt;dbl&gt;, cl &lt;dbl&gt;, v &lt;dbl&gt;, emax &lt;dbl&gt;, ec50 &lt;dbl&gt;, kout &lt;dbl&gt;, e0 &lt;dbl&gt;,
-## #   DCP &lt;dbl&gt;, PD &lt;dbl&gt;, kin &lt;dbl&gt;, tad &lt;dbl&gt;, dosenum &lt;dbl&gt;</code></pre>
+## # ℹ 480 more rows
+## # ℹ 20 more variables: eta.kout &lt;dbl&gt;, eta.e0 &lt;dbl&gt;, cp &lt;dbl&gt;, depot &lt;dbl&gt;,
+## #   gut &lt;dbl&gt;, center &lt;dbl&gt;, effect &lt;dbl&gt;, ktr &lt;dbl&gt;, ka &lt;dbl&gt;, cl &lt;dbl&gt;,
+## #   v &lt;dbl&gt;, emax &lt;dbl&gt;, ec50 &lt;dbl&gt;, kout &lt;dbl&gt;, e0 &lt;dbl&gt;, DCP &lt;dbl&gt;, PD &lt;dbl&gt;,
+## #   kin &lt;dbl&gt;, tad &lt;dbl&gt;, dosenum &lt;dbl&gt;</code></pre>
 <p>One thing to emphasize: unlike other translators, you will know immediately
 if the translation is off because the model will not validate. Hence
 you can start this process with confidence - you will know
