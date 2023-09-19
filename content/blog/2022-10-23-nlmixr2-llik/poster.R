@@ -7,7 +7,7 @@ if (any(list.files() == "content")) {
 size <- 20
 
 ret <-qs::qread("run.qs")
-ret <- ret[ret$est != "nonmem743", ]
+#ret <- ret[ret$est != "nonmem743", ]
 
 
 ret$est <- gsub("nonmem743", "NONMEM 7.4.3",
@@ -156,3 +156,49 @@ print(ggplot(ret, aes(run2, SE.Vc, color=by, group=by)) +
 
 
 graph2ppt(file="figs.pptx", width=6.25, height=2.25, append=TRUE)
+
+
+ggplot(ret, aes(run2, objf, color=by, group=by)) +
+  geom_point(size=3, alpha=0.5) +
+  geom_line(alpha=0.5, size=1.3) +
+  theme_bw() +
+  theme(axis.text.x = element_text(face="bold", angle=45, hjust=1),
+        axis.title.y=element_text(face="bold", size=14),
+        axis.title.x=element_blank(),
+        legend.position="top",
+        legend.title=element_blank()) +
+  xgxr::xgx_scale_y_log10() +
+  scale_x_continuous(breaks=.brk, labels=.lvl, minor_breaks=NULL) +
+  ylab(paste0("Objective Function"))
+
+graph2ppt(file="figs.pptx", height=4.6, width=9.75, append=TRUE)
+
+
+library(dplyr)
+
+d1 <- ret %>%
+  filter(by=="focei") %>%
+  select(run2, time) %>%
+  rename(timeFocei=time)
+
+d2 <- ret %>%
+  filter(by != "focei") %>%
+  select(run2, time) %>%
+  rename(timeFoceiLl=time)
+
+d <- merge(d1, d2) %>%
+  mutate(ratio=timeFoceiLl/timeFocei)
+
+ggplot(d, aes(run2, ratio)) +
+  geom_point(size=3, alpha=0.5) +
+  geom_line(alpha=0.5, size=1.3) +
+  theme_bw() +
+  theme(axis.text.x = element_text(face="bold", angle=45, hjust=1),
+        axis.title.y=element_text(face="bold", size=14),
+        axis.title.x=element_blank(),
+        legend.position="top",
+        legend.title=element_blank()) +
+  scale_x_continuous(breaks=.brk, labels=.lvl, minor_breaks=NULL) +
+  ylab(paste0("Ratio of time(log-likelihod)/time(focei)"))
+
+graph2ppt(file="figs.pptx", height=7.25, width=10., append=TRUE)
