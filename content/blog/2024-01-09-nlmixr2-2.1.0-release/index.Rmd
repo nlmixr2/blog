@@ -1,7 +1,7 @@
 ---
 title: rxode2 2.0.9/2.0.10
 author: Matthew Fidler
-date: '2022-10-19'
+date: '2024-01-09'
 slug: []
 categories: [rxode2]
 tags: [new-version]
