@@ -19,7 +19,7 @@ library(rxode2)
 I will be blogging about a few new features but want to mention a few now:
 
 - More flexible mu referencing
-- User defined functions can now be used with `nlmixr2`
+- User defined functions can now be used with `nlmixr2` and `rxode2`
 - Event handling changes
 - Many new estimation methods for population only fitting
 
