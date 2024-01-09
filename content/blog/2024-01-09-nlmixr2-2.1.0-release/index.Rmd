@@ -1,9 +1,9 @@
 ---
-title: rxode2 2.0.9/2.0.10
+title: nlmixr2 2.1.0/ rxode2 2.1.1
 author: Matthew Fidler
-date: '2022-10-19'
+date: '2024-01-09'
 slug: []
-categories: [rxode2]
+categories: [rxode2, nlmixr2]
 tags: [new-version]
 ---
 
@@ -12,10 +12,86 @@ knitr::opts_chunk$set(echo = TRUE)
 library(rxode2)
 ```
 
-`rxode2` 2.0.9 has been released, and `rxode2` 2.0.10 will be released
-soon! I want to personally thank all those who have submitted issues,
-and helped with the development.  Without the support `rxode2`
-wouldn't be the tool it is today.
+`nlmixr2` `2.1.0` was released 9 Jan 2024 which requires the newest
+(and recently released) engine packages `nlmixr2est` `2.2.0` (released
+12 Dec 2023) and `rxode2` `2.0.10` (released 13 Dec 2023).
 
-This is the first CRAN-visible release since `rxode2` 2.0.7 and I
-would like to highlight a few new interesting features:
+I will be blogging about a few new features but want to mention a few now:
+
+- More flexible mu referencing
+- User defined functions can now be used with `nlmixr2`
+- Event handling changes
+- Many new estimation methods for population only fitting
+
+The truncated changelog for these packages are below:
+
+# nlmixr2 2.1.0
+
+* Reexports `etExpand()`, `model()<-` and `ini()<-`; Added required
+  imports for new `rxode2`/`nlmixr2est`.
+
+# nlmixr2est 2.2.0
+
+## New Features
+
+- Algebraic mu referencing has been implemented in `nlme` and `saem`.
+
+- New estimation method "nlm" has been added to estimate population
+  only likelihoods using `stats::nlm` and possibly return a
+  standardized `nlmixr2` fit.
+
+- New estimation method "nls" has been added to estimate population
+  only problems.  This uses `minpack.lm::nlsNM` by default if
+  present, or the `stats::nls`
+
+- New estimation method "optim" has been added to estimate population
+  only likelihoods.  This uses `stats::optim` and returns a
+  standardized `nlmixr2` fit.
+
+- New estimation method "nlminb" has been added to estimate population
+  only likelihoods.  This uses `stats::nlminb` and returns a
+  standardized `nlmixr2` fit.
+
+- New estimation methods from the `minqa` package: "bobyqa", "uobyqa"
+  and "newuoa" have been added to estimate population only
+  likelihoods.  These methods returns a standardized `nlmixr2` fit.
+
+- New estimation method "lbfgsb3c" to estimate population only
+  likelihoods.  This returns a standardized `nlmixr2` fit.
+
+- New estimation method "n1qn1" to estimate population only
+  likelihoods.  This returns a standardized `nlmixr2` fit.
+
+- Added new feature for `vpcSim()` where a minimum number of subjects
+  are simulated from the model when trying to fill in ODEs that were
+  not solved successfully.  By default this is `10`.  This also
+  works-around a bug when there is only one subject simulated and the
+  `data.frame` has a slightly different output.
+
+## Breaking changes
+
+- Removed `fit$saemTransformedData` since it isn't actually used in
+  `saem` anymore (but will break anyone's code who is using it)
+
+- Now the internal function `.foceiPreProcessData()` requires the
+  rxode2 control `rxControl()` because some of the new steady state
+  lag features need to translate the data differently based on
+  `rxControl()` options.
+
+
+## Bug fixes
+
+- Printing models with correlated omega values and omega values fixed
+  to zero no longer fails (#359)
+
+- Add back values for $parHistData (#368)
+
+- This requires a new `rxode2` which will fix multiple endpoint issues observed (#394)
+
+- Manual back-transformed values in `$parFixed` are now displaying
+  correctly and are calculated based on the confidence interval in the
+  control instead of 95% confidence no matter what (#397)
+
+## Other changes
+
+- An `as.rxUi()` method was added for fit models (#377)
