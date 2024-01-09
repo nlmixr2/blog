@@ -1,0 +1,91 @@
+---
+title: nlmixr2 2.1.0/ rxode2 2.1.1
+author: Matthew Fidler
+date: '2024-01-09'
+slug: []
+categories: [rxode2, nlmixr2]
+tags: [new-version]
+---
+
+
+
+<p><code>nlmixr2</code> <code>2.1.0</code> was released 9 Jan 2024 which requires the newest
+(and recently released) engine packages <code>nlmixr2est</code> <code>2.2.0</code> (released
+12 Dec 2023) and <code>rxode2</code> <code>2.0.10</code> (released 13 Dec 2023).</p>
+<p>I will be blogging about a few new features but want to mention a few now:</p>
+<ul>
+<li>More flexible mu referencing</li>
+<li>User defined functions can now be used with <code>nlmixr2</code> and <code>rxode2</code></li>
+<li>Event handling changes</li>
+<li>Many new estimation methods for population only fitting</li>
+</ul>
+<p>The truncated changelog for these packages are below:</p>
+<div id="nlmixr2-2.1.0" class="section level1">
+<h1>nlmixr2 2.1.0</h1>
+<ul>
+<li>Reexports <code>etExpand()</code>, <code>model()&lt;-</code> and <code>ini()&lt;-</code>; Added required
+imports for new <code>rxode2</code>/<code>nlmixr2est</code>.</li>
+</ul>
+</div>
+<div id="nlmixr2est-2.2.0" class="section level1">
+<h1>nlmixr2est 2.2.0</h1>
+<div id="new-features" class="section level2">
+<h2>New Features</h2>
+<ul>
+<li><p>Algebraic mu referencing has been implemented in <code>nlme</code> and <code>saem</code>.</p></li>
+<li><p>New estimation method “nlm” has been added to estimate population
+only likelihoods using <code>stats::nlm</code> and possibly return a
+standardized <code>nlmixr2</code> fit.</p></li>
+<li><p>New estimation method “nls” has been added to estimate population
+only problems. This uses <code>minpack.lm::nlsNM</code> by default if
+present, or the <code>stats::nls</code></p></li>
+<li><p>New estimation method “optim” has been added to estimate population
+only likelihoods. This uses <code>stats::optim</code> and returns a
+standardized <code>nlmixr2</code> fit.</p></li>
+<li><p>New estimation method “nlminb” has been added to estimate population
+only likelihoods. This uses <code>stats::nlminb</code> and returns a
+standardized <code>nlmixr2</code> fit.</p></li>
+<li><p>New estimation methods from the <code>minqa</code> package: “bobyqa”, “uobyqa”
+and “newuoa” have been added to estimate population only
+likelihoods. These methods returns a standardized <code>nlmixr2</code> fit.</p></li>
+<li><p>New estimation method “lbfgsb3c” to estimate population only
+likelihoods. This returns a standardized <code>nlmixr2</code> fit.</p></li>
+<li><p>New estimation method “n1qn1” to estimate population only
+likelihoods. This returns a standardized <code>nlmixr2</code> fit.</p></li>
+<li><p>Added new feature for <code>vpcSim()</code> where a minimum number of subjects
+are simulated from the model when trying to fill in ODEs that were
+not solved successfully. By default this is <code>10</code>. This also
+works-around a bug when there is only one subject simulated and the
+<code>data.frame</code> has a slightly different output.</p></li>
+</ul>
+</div>
+<div id="breaking-changes" class="section level2">
+<h2>Breaking changes</h2>
+<ul>
+<li><p>Removed <code>fit$saemTransformedData</code> since it isn’t actually used in
+<code>saem</code> anymore (but will break anyone’s code who is using it)</p></li>
+<li><p>Now the internal function <code>.foceiPreProcessData()</code> requires the
+rxode2 control <code>rxControl()</code> because some of the new steady state
+lag features need to translate the data differently based on
+<code>rxControl()</code> options.</p></li>
+</ul>
+</div>
+<div id="bug-fixes" class="section level2">
+<h2>Bug fixes</h2>
+<ul>
+<li><p>Printing models with correlated omega values and omega values fixed
+to zero no longer fails (#359)</p></li>
+<li><p>Add back values for $parHistData (#368)</p></li>
+<li><p>This requires a new <code>rxode2</code> which will fix multiple endpoint issues observed (#394)</p></li>
+<li><p>Manual back-transformed values in <code>$parFixed</code> are now displaying
+correctly and are calculated based on the confidence interval in the
+control instead of 95% confidence no matter what (#397)</p></li>
+</ul>
+</div>
+<div id="other-changes" class="section level2">
+<h2>Other changes</h2>
+<ul>
+<li>An <code>as.rxUi()</code> method was added for fit models (#377)</li>
+</ul>
+</div>
+</div>
