@@ -41,7 +41,7 @@ one.compartment &lt;- function() {
 m &lt;- one.compartment()
 
 m</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────── 
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────────────────────────── 
 ## 
 ## States ($state or $stateDf): 
 ##   Compartment Number Compartment Name
@@ -75,10 +75,7 @@ et &lt;- et(amt=300) %&gt;%
 
 # simulate directly from the model
 s &lt;- rxSolve(m, et, theta, omega=omega)</code></pre>
-<pre><code>## → creating rxode2 include directory</code></pre>
-<pre><code>## → getting R compile options</code></pre>
-<pre><code>## → precompiling headers</code></pre>
-<pre><code>## ✔ done</code></pre>
+<pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’</code></pre>
 <pre class="r"><code>library(ggplot2 )
 
 plot(s, cp) + ylab(&quot;Concentration&quot;)</code></pre>
@@ -96,7 +93,7 @@ plot(s, cp) + ylab(&quot;Concentration&quot;)</code></pre>
 <pre><code>## ℹ promote `eta.v` to between subject variability with initial estimate 0.1</code></pre>
 <pre><code>## ℹ change initial estimate of `eta.v` to `0.1`</code></pre>
 <pre class="r"><code>print(m2)</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────── 
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────────────────────────── 
 ##  ── Initalization: ──  
 ## 
 ## Omega ($omega): 
@@ -138,7 +135,7 @@ m2 &lt;- m2 %&gt;% ini(tka = 0.45, tcl = 1,tv = 3.45)</code></pre>
 <pre><code>## ℹ promote `tv` to population parameter with initial estimate 3.45</code></pre>
 <pre><code>## ℹ change initial estimate of `tv` to `3.45`</code></pre>
 <pre class="r"><code>print(m2)</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────── 
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────────────────────────── 
 ##  ── Initalization: ──  
 ## Fixed Effects ($theta): 
 ##  tka  tcl   tv 
@@ -154,6 +151,12 @@ m2 &lt;- m2 %&gt;% ini(tka = 0.45, tcl = 1,tv = 3.45)</code></pre>
 ##   Compartment Number Compartment Name
 ## 1                  1            depot
 ## 2                  2           center
+##  ── μ-referencing ($muRefTable): ──  
+##   theta    eta level
+## 1   tka eta.ka    id
+## 2   tcl eta.cl    id
+## 3    tv  eta.v    id
+## 
 ##  ── Model (Normalized Syntax): ── 
 ## function() {
 ##     ini({
@@ -175,10 +178,9 @@ m2 &lt;- m2 %&gt;% ini(tka = 0.45, tcl = 1,tv = 3.45)</code></pre>
 ##     })
 ## }</code></pre>
 <pre class="r"><code># Which of course still allows simple solving:
-s &lt;- rxSolve(m2, et)
-
-
-plot(s, cp) + ylab(&quot;Concentration (model m2)&quot;)</code></pre>
+s &lt;- rxSolve(m2, et)</code></pre>
+<pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’</code></pre>
+<pre class="r"><code>plot(s, cp) + ylab(&quot;Concentration (model m2)&quot;)</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/modelOmega-1.png" width="672" />
 ## Piping classic <code>rxode2</code> models</p>
 <p>With the above flexibility, this release also allows piping of classic
@@ -192,10 +194,10 @@ plot(s, cp) + ylab(&quot;Concentration (model m2)&quot;)</code></pre>
   d / dt(center) &lt;- ka * depot - cl / v * center
   F(depot) &lt;- 3
   cp &lt;- center / v
-})
-
-print(rx)</code></pre>
-<pre><code>## rxode2 2.0.10 model named rx_3c919cdfd78bcd515c59521974200beb model (✔ ready). 
+})</code></pre>
+<pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’</code></pre>
+<pre class="r"><code>print(rx)</code></pre>
+<pre><code>## rxode2 2.1.1 model named rx_78d20fba9974ebfe2eefd7283c986ba4 model (✔ ready). 
 ## $state: depot, center
 ## $params: tka, eta.ka, tcl, eta.cl, tv, eta.v
 ## $lhs: ka, cl, v, cp</code></pre>
@@ -217,7 +219,7 @@ print(rx)</code></pre>
 <pre><code>## ℹ promote `tv` to population parameter with initial estimate 3.45</code></pre>
 <pre><code>## ℹ change initial estimate of `tv` to `3.45`</code></pre>
 <pre class="r"><code>print(m3)</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────── 
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────────────────────────── 
 ##  ── Initalization: ──  
 ## Fixed Effects ($theta): 
 ##  tka  tcl   tv 
@@ -233,6 +235,12 @@ print(rx)</code></pre>
 ##   Compartment Number Compartment Name
 ## 1                  1            depot
 ## 2                  2           center
+##  ── μ-referencing ($muRefTable): ──  
+##   theta    eta level
+## 1   tka eta.ka    id
+## 2   tcl eta.cl    id
+## 3    tv  eta.v    id
+## 
 ##  ── Model (Normalized Syntax): ── 
 ## function() {
 ##     ini({
