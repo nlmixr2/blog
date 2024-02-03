@@ -26,7 +26,7 @@ new ones (and why you may want to use them).
 
 # Gradient free optimization
 
-There are two gradient-free optimization methods.
+There are three gradient-free optimization methods.
 
 - `bobyqa` from `newuoa::bobyqa` for gradient free constrained optimization
 
@@ -34,7 +34,7 @@ There are two gradient-free optimization methods.
 
 - `optim` that uses the R function `stats::optim` for the gradient-free
   methods; `optimControl(method="Nelder-Mead")`,
-  `optimControl(method="BFGS")` and `optimControl(method="SANN")` and
+  `optimControl(method="BFGS")`, `optimControl(method="SANN")` and
   `optimControl(method="Brent")`.
 
 I know most pharmacometricians can write these models functions themselves.
@@ -59,7 +59,7 @@ However, using the `nlmixr2` interface gives the following advantages:
   is not done for a simple optimization problem)
 
 - At the solution the table of individual predictions, residuals etc
-  are automatically to an output table for quick diagnostic plots.
+  are automatically added to an output table for quick diagnostic plots.
 
 - The fit is a `nlmixr2` model object and can be used with any of the
   supporting packages, and can even be used in (my favorite feature)
@@ -88,7 +88,7 @@ gradient-free method, but it also:
   neighborhood of 1.
 
 I have personally in testing this method that `nls` to be a bit less
-robust than say `nlminb`or `nlm` (though it could be simply the data
+robust than say `nlminb` or `nlm` (though it could be simply the data
 set I am using).
 
 ## `nlminb` & `nlm`  -- Optimization using symbolic gradients and Shi-adjusted finite difference Hessians
@@ -118,13 +118,25 @@ testing performed better than other methods.
 
 - `nlminb` that uses the R function `stats::nlminb` (by default)
 
-- `lbfgsb3c` to estimate population only
-  likelihoods.  This returns a standardized `nlmixr2` fit.
+- `lbfgsb3c` to estimate population only likelihoods using
+  `lbfgsb3c::lbfgsb3c()`.
 
 - `n1qn1` uses the function `n1qn1::n1qn1`
 
 These are the remaining methods; They have all the same advantages as
 the methods above but they do not use the Hessian in the optimization.
+
+# Looking backward
+
+ The method `"focei"` still downgrades to a log-likelihood when there
+ is no between subject variability.  Unlike the above methods, the
+ problem gradient (or Hessian) is not calculated. This matches the
+ behavior of the "focei" that optimizes the "outer" problem
+ numerically.
+
+ If/when we add a gradient-based outer optimization, we will add the
+ gradients to that method.  However, it will likely be called
+ something different.
 
 # Looking forward
 
