@@ -1,0 +1,152 @@
+---
+title: nlmixr2 2.1.0+ new estimation methods
+author: Matthew Fidler
+date: '2024-02-07'
+slug: []
+categories: [nlmixr2]
+tags: [estimation]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rxode2)
+```
+
+`nlmixr2` `2.1.0` was released and I promised to talk about the new features.
+
+One of the things that can impact many peoples work-flow is new
+estimation methods for population-only data. Many people use
+population-only estimation methods before changing the model to a
+mixed effect model, so I believe these can be useful for many people
+trying to find the best model to the data at hand.
+
+
+I will talk about the
+new ones (and why you may want to use them).
+
+# Gradient free optimization
+
+There are three gradient-free optimization methods.
+
+- `bobyqa` from `newuoa::bobyqa` for gradient free constrained optimization
+
+- `uobyqa` from `newuoa::uobyqa` for gradient free unconstrained optimization
+
+- `optim` that uses the R function `stats::optim` for the gradient-free
+  methods; `optimControl(method="Nelder-Mead")`,
+  `optimControl(method="BFGS")`, `optimControl(method="SANN")` and
+  `optimControl(method="Brent")`.
+
+I know most pharmacometricians can write these models functions themselves.
+
+However, using the `nlmixr2` interface gives the following advantages:
+
+- The log-likelihood is calculated from the model by
+  `nlmixr2est`/`rxode2`, you don't have to write these equations by hand.
+
+- The model is loaded into memory before the optimization
+  begins. Because of this pre-loading, the optimization does not take
+  as long as if you wrote a `rxode2` model and used a R function to
+  optimize and find the best solution.
+
+- Parameters are scaled (based on the same method as nlmixr2, which
+  uses parsing to try to make the parameters similar on a log-scale;
+  this parses particular expressions and uses the symbolic gradient to
+  try to scale the parameter). If you want it un-scaled you can turn
+  this off in the control options.
+
+- The covariance of the estimates are calculated automatically (which
+  is not done for a simple optimization problem)
+
+- At the solution the table of individual predictions, residuals etc
+  are automatically added to an output table for quick diagnostic plots.
+
+- The fit is a `nlmixr2` model object and can be used with any of the
+  supporting packages, and can even be used in (my favorite feature)
+  model piping.
+
+So, I think there is some value to these methods over simply using the
+optimization directly.
+
+## `nls` -- Traditional Nonlinear Regression
+
+- `nls` using the R function `stats::nls` (or since closely related
+  `minpack.lm::nlsNM`)
+
+The `nls` estimation method has similar advantages as the
+gradient-free method, but it also:
+
+- Calculates the gradient of each point and possibly the Hessian
+  depending on the `nls` method.  This is different from the rest of
+  the likelihood methods since they calculate the likelihood of the
+  problem overall, but the `nls` methods calculate these for each
+  observation time-point.
+
+- In addition to scaling based on parsed parameter forms, the scaling
+  is adjusted by calculating the gradient at the initial parameter
+  value.  Then this gradient is scaled as well to be in the
+  neighborhood of 1.
+
+I have personally in testing this method that `nls` to be a bit less
+robust than say `nlminb` or `nlm` (though it could be simply the data
+set I am using).
+
+## `nlminb` & `nlm`  -- Optimization using symbolic gradients and Shi-adjusted finite difference Hessians
+
+- `nlminb` using `stats::nlminb` and
+
+- `nlm` using `stats::nlm`
+
+This has the same advantages of the `nls` method, though only one
+likelihood is optimized.
+
+When calculating the Hessian for
+optimization the problem it uses the modified Shi 2021 algorithm
+(https://arxiv.org/pdf/2110.06380.pdf) to pick the optimal step-size
+for calculating the Hessian from the gradient. Instead of optimizing
+the gradient directly, the algorithm optimizes the harmonic mean of
+the gradient of all points.  This is the same method that was used for
+the generalized log-likelihood in `focei`
+(https://blog.nlmixr2.org/blog/2022-10-23-nlmixr2-llik/) and in my
+testing performed better than other methods.
+
+## Optimization with symbolic gradients of likelihood
+
+- `optim` that uses the R function `stats::optim` for the gradient
+  methods [`optimControl(method="L-BFGS-B")`,
+  `optimControl(method="BFGS")` and `optimControl(method="CG")`].
+
+- `nlminb` that uses the R function `stats::nlminb` (by default)
+
+- `lbfgsb3c` to estimate population only likelihoods using
+  `lbfgsb3c::lbfgsb3c()`.
+
+- `n1qn1` uses the function `n1qn1::n1qn1`
+
+These are the remaining methods; They have all the same advantages as
+the methods above but they do not use the Hessian in the optimization.
+
+# Looking backward
+
+ The method `"focei"` still downgrades to a log-likelihood when there
+ is no between subject variability.  Unlike the above methods, the
+ problem gradient (or Hessian) is not calculated. This matches the
+ behavior of the "focei" that optimizes the "outer" problem
+ numerically.
+
+ If/when we add a gradient-based outer optimization, we will add the
+ gradients to that method.  However, it will likely be called
+ something different.
+
+# Looking forward
+
+You may wonder if we would add another population estimation method
+based on another excellent optimization package in R.  I don't mind,
+though it will probably go in `babelmixr2` instead of the core
+`nlmixr2`.  These methods were chose because they were part of base R
+or already imported into nlmixr2 (with the exception of `minpack.lm`
+which was very close to the `nls` implementation so it was added).
+
+I am grateful for all the people who have found `nlmixr2` in their
+work, and those who have given bug reports so `nlmixr2` can get
+better.
