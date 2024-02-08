@@ -33,8 +33,7 @@ There are three gradient-free optimization methods.
 - `uobyqa` from `newuoa::uobyqa` for gradient free unconstrained optimization
 
 - `optim` that uses the R function `stats::optim` for the gradient-free
-  methods; `optimControl(method="Nelder-Mead")`,
-  `optimControl(method="BFGS")`, `optimControl(method="SANN")` and
+  methods; `optimControl(method="Nelder-Mead")`, `optimControl(method="SANN")` and
   `optimControl(method="Brent")`.
 
 I know most pharmacometricians can write these models functions themselves.
