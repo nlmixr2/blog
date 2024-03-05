@@ -1,7 +1,7 @@
 ---
 title: nlmixr2, tidyverse and RStudio on AWS
 author: 'Nicola Melillo and Hitesh Mistry'
-date: '2024-04-05'
+date: '2023-01-23'
 slug: []
 categories: [nlmixr2, AWS]
 tags: [AWS]
@@ -11,7 +11,7 @@ tags: [AWS]
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Running large population PK/PD analyses on laptops and desktops often requires long computational times. This is quite tedious. In addition, when using parallel computing on your machine, it can slow it down for a while, creating further nuisances.
+Running large population PK/PD analyses on laptops and desktops often requires long computational times. This is quite tedious. In addition, when using parallel computing on your machine, it can slow it down for a while, creating further nuisances.  
 
 Outsourcing computation to the cloud is a solution to this problem. Among the various cloud providers, Amazon Web Service (AWS) is one of the most famous and used by industries in various fields. AWS elastic compute cloud (EC2) is a service that allows the user to easily create her/his own “machines”, called instances, with a certain hardware and software configuration. It is interesting to note that it is possible to scale up and down those instances whenever the user wants, by choosing the most suitable hardware configuration for a given analysis. Broadly speaking, the user can change the type of CPU, the number of cores (up to 192!) and ---
 title: nlmixr2 is here
@@ -24,11 +24,11 @@ csl: vancouver.csl
 categories: [nlmixr2]
 tags: [new-version]
 ---
-the amount of RAM according to the need. It is possible to see the vast choice of configurations offered by AWS EC2 [here](https://aws.amazon.com/ec2/instance-types/?nc1=h_ls). The pay-per-use pricing model is quite interesting, see [this link](https://aws.amazon.com/ec2/pricing/on-demand/) for getting an idea.
+the amount of RAM according to the need. It is possible to see the vast choice of configurations offered by AWS EC2 [here](https://aws.amazon.com/ec2/instance-types/?nc1=h_ls). The pay-per-use pricing model is quite interesting, see [this link](https://aws.amazon.com/ec2/pricing/on-demand/) for getting an idea.  
 
-AWS services are already exploited in pharmacometrics. In 2015, an interesting paper published in CPT:PSP explained how to configure NONMEM on AWS ([https://doi.org/10.1002/psp4.12016](https://doi.org/10.1002/psp4.12016)).
+AWS services are already exploited in pharmacometrics. In 2015, an interesting paper published in CPT:PSP explained how to configure NONMEM on AWS ([https://doi.org/10.1002/psp4.12016](https://doi.org/10.1002/psp4.12016)).  
 
-In this blog post we describe how to install R, RStudio server and the `tidyverse` and `nlmixr2` packages on an Ubuntu server hosted on an AWS EC2 instance.
+In this blog post we describe how to install R, RStudio server and the `tidyverse` and `nlmixr2` packages on an Ubuntu server hosted on an AWS EC2 instance.  
 
 ## Create an AWS account and set up the Ubuntu server instance
 
@@ -38,19 +38,19 @@ Instruction for setting up a Linux AWS EC2 instance can be found [here](https://
 
 **Note**: EC2 instances are associated to the server's regions, that you can find on the top right of the EC2 dashboard page. You can select the region you prefer.
 
-Briefly,
+Briefly,   
 
-1. Once you have created your AWS account, go to the [AWS EC2 dashboard page](https://console.aws.amazon.com/ec2/).
-2. Press `Launch an instance`.
-3. In `Name and Tags` tab write the instance name.
-4. In `Application and OS Images (Amazon Machine Image, AMI)`, `Quick Start` tab, select the default Ubuntu AMI (we selected *Ubuntu Server 22.04 LTS (HVM), SSD Volume Type*). Leave the other options as default.
+1. Once you have created your AWS account, go to the [AWS EC2 dashboard page](https://console.aws.amazon.com/ec2/).  
+2. Press `Launch an instance`.  
+3. In `Name and Tags` tab write the instance name.  
+4. In `Application and OS Images (Amazon Machine Image, AMI)`, `Quick Start` tab, select the default Ubuntu AMI (we selected *Ubuntu Server 22.04 LTS (HVM), SSD Volume Type*). Leave the other options as default. 
 5. In the `Instance type` tab, we selected the `t2.large` instance. We found that the free tier eligible `t2.micro` instance was "too slow" for our purposes. Check [here](https://aws.amazon.com/ec2/pricing/on-demand/) the costs associated to the various instances.
-6. In the `Key pair` tab, you can select a [key](https://www.ibm.com/docs/en/zos/2.3.0?topic=SSLTBW_2.3.0/com.ibm.zos.v2r3.foto100/pkauth.html) that you have already created. If you don't have a key pair, you can create a new one by pressing `Create new key pair`. A new tab will then open. We selected RSA as Key pair type and `.ppk` as private key file format (this because, as we will see later, for connecting to the instance through SSH we used PuTTY). Press `Create key pair` and then the key will be downloaded. Store it safely! We will need it later.
-7. In network settings, tick `Allow SSH traffic from` `Anywhere 0.0.0.0/0`, `Allow HTTPS traffic from the internet` and `Allow HTTP traffic from the internet`.
-**Note**: By default, RStudio server listens on port `8787`. Later on in this guideline, we will allow RStudio server to listen also on port `80`, which is the HTTP default port (which is already accessible by ticking `Allow HTTP traffic from the internet` in point 7). **Optional**: if we want to access the RStudio server on port `8787` as well, we should define an additional security rule. In network settings, click edit and then `add security group rule`. Select `Custom TCP`, in `Port range` write `8787` and in source select `0.0.0.0/0`.
+6. In the `Key pair` tab, you can select a [key](https://www.ibm.com/docs/en/zos/2.3.0?topic=SSLTBW_2.3.0/com.ibm.zos.v2r3.foto100/pkauth.html) that you have already created. If you don't have a key pair, you can create a new one by pressing `Create new key pair`. A new tab will then open. We selected RSA as Key pair type and `.ppk` as private key file format (this because, as we will see later, for connecting to the instance through SSH we used PuTTY). Press `Create key pair` and then the key will be downloaded. Store it safely! We will need it later.  
+7. In network settings, tick `Allow SSH traffic from` `Anywhere 0.0.0.0/0`, `Allow HTTPS traffic from the internet` and `Allow HTTP traffic from the internet`.  
+**Note**: By default, RStudio server listens on port `8787`. Later on in this guideline, we will allow RStudio server to listen also on port `80`, which is the HTTP default port (which is already accessible by ticking `Allow HTTP traffic from the internet` in point 7). **Optional**: if we want to access the RStudio server on port `8787` as well, we should define an additional security rule. In network settings, click edit and then `add security group rule`. Select `Custom TCP`, in `Port range` write `8787` and in source select `0.0.0.0/0`.  
 
-8. In `Configure storage` we selected 30 GiB of `gp2 General purpose SSD root volume`.
-9. Press `Launch instance` and then `View all instances`.
+8. In `Configure storage` we selected 30 GiB of `gp2 General purpose SSD root volume`.  
+9. Press `Launch instance` and then `View all instances`.  
 
 Now, in the list of all your instances you should find the newly created one in the *Running* state.
 
@@ -59,13 +59,13 @@ Now, in the list of all your instances you should find the newly created one in 
 Guidelines for installing R and RStudio server on a Ubuntu server 22 can be found [here](https://posit.co/download/rstudio-server/).
 For installing R and RStudio we need to access the instance through [SSH](https://en.wikipedia.org/wiki/Secure_Shell). For this, we will use PuTTY. You can freely download PuTTY from [here](https://www.putty.org/).
 To access the instance through SSH:
-
+  
 1. Launch PuTTY.
 2. In the `Session` tab, under `Host Name (or IP address)` write `ubuntu@X`, where `X` is the public IPv4 DNS address that you can find ticking the instance you want to connect to on the `Instances` page of the EC2 dashboard. Leave port to 22.
 3. Open `SSH/Auth` tab and click `Browse` button next to the `Private key file for authentication` field. Search for the key you associated to the previously generated EC2 instance and open it.
 4. Click open and then Accept.
 
-Now, you are in your AWS ubuntu server instance! Until further notice, all the next steps should be done through SSH.
+Now, you are in your AWS ubuntu server instance! Until further notice, all the next steps should be done through SSH.  
 First of all, let's run...
 
 ```{bash eval=FALSE}
@@ -80,7 +80,7 @@ sudo apt-get install build-essential
 ```
 
 
-### Install R
+### Install R 
 
 To install the latest version of R on Ubuntu server we need to first update the repositories (otherwise an outdated R version will be installed). Check the latest repos [here](http://cran.rstudio.com/bin/linux/ubuntu/).
 
@@ -90,7 +90,7 @@ sudo apt install --no-install-recommends software-properties-common dirmngr
 ```
 ```{bash eval=F}
 # add the signing key (by Michael Rutter) for these repos
-# To verify key, run gpg --show-keys /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
+# To verify key, run gpg --show-keys /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc 
 # Fingerprint: E298A3A825C0D65DFD57CBB651716619E084DAB9
 wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | sudo tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
 ```
@@ -134,7 +134,7 @@ wget https://download2.rstudio.org/server/jammy/amd64/rstudio-server-2022.12.0-3
 sudo gdebi rstudio-server-2022.12.0-353-amd64.deb
 ```
 
-Now, RStudio server should be up and running on port `8787`! If you have set the security group for port `8787`, to access RStudio server you just need to copy and paste the Public IPv4 address (you can find by selecting the instance you want to connect to in the Instances page of EC2 dashboard) followed by `:8787`, like this `http://X.X.X.X:8787`.
+Now, RStudio server should be up and running on port `8787`! If you have set the security group for port `8787`, to access RStudio server you just need to copy and paste the Public IPv4 address (you can find by selecting the instance you want to connect to in the Instances page of EC2 dashboard) followed by `:8787`, like this `http://X.X.X.X:8787`.  
 If you want to open RStudio by directly copy-pasting the public IPv4 address in a new browser tab, we need to tell the RStudio server to listen on port `80`.
 
 First we need to set the writing access to the `rserver.conf` file.
@@ -149,7 +149,7 @@ Finally, we need to restart the RStudio server.
 ```{bash eval=F}
 sudo rstudio-server restart
 ```
-Now, RStudio can be accessed from port `80`, so, just by copy-pasting the public IPv4 address in a new browser tab.
+Now, RStudio can be accessed from port `80`, so, just by copy-pasting the public IPv4 address in a new browser tab.  
 
 Once we try to access the RStudio server, we can see that it requires a username and a password. By default, all the Ubuntu's user are allowed to access the RStudio server.
 If you want to setup a new user, you can run the following command (obviously change `new_username` with the name of the new user).
@@ -161,7 +161,7 @@ sudo adduser new_username
 
 ## Install tidyverse and nlmixr2
 
-Before installing `tidyverse` and `nlmixr2` we need to install a few libraries.
+Before installing `tidyverse` and `nlmixr2` we need to install a few libraries.  
 First of all, let's install `make` and `cmake`.
 ```{bash eval=F}
 sudo apt install make
@@ -179,7 +179,7 @@ sudo apt install libopenblas-dev
 sudo apt-get install libjpeg-turbo8-dev
 sudo apt-get install libpng-dev
 ```
-**Note**: Apparently, Ubuntu server 22 on AWS does not come with many libraries. We found that the libraries written above are needed for `tidyverse` and `nlmixr2` installation.
+**Note**: Apparently, Ubuntu server 22 on AWS does not come with many libraries. We found that the libraries written above are needed for `tidyverse` and `nlmixr2` installation. 
 
 Now, let's install `tidyverse`. We can do it both by opening R through SSH or by accessing the RStudio server.
 ```{r eval=F}
@@ -193,4 +193,5 @@ install.packages("nlmixr2", dependencies=T)
 
 Now your RStudio server with both `tidyverse` and `nlmixr2` should be up and running on AWS. Feel free to provide feedback/suggestions.
 
-Enjoy!
+Enjoy!    
+
