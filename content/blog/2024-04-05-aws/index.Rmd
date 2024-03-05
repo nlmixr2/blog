@@ -13,7 +13,17 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Running large population PK/PD analyses on laptops and desktops often requires long computational times. This is quite tedious. In addition, when using parallel computing on your machine, it can slow it down for a while, creating further nuisances.
 
-Outsourcing computation to the cloud is a solution to this problem. Among the various cloud providers, Amazon Web Service (AWS) is one of the most famous and used by industries in various fields. AWS elastic compute cloud (EC2) is a service that allows the user to easily create her/his own “machines”, called instances, with a certain hardware and software configuration. It is interesting to note that it is possible to scale up and down those instances whenever the user wants, by choosing the most suitable hardware configuration for a given analysis. Broadly speaking, the user can change the type of CPU, the number of cores (up to 192!) and
+Outsourcing computation to the cloud is a solution to this problem. Among the various cloud providers, Amazon Web Service (AWS) is one of the most famous and used by industries in various fields. AWS elastic compute cloud (EC2) is a service that allows the user to easily create her/his own “machines”, called instances, with a certain hardware and software configuration. It is interesting to note that it is possible to scale up and down those instances whenever the user wants, by choosing the most suitable hardware configuration for a given analysis. Broadly speaking, the user can change the type of CPU, the number of cores (up to 192!) and ---
+title: nlmixr2 is here
+author: 'the nlmixr2 Development Team'
+date: '2022-06-08'
+slug: []
+bibliography: [refs.bib]
+link-citations: true
+csl: vancouver.csl
+categories: [nlmixr2]
+tags: [new-version]
+---
 the amount of RAM according to the need. It is possible to see the vast choice of configurations offered by AWS EC2 [here](https://aws.amazon.com/ec2/instance-types/?nc1=h_ls). The pay-per-use pricing model is quite interesting, see [this link](https://aws.amazon.com/ec2/pricing/on-demand/) for getting an idea.
 
 AWS services are already exploited in pharmacometrics. In 2015, an interesting paper published in CPT:PSP explained how to configure NONMEM on AWS ([https://doi.org/10.1002/psp4.12016](https://doi.org/10.1002/psp4.12016)).
@@ -59,8 +69,8 @@ Now, you are in your AWS ubuntu server instance! Until further notice, all the n
 First of all, let's run...
 
 ```{bash eval=FALSE}
-sudo apt-get update
-sudo apt-get upgrade
+sudo apt update
+sudo apt upgrade
 ```
 
 Now let's install some compilers.
@@ -76,7 +86,7 @@ To install the latest version of R on Ubuntu server we need to first update the 
 
 ```{bash eval=F}
 # install two helper packages we need
-sudo apt-get install --no-install-recommends software-properties-common dirmngr
+sudo apt install --no-install-recommends software-properties-common dirmngr
 ```
 ```{bash eval=F}
 # add the signing key (by Michael Rutter) for these repos
@@ -91,7 +101,7 @@ sudo add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $(lsb_
 
 Then, let's install R.
 ```{bash eval=F}
-sudo apt-get install --no-install-recommends r-base
+sudo apt install --no-install-recommends r-base
 ```
 
 To check the R version, let's first open R.
@@ -154,7 +164,7 @@ sudo adduser new_username
 Before installing `tidyverse` and `nlmixr2` we need to install a few libraries.
 First of all, let's install `make` and `cmake`.
 ```{bash eval=F}
-sudo apt-get install make
+sudo apt install make
 sudo snap install cmake --classic
 ```
 Then, let's install the following libraries.
@@ -164,8 +174,8 @@ sudo apt-get install libxml2-dev
 sudo apt-get install libmpfr-dev
 sudo apt-get install libgmp-dev
 sudo apt-get install libboost-all-dev
-sudo apt-get install liblapack-dev
-sudo apt-get install libopenblas-dev
+sudo apt install liblapack-dev
+sudo apt install libopenblas-dev
 sudo apt-get install libjpeg-turbo8-dev
 sudo apt-get install libpng-dev
 ```
@@ -178,13 +188,9 @@ install.packages("tidyverse")
 
 Finally we shall install `nlmixr2`. If you have installed R versions older than the 4.2, please refer to [this page](https://github.com/nlmixr2/nlmixr2/) for nlmixr2 installation.
 ```{r eval=F}
-install.packages("rxode2", dependencies=T)
 install.packages("nlmixr2", dependencies=T)
-install.packages("babelmixr2", dependencies=T)
 ```
 
-Now your RStudio server with both `tidyverse` and
-`rxode2`/`nlmixr2`/`babelmixr2` should be up and running on AWS. Feel
-free to provide feedback/suggestions.
+Now your RStudio server with both `tidyverse` and `nlmixr2` should be up and running on AWS. Feel free to provide feedback/suggestions.
 
 Enjoy!
