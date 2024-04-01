@@ -1,0 +1,299 @@
+---
+title: nlmixr2/rxode2 steady state changes
+author: 'Matthew Fidler'
+date: '2024-04-01'
+slug: []
+categories: [nlmixr2, rxode2, steady state]
+tags: [steady state]
+---
+
+
+
+<p>One of the things that I changed in the last release was steady state.</p>
+<p>Once I created the <code>nonmem2rx</code> package, I searched for NONMEM control
+streams that we could test the import from, especially those with
+attached data. I ran across
+<a href="https://github.com/mrgsolve/nmtests">nmtests</a> that uses NONMEM to
+test against <code>mrgsolve</code> and how it behaves.</p>
+<p>During that test I noticed that <code>rxode2</code> did not follow the convention
+of NONMEM in lagged steady state doses. This blog post discusses the
+prior and current differences between the steady state of NONMEM and
+<code>rxode2</code>/<code>NONMEM</code>.</p>
+<p>To reproduce the (<a href="https://github.com/nlmixr2/nmtests/" class="uri">https://github.com/nlmixr2/nmtests/</a>)[nmtests] in the
+current version of <code>rxode2</code>, we will first define the model to compare
+with what NONMEM does:</p>
+<pre class="r"><code>library(rxode2)</code></pre>
+<pre><code>## rxode2 2.1.2.9000 using 8 threads (see ?getRxThreads)
+##   no cache: create with `rxCreateCache()`</code></pre>
+<pre class="r"><code>fl &lt;- rxode2({
+  cl &lt;- 1.1
+  v &lt;- 20
+  ka &lt;- 1.5
+  d/dt(depot) &lt;- -ka*depot
+  d/dt(central) &lt;- ka*depot - (cl/v)*central
+  lag(central) &lt;- lagt
+  f(central) &lt;- bioav
+  if (mode == 1) rate(central) &lt;- rat2
+  if (mode == 2) dur(central) &lt;- dur2
+  cp &lt;- central/(v/1000)
+})</code></pre>
+<pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’</code></pre>
+<p>Then we import the test data from <code>nlmixr2data</code> (note this dataset has
+been modified from the original
+(<a href="https://github.com/nlmixr2/nmtests/" class="uri">https://github.com/nlmixr2/nmtests/</a>)[nmtests] with a few more tests
+cases).</p>
+<div id="steady-state-with-lag-time" class="section level2">
+<h2>Steady State with Lag time</h2>
+<p>We will show the first difference we saw in the (<a href="https://github.com/nlmixr2/nmtests/" class="uri">https://github.com/nlmixr2/nmtests/</a>)[nmtests]:</p>
+<pre class="r"><code>dfull &lt;- nlmixr2data::nmtest
+d &lt;- dfull[dfull$id ==9, ]
+
+print(d[d$evid != 0, ])</code></pre>
+<pre><code>##      id time     cp cmt amt evid ii ss addl rate lagt bioav rat2 dur2 mode
+## 1057  9    0 1002.7   2 100    1 24  1    3   10 3.16 0.412   10    2    0</code></pre>
+<p>In this case, there is a lag time for a steady state dose. In the previous version of <code>rxode2</code> we saw:</p>
+<pre class="r"><code>library(ggtext)
+library(ggplot2)
+
+rxSolve(fl, d, ssAtDoseTime=FALSE) %&gt;%
+  plot(cp) +
+  geom_point(data=d, aes(x=time, y=cp), color=&quot;red&quot;) +
+  labs(x=NULL,
+       y=NULL,
+       title = &quot;&lt;span style = &#39;color: red;&#39;&gt;NONMEM&lt;/span&gt; solve vs &lt;span style=&#39;color: black;&#39;&gt;rxode2&lt;/span&gt; &lt;span style=&#39;font-family: monospace;&#39;&gt;ssAtDoseTime=FALSE&lt;/span&gt;&quot;,
+       subtitle=&quot;show a difference at dose time until the lag time&quot;) +
+  theme(plot.title = element_markdown()) +
+  annotate(&quot;rect&quot;, ymin=c(0, 0), ymax=c(1200, 1200),xmin=c(0, 0), xmax=c(4, 4),
+           fill=&quot;blue&quot;, color=&quot;blue&quot;,
+           alpha=0.2)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+<p>At first I was not concerned with the difference because we do not
+have to match NONMEM. The purpose of having the steady state in the
+first place was to simulate steady state. In my opinion, simulating
+steady state and simulating a few extra doses was the way to make sure
+you had the correct steady state. (I still think there are situations
+in NONMEM where this is best practice as I will mention later).</p>
+<p>However some in the nlmixr2 team suggested that it should not wait for
+another cycle, it is more convenient to have the steady state work as
+expected immediately. I eventually conceded. Hence the new default
+is to solve back-calculating the steady state of the lag time:</p>
+<pre class="r"><code>rxSolve(fl, d) %&gt;%
+  plot(cp) +
+  geom_point(data=d, aes(x=time, y=cp), color=&quot;red&quot;) +
+  labs(x=NULL,
+       y=NULL,
+       title = &quot;&lt;span style = &#39;color: red;&#39;&gt;NONMEM&lt;/span&gt; solve vs &lt;span style=&#39;color: black;&#39;&gt;rxode2&lt;/span&gt; &lt;span style=&#39;font-family: monospace;&#39;&gt;ssAtDoseTime=TRUE&lt;/span&gt;&quot;,
+       subtitle=&quot;show no differences (default as of rxode2 2.1.0)&quot;) +
+  theme(plot.title = element_markdown())</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/ssAtDoseTime-1.png" width="672" /></p>
+</div>
+<div id="more-extreme-steady-state-example" class="section level2">
+<h2>More extreme steady state example</h2>
+<p>One of the new features of <code>rxode2</code> is handling steady state where
+steady state interval is less than the infusion interval. For
+example, from the (<a href="https://github.com/nlmixr2/nmtests/" class="uri">https://github.com/nlmixr2/nmtests/</a>)[nmtests]
+dataset:</p>
+<pre class="r"><code>dfull &lt;- nlmixr2data::nmtest
+d &lt;- dfull[dfull$id ==10, ]
+
+print(d[d$evid != 0, ])</code></pre>
+<pre><code>##      id time     cp cmt amt evid ii ss addl rate lagt bioav rat2 dur2 mode
+## 1189 10    0 6014.5   2 100    1 12  1    4    2    0 0.812   10    2    0</code></pre>
+<p>In this case, the infusion lasts well over 12 hours
+(<code>100/2*0.812</code>=<code>40.2</code>) even though the steady state dosing is every 12
+hours. If this was performed it would mean dosing every 12 hours and
+not removing the previous zero order infusion dose. It seems a bit
+extreme, but perhaps this is a zero order release tablet that lasts in
+the body for a few days. In this case we match NONMEM:</p>
+<pre class="r"><code>rxSolve(fl, d) %&gt;%
+  plot(cp) +
+  geom_point(data=d, aes(x=time, y=cp), color=&quot;red&quot;) +
+  labs(x=NULL,
+       y=NULL,
+       title = &quot;&lt;span style = &#39;color: red;&#39;&gt;NONMEM&lt;/span&gt; solve vs &lt;span style=&#39;color: black;&#39;&gt;rxode2&lt;/span&gt; for interdose interval &lt; infusion duration&quot;,
+       subtitle=&quot;show no differences (as of rxode2 2.1.0)&quot;) +
+  theme(plot.title = element_markdown())</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/ssid10plot-1.png" width="672" /></p>
+<p>If you look carefully, there are additional times where each infusion
+is turned off as the remaining doses wear off.</p>
+</div>
+<div id="another-extreme-steady-state-support" class="section level2">
+<h2>Another extreme steady state support</h2>
+<p>In addition to supporting steady state where the inter-dose interval
+is smaller than the infusion time, we also now support cases where the
+lag-time is greater than the inter-dose interval. This is an
+additional test case that is found in our fork of
+(<a href="https://github.com/nlmixr2/nmtests/" class="uri">https://github.com/nlmixr2/nmtests/</a>)[nmtests].</p>
+<pre class="r"><code>dfull &lt;- nlmixr2data::nmtest
+d &lt;- dfull[dfull$id ==409, ]
+
+print(d[d$evid != 0, ])</code></pre>
+<pre><code>##       id time     cp cmt amt evid ii ss addl rate lagt bioav rat2 dur2 mode
+## 4899 409    0 -18569   2 100    1 24  1    1   10   46 0.412   10    2    0</code></pre>
+<p>This gives the following:</p>
+<pre class="r"><code>rxSolve(fl, d) %&gt;%
+  plot(cp) +
+  geom_point(data=d, aes(x=time, y=cp), color=&quot;red&quot;) +
+  labs(x=NULL,
+       y=NULL,
+       title = &quot;&lt;span style = &#39;color: red;&#39;&gt;NONMEM&lt;/span&gt; solve vs &lt;span style=&#39;color: black;&#39;&gt;rxode2&lt;/span&gt; for lag time &gt; interdose interval&quot;,
+       subtitle=&quot;show large at beginning (as of rxode2 2.1.0 and NONMEM 7.4)&quot;) +
+  theme(plot.title = element_markdown())</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/ssid409plot-1.png" width="672" /></p>
+<p>In this case, there are large differences between what NONMEM has and
+what <code>rxode2</code>/<code>nlmixr2</code>, especially at the beginning of the profile.
+Here NONMEM has negative concentrations. They become positive because
+NONMEM changes the steady state doses to non-steady state doses with
+the <code>addl</code> flag (as does <code>rxode2</code>). In a few steady state doses after
+the initial dose is administered, steady state is achieved in NONMEM
+as well. You can see in this plot that the steady state is achieved
+immediately in the <code>rxode2</code> case.</p>
+<p>This is one of the reasons why I suggest a few extra doses
+“just in case”.</p>
+<p>I did reach out to Bob Bauer about what I thought was a bug. His
+reply is as follows:</p>
+<blockquote>
+<p>Rules about steady-state feature are documented as follows:</p>
+<p>According to guide VIII, the manual reads, under the section ABSORPTION LAG PARAMETER:</p>
+<p>An absorption lag time for a dose is computed by the PK routine using, if needed, information in the dose record. When additional doses are specified on a dose event record, the absorption lag time applies to the dose and to all the additional doses. With a steady-state multiple dose the absorption lag time applies not only to this dose, but also to all the preceding implied doses. With a steady-state dose, the lag time should be less than the interdose interval</p>
+</blockquote>
+<blockquote>
+<p>In guide VIII, section ADDL DATA ITEM:</p>
+<p>For non-steady-state doses, ADDL should be a positive number if and only if the II data item is a positive number. II giv es the time between additional doses. For steady-state infusions, ADDL must be 0. For other steady-state doses, ADDL is optional. If it is a positive number, it continues the pattern of implied doses beyond the steady-state dose. The additional doses of the pattern are non-steady state doses.</p>
+<p>And in intro7.pdf:</p>
+<p>With NM75 there is a new way of computing SS, the Empirical method, in which there is no SS data item, and a negative value of ADDL requests the computation. This is described separately. (See empirical_SS). (See Guide Introduction_7 “An Empirical Method of Achieving Steady State”)</p>
+</blockquote>
+<p>So my impression is this is not supported by NONMEM (as documented in
+the manual). The key statement for me is “With a steady-state dose,
+the lag time should be less than the interdose interval”. However, a
+run-time error does not raise when this condition occurs (which would
+be helpful I think).</p>
+<p>Note that <code>rxode2</code> does not currently support the empirical method of
+steady state supported in NONMEM 7.5.</p>
+</div>
+<div id="steady-state-and-additional-doses" class="section level2">
+<h2>Steady state and additional doses</h2>
+<p>NONMEM supports steady state with additional doses, and as of <code>rxode2</code>
+2.1.0, we do too. At first I thought simply duplicating the steady
+state records is what was done, but it is not the case.</p>
+<p>Lets look at an example where the additional doses take along the
+steady state flag:</p>
+<pre class="r"><code>dfull &lt;- nlmixr2data::nmtest
+d &lt;- dfull[dfull$id ==25, ]
+
+print(d[d$evid != 0, ])</code></pre>
+<pre><code>##      id time     cp cmt amt evid ii ss addl rate lagt bioav rat2 dur2 mode
+## 3175 25    0 1891.9   1 100    1 24  1    3    0    0     1   10    2    0
+## 3188 25   12 4606.4   1  50    1 24  2    3    0    0     1   10    2    0</code></pre>
+<p>In this example there is a steady-state 1 followed by a steady state 2
+dose. If this solved by duplicated the steady state information you would get:</p>
+<pre class="r"><code>rxSolve(fl, d, addlDropSs=FALSE) %&gt;%
+  plot(cp) +
+  geom_point(data=d, aes(x=time, y=cp), color=&quot;red&quot;) +
+  labs(x=NULL,
+       y=NULL,
+       title = &quot;&lt;span style = &#39;color: red;&#39;&gt;NONMEM&lt;/span&gt; solve vs &lt;span style=&#39;color: black;&#39;&gt;rxode2&lt;/span&gt; when &lt;span style=&#39;font-family: monospace&#39;&gt;addlDropSs=FALSE&lt;/span&gt;&quot;,
+       subtitle=&quot;or the steady-state flag is preserved does not match&quot;) +
+  theme(plot.title = element_markdown())</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/ssid25plot1-1.png" width="672" /></p>
+<p>In this case:</p>
+<ul>
+<li><p>The first ODE system is reset and the dose is solved to steady
+state.</p></li>
+<li><p>On the second ODE dose, the system is reset and solved to steady
+state, the old concentration is added to the steady state dose to
+produce the overall PK curve.</p></li>
+</ul>
+<p>Since the system <strong>keeps</strong> the steady-state flag with additional
+doses, this behavior is repeated, which is what you are instructing
+the system to do, after all.</p>
+<p>Note that NONMEM does not keep the steady state flag with additional
+doses, it simply keeps dosing without the steady state flag. In this
+case, you would want to keep dosing without the steady-state flag to
+arrive at the true steady state in about 1 full dosing interval.</p>
+<p>This is why the default for <code>rxode2</code> is to not to keep the steady
+state flag either:</p>
+<pre class="r"><code>rxSolve(fl, d) %&gt;%
+  plot(cp) +
+  geom_point(data=d, aes(x=time, y=cp), color=&quot;red&quot;) +
+  labs(x=NULL,
+       y=NULL,
+       title = &quot;&lt;span style = &#39;color: red;&#39;&gt;NONMEM&lt;/span&gt; solve vs &lt;span style=&#39;color: black;&#39;&gt;rxode2&lt;/span&gt; when &lt;span style=&#39;font-family: monospace&#39;&gt;addlDropSs=TRUE&lt;/span&gt;&quot;,
+       subtitle=&quot;or the steady-state flag is &lt;span style=&#39;color: black&#39;&gt;NOT&lt;/span&gt; preserved matches NONMEM&quot;) +
+  theme(plot.title = element_markdown(),
+        plot.subtitle=element_markdown())</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/ssid25plot2-1.png" width="672" /></p>
+<p>This rolling out of doses without the steady-state flag is also why
+NONMEM recovers in the prior unsupported steady state scenario.</p>
+</div>
+<div id="other-things-retained-in-addl-doses-in-nonmem-vs-rxode2" class="section level2">
+<h2>Other things retained in addl doses in NONMEM vs rxode2</h2>
+<p>One way that steady state is handled that is different than NONMEM is in covariate definitions:</p>
+<pre class="r"><code>dfull &lt;- nlmixr2data::nmtest
+d &lt;- dfull[dfull$id ==102, ]
+
+print(d[d$evid != 0, ])</code></pre>
+<pre><code>##       id time cp cmt amt evid ii ss addl rate  lagt bioav rat2 dur2 mode
+## 3440 102    0  0   2 100    1 24  0    3    0 12.13  2.23   10    2    0</code></pre>
+<p>In this case it is also helpful to see how the covariates are defined:</p>
+<pre class="r"><code>print(head(d))</code></pre>
+<pre><code>##       id time cp cmt amt evid ii ss addl rate  lagt bioav rat2 dur2 mode
+## 3440 102    0  0   2 100    1 24  0    3    0 12.13  2.23   10    2    0
+## 3441 102    0  0   2   0    0  0  0    0    0  0.00  2.23   10    2    0
+## 3442 102    1  0   2   0    0  0  0    0    0  0.00  2.23   10    2    0
+## 3443 102    2  0   2   0    0  0  0    0    0  0.00  2.23   10    2    0
+## 3444 102    3  0   2   0    0  0  0    0    0  0.00  2.23   10    2    0
+## 3445 102    4  0   2   0    0  0  0    0    0  0.00  2.23   10    2    0</code></pre>
+<p>Here you can see that the covariate <code>lagt</code> starts at <code>12.13</code> and then
+drops to <code>0</code> after the first dose. When comparing NONMEM and rxode2
+solves we have the following plot:</p>
+<pre class="r"><code>rxSolve(fl, d) %&gt;%
+  plot(cp) +
+  geom_point(data=d, aes(x=time, y=cp), color=&quot;red&quot;) +
+  labs(x=NULL,
+       y=NULL,
+       title = &quot;&lt;span style = &#39;color: red;&#39;&gt;NONMEM&lt;/span&gt; solve vs &lt;span style=&#39;color: black;&#39;&gt;rxode2&lt;/span&gt; when &lt;span style=&#39;font-family: monospace&#39;&gt;addlKeepsCov=FALSE&lt;/span&gt;&quot;,
+       subtitle=&quot;shows a mismatch between NONMEM and rxode2&quot;) +
+  theme(plot.title = element_markdown())</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/ss102plot1-1.png" width="672" /></p>
+<p>For the <code>rxode2</code> solve, the covariate <code>lagt</code> is imputed from the
+surrounding times instead of carrying forward the value <code>12.13</code>, which
+we at the nlmixr2 team thinks is the right behavior. In contrast,
+NONMEM carries the covariate value forward for all of the additional
+doses. You can force <code>rxode2</code> to duplicate the NONMEM way of solving
+by <code>addlKeepsCov=TRUE</code>.</p>
+<pre class="r"><code>rxSolve(fl, d, addlKeepsCov=TRUE) %&gt;%
+  plot(cp) +
+  geom_point(data=d, aes(x=time, y=cp), color=&quot;red&quot;) +
+  labs(x=NULL,
+       y=NULL,
+       title = &quot;&lt;span style = &#39;color: red;&#39;&gt;NONMEM&lt;/span&gt; solve vs &lt;span style=&#39;color: black;&#39;&gt;rxode2&lt;/span&gt; when &lt;span style=&#39;font-family: monospace&#39;&gt;addlKeepsCov=TRUE&lt;/span&gt;&quot;,
+       subtitle=&quot;shows an exact match between NONMEM and rxode2&quot;) +
+  theme(plot.title = element_markdown())</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/ss102plot2-1.png" width="672" /></p>
+</div>
+<div id="looking-forward" class="section level2">
+<h2>Looking forward</h2>
+<p>We are working on implementing these same steady state features in the
+solved systems of rxode2 (and giving the solved systems a general
+overall by changing the method to get the solved solutions). We
+decided to push this a bit early because we had to fix some things for
+CRAN. The old steady state systems still apply for solved linear
+models (and all the linear model bugs still apply too). We hope to
+clean these up as soon as we can (though it took us quite a bit of
+time to implement these steady state features in rxode2 ODE systems).</p>
+<p>One of the other things this enables is the ability to do adaptive
+dosing inside of <code>rxode2</code>/<code>nlmixr2</code> which opens up interesting ways of
+coding adaptive dosing simulations and maybe dual peak absorption
+models.</p>
+</div>
+<div id="conclusion" class="section level2">
+<h2>Conclusion</h2>
+<ul>
+<li><p>With this new release of <code>rxode2</code>, <code>NONMEM</code> and <code>rxode2</code> steady state
+handling are now closer, but still not the same.</p></li>
+<li><p>We have made some different choices about steady state support (for
+example the covariate handling, and have not included empirical
+steady state)</p></li>
+</ul>
+</div>
