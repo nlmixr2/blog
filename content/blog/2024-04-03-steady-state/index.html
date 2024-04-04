@@ -19,7 +19,7 @@ test against <code>mrgsolve</code> and how it behaves.</p>
 of NONMEM in lagged steady state doses. This blog post discusses the
 prior and current differences between the steady state of NONMEM and
 <code>rxode2</code>/<code>NONMEM</code>.</p>
-<p>To reproduce the (<a href="https://github.com/nlmixr2/nmtests/" class="uri">https://github.com/nlmixr2/nmtests/</a>)[nmtests] in the
+<p>To reproduce the <a href="https://github.com/nlmixr2/nmtests/">nmtests</a> in the
 current version of <code>rxode2</code>, we will first define the model to compare
 with what NONMEM does:</p>
 <pre class="r"><code>library(rxode2)</code></pre>
@@ -37,14 +37,22 @@ with what NONMEM does:</p>
   if (mode == 2) dur(central) &lt;- dur2
   cp &lt;- central/(v/1000)
 })</code></pre>
-<pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’</code></pre>
+<pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’
+## In file included from /usr/share/R/include/R.h:71,
+##                  from /home/matt/R/x86_64-pc-linux-gnu-library/4.3/rxode2parse/include/rxode2parse.h:33,
+##                  from /home/matt/R/x86_64-pc-linux-gnu-library/4.3/rxode2/include/rxode2.h:9,
+##                  from /home/matt/R/x86_64-pc-linux-gnu-library/4.3/rxode2parse/include/rxode2_model_shared.h:3,
+##                  from rx_54ce7be6c68b8b7855a25655c9d2a337_.c:117:
+## /usr/share/R/include/R_ext/Complex.h:80:6: warning: ISO C99 doesn’t support unnamed structs/unions [-Wpedantic]
+##    80 |     };
+##       |      ^</code></pre>
 <p>Then we import the test data from <code>nlmixr2data</code> (note this dataset has
 been modified from the original
-(<a href="https://github.com/nlmixr2/nmtests/" class="uri">https://github.com/nlmixr2/nmtests/</a>)[nmtests] with a few more tests
+<a href="https://github.com/nlmixr2/nmtests/">nmtests</a> with a few more tests
 cases).</p>
 <div id="steady-state-with-lag-time" class="section level2">
 <h2>Steady State with Lag time</h2>
-<p>We will show the first difference we saw in the (<a href="https://github.com/nlmixr2/nmtests/" class="uri">https://github.com/nlmixr2/nmtests/</a>)[nmtests]:</p>
+<p>We will show the first difference we saw in the <a href="https://github.com/nlmixr2/nmtests/">nmtests</a>:</p>
 <pre class="r"><code>dfull &lt;- nlmixr2data::nmtest
 d &lt;- dfull[dfull$id ==9, ]
 
@@ -91,7 +99,7 @@ is to solve back-calculating the steady state of the lag time:</p>
 <h2>More extreme steady state example</h2>
 <p>One of the new features of <code>rxode2</code> is handling steady state where
 steady state interval is less than the infusion interval. For
-example, from the (<a href="https://github.com/nlmixr2/nmtests/" class="uri">https://github.com/nlmixr2/nmtests/</a>)[nmtests]
+example, from the <a href="https://github.com/nlmixr2/nmtests/">nmtests</a>
 dataset:</p>
 <pre class="r"><code>dfull &lt;- nlmixr2data::nmtest
 d &lt;- dfull[dfull$id ==10, ]
@@ -123,7 +131,7 @@ is turned off as the remaining doses wear off.</p>
 is smaller than the infusion time, we also now support cases where the
 lag-time is greater than the inter-dose interval. This is an
 additional test case that is found in our fork of
-(<a href="https://github.com/nlmixr2/nmtests/" class="uri">https://github.com/nlmixr2/nmtests/</a>)[nmtests].</p>
+<a href="https://github.com/nlmixr2/nmtests/">nmtests</a>.</p>
 <pre class="r"><code>dfull &lt;- nlmixr2data::nmtest
 d &lt;- dfull[dfull$id ==409, ]
 
