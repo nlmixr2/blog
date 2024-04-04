@@ -1,7 +1,7 @@
 ---
 title: nlmixr2/rxode2 steady state changes
 author: 'Matthew Fidler'
-date: '2024-04-01'
+date: '2024-04-04'
 slug: []
 categories: [nlmixr2, rxode2, steady state]
 tags: [steady state]
