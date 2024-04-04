@@ -23,7 +23,7 @@ of NONMEM in lagged steady state doses.  This blog post discusses the
 prior and current differences between the steady state of NONMEM and
 `rxode2`/`NONMEM`.
 
-To reproduce the (https://github.com/nlmixr2/nmtests/)[nmtests] in the
+To reproduce the [nmtests](https://github.com/nlmixr2/nmtests/) in the
 current version of `rxode2`, we will first define the model to compare
 with what NONMEM does:
 
@@ -48,12 +48,12 @@ fl <- rxode2({
 
 Then we import the test data from `nlmixr2data` (note this dataset has
 been modified from the original
-(https://github.com/nlmixr2/nmtests/)[nmtests] with a few more tests
+[nmtests](https://github.com/nlmixr2/nmtests/) with a few more tests
 cases).
 
 ## Steady State with Lag time
 
-We will show the first difference we saw in the (https://github.com/nlmixr2/nmtests/)[nmtests]:
+We will show the first difference we saw in the [nmtests](https://github.com/nlmixr2/nmtests/):
 
 ```{r}
 dfull <- nlmixr2data::nmtest
@@ -109,7 +109,7 @@ rxSolve(fl, d) %>%
 
 One of the new features of `rxode2` is handling steady state where
 steady state interval is less than the infusion interval.  For
-example, from the (https://github.com/nlmixr2/nmtests/)[nmtests]
+example, from the [nmtests](https://github.com/nlmixr2/nmtests/)
 dataset:
 
 ```{r ssid10print}
@@ -146,7 +146,7 @@ In addition to supporting steady state where the inter-dose interval
 is smaller than the infusion time, we also now support cases where the
 lag-time is greater than the inter-dose interval. This is an
 additional test case that is found in our fork of
-(https://github.com/nlmixr2/nmtests/)[nmtests].
+[nmtests](https://github.com/nlmixr2/nmtests/).
 
 ```{r ssid409print}
 dfull <- nlmixr2data::nmtest
