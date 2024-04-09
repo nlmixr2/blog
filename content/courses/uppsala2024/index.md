@@ -7,7 +7,7 @@ date_end: "2024-04-08"
 draft: false
 event: Uppsala (2024)
 event_url: "sup-meeting.se"
-excerpt: This is the course we will present at SUP 2024 in Sweden.
+excerpt: This is the course we will present after SUP 2024 in Uppsala, Sweden, on 12 April 2024.
 featured: true
 layout: single
 links:
@@ -18,7 +18,7 @@ links:
 - icon: github
   icon_pack: fab
   name: code
-  url: https://github.com/nlmixr2/courses/tree/main/uppsala2024
+  url: https://github.com/nlmixr2/courses/tree/main/Uppsala2024
 - icon: file-download
   icon_pack: fas
   name: download
