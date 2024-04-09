@@ -6,7 +6,7 @@ date: "2024-04-08"
 date_end: "2024-04-08"
 draft: false
 event: Uppsala (2024)
-event_url: "sup-meeting.se"
+event_url: "https://sup-meeting.se"
 excerpt: This is the course we will present after SUP 2024 in Uppsala, Sweden, on 12 April 2024.
 featured: true
 layout: single
@@ -14,7 +14,7 @@ links:
 - icon: door-open
   icon_pack: fas
   name: website
-  url: "sup-meeting.se"
+  url: "https://sup-meeting.se"
 - icon: github
   icon_pack: fab
   name: code
