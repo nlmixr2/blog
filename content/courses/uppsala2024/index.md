@@ -2,8 +2,8 @@
 author: Rik Schoemaker
 categories:
 - workshop
-date: "2024-04-12"
-date_end: "2024-04-12"
+date: "2024-04-08"
+date_end: "2024-04-08"
 draft: false
 event: Uppsala (2024)
 event_url: "sup-meeting.se"
