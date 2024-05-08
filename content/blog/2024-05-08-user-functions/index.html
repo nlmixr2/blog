@@ -17,7 +17,7 @@ routines.</p>
 <p>This can call R functions directly, but at a cost – single threaded
 and slower execution. However, you can reduce the cost by converting
 the R functions to <code>C</code> automatically with <code>rxFun()</code>. Most of this blog
-is simply restating a new vignette on user defined functions with an
+is simply restating a <a href="https://nlmixr2.github.io/rxode2/articles/Integrating-User-Defined-Functions-into-rxode2.html">new vignette</a> on user defined functions with an
 additional example of a slow running <code>nlmixr2</code> model to show how much
 converting to C will save computation time. However since this opens
 up the flexibility of <code>nlmixr2</code> and <code>rxode2</code>, I think it is exciting
@@ -57,18 +57,7 @@ f &lt;- rxode2({
   a &lt;- newAbs(time)
 })</code></pre>
 <pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’
-## In file included from /usr/share/R/include/R.h:71,
-##                  from /home/matt/R/x86_64-pc-linux-gnu-library/4.4/rxode2parse/include/rxode2parse.h:33,
-##                  from /home/matt/R/x86_64-pc-linux-gnu-library/4.4/rxode2/include/rxode2.h:9,
-##                  from /home/matt/R/x86_64-pc-linux-gnu-library/4.4/rxode2parse/include/rxode2_model_shared.h:3,
-##                  from rx_dd7f723d39f6770328f28eef63a5fe04_.c:117:
-## /usr/share/R/include/R_ext/Complex.h:80:6: warning: ISO C99 doesn’t support unnamed structs/unions [-Wpedantic]
-##    80 |     };
-##       |      ^
-## rx_dd7f723d39f6770328f28eef63a5fe04_.c: In function ‘rx_dd7f723d39f6770328f28eef63a5fe04__dydt’:
-## rx_dd7f723d39f6770328f28eef63a5fe04_.c:498:12: warning: variable ‘a’ set but not used [-Wunused-but-set-variable]
-##   498 |     double a = NA_REAL;
-##       |            ^</code></pre>
+</code></pre>
 <pre class="r"><code>e &lt;- et(-10, 10, length.out=40)</code></pre>
 <p>Now that the ODE has been compiled the R functions will be called
 while solving the ODE. Since this is calling R, this forces the
@@ -99,25 +88,6 @@ f &lt;- rxode2({
   a &lt;- newAbs(time)
 })</code></pre>
 <pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’
-## In file included from /usr/share/R/include/R.h:71,
-##                  from /home/matt/R/x86_64-pc-linux-gnu-library/4.4/rxode2parse/include/rxode2parse.h:33,
-##                  from /home/matt/R/x86_64-pc-linux-gnu-library/4.4/rxode2/include/rxode2.h:9,
-##                  from /home/matt/R/x86_64-pc-linux-gnu-library/4.4/rxode2parse/include/rxode2_model_shared.h:3,
-##                  from rx_064e684126e57c2c0cbc53d1155b9145_.c:117:
-## /usr/share/R/include/R_ext/Complex.h:80:6: warning: ISO C99 doesn’t support unnamed structs/unions [-Wpedantic]
-##    80 |     };
-##       |      ^
-## rx_064e684126e57c2c0cbc53d1155b9145_.c: In function ‘rx_064e684126e57c2c0cbc53d1155b9145__dydt’:
-## rx_064e684126e57c2c0cbc53d1155b9145_.c:500:10: warning: unused variable ‘__udf’ [-Wunused-variable]
-##   500 |   double __udf[1];
-##       |          ^~~~~
-## rx_064e684126e57c2c0cbc53d1155b9145_.c:498:12: warning: variable ‘a’ set but not used [-Wunused-but-set-variable]
-##   498 |     double a = NA_REAL;
-##       |            ^
-## rx_064e684126e57c2c0cbc53d1155b9145_.c: In function ‘rx_064e684126e57c2c0cbc53d1155b9145__calc_lhs’:
-## rx_064e684126e57c2c0cbc53d1155b9145_.c:536:10: warning: unused variable ‘__udf’ [-Wunused-variable]
-##   536 |   double __udf[1];
-##       |          ^~~~~</code></pre>
 <pre class="r"><code>mb2 &lt;- microbenchmark::microbenchmark(withC=rxSolve(f,e, cores=1))
 
 mb &lt;- rbind(mb1, mb2)
@@ -127,9 +97,9 @@ autoplot(mb) + rxTheme() + xgxr::xgx_scale_y_log10()</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/convertC-1.png" width="672" /></p>
 <pre class="r"><code>print(mb)</code></pre>
 <pre><code>## Unit: milliseconds
-##      expr      min       lq     mean   median        uq       max neval
-##  withoutC 7.469293 7.625126 9.379168 7.886387 10.422244 18.182975   100
-##     withC 2.358775 2.401169 2.629410 2.439151  2.537441  7.577106   100</code></pre>
+##      expr      min       lq     mean   median       uq       max neval
+##  withoutC 7.447356 7.579259 9.343757 9.276398 9.950757 18.854825   100
+##     withC 2.359816 2.399640 2.635558 2.451848 2.549441  7.762379   100</code></pre>
 <p>The C version is almost twice as fast as the R version. You may have
 noticed the conversion also created C versions of the first
 derivative. This is done automatically and gives not just C versions
@@ -253,7 +223,6 @@ dat$DV &lt;- dat$Y
 
 mbn1 &lt;- microbenchmark::microbenchmark(withR=suppressMessages(nlmixr2(g, dat, &quot;nlminb&quot;, control=list(print=0))))</code></pre>
 <pre><code>##
-</code></pre>
 <pre class="r"><code>mbn &lt;- rbind(mbn1, mbn2)
 autoplot(mb) + rxTheme() + xgxr::xgx_scale_y_log10()</code></pre>
 <pre><code>## Scale for y is already present.
@@ -261,9 +230,9 @@ autoplot(mb) + rxTheme() + xgxr::xgx_scale_y_log10()</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/nlmixrCudf-1.png" width="672" /></p>
 <pre class="r"><code>print(mbn)</code></pre>
 <pre><code>## Unit: seconds
-##   expr      min       lq     mean   median       uq      max neval
-##  withR 4.599030 4.742592 4.862967 4.827024 4.910834 6.878099   100
-##  withC 1.548247 1.656798 1.768397 1.742349 1.872952 2.586074   100</code></pre>
+##   expr      min       lq     mean  median       uq      max neval
+##  withR 4.540540 4.790219 4.937575 4.92435 5.029367 7.079334   100
+##  withC 1.562221 1.726086 1.837169 1.79936 1.926593 2.735565   100</code></pre>
 <p>You can clearly see the need for C function in <code>nlmixr2</code> optimization</p>
 </div>
 <div id="conclusion" class="section level2">

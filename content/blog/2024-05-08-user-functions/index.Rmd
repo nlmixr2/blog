@@ -20,7 +20,7 @@ routines.
 This can call R functions directly, but at a cost -- single threaded
 and slower execution.  However, you can reduce the cost by converting
 the R functions to `C` automatically with `rxFun()`. Most of this blog
-is simply restating a new vignette on user defined functions with an
+is simply restating a [new vignette](https://nlmixr2.github.io/rxode2/articles/Integrating-User-Defined-Functions-into-rxode2.html) on user defined functions with an
 additional example of a slow running `nlmixr2` model to show how much
 converting to C will save computation time.  However since this opens
 up the flexibility of `nlmixr2` and `rxode2`, I think it is exciting
