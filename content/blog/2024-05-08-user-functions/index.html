@@ -1,0 +1,274 @@
+---
+title: nlmixr2/rxode2 user functions
+author: 'Matthew Fidler'
+date: '2024-05-08'
+slug: []
+categories: [nlmixr2, rxode2, user functions]
+tags: [user functions]
+---
+
+
+
+<p>One of the exciting new features of the recent <code>rxode2</code> is user
+functions. This allows you to define your own R functions for use in
+<code>nlmixr2</code> or <code>rxode2</code>. This new feature can really help make your code
+more concise by reusing custom transformations or apply more complex
+routines.</p>
+<p>This can call R functions directly, but at a cost – single threaded
+and slower execution. However, you can reduce the cost by converting
+the R functions to <code>C</code> automatically with <code>rxFun()</code>. Most of this blog
+is simply restating a new vignette on user defined functions with an
+additional example of a slow running <code>nlmixr2</code> model to show how much
+converting to C will save computation time. However since this opens
+up the flexibility of <code>nlmixr2</code> and <code>rxode2</code>, I think it is exciting
+enough to share in the blog as well.</p>
+<div id="user-defined-functions" class="section level2">
+<h2>User Defined Functions</h2>
+<pre class="r"><code>library(rxode2)</code></pre>
+<pre><code>## rxode2 2.1.2.9000 using 8 threads (see ?getRxThreads)
+##   no cache: create with `rxCreateCache()`</code></pre>
+<p>When defining models you may have wished to write a small R function
+or make a function integrate into <code>rxode2</code> somehow. This post
+discusses 2 ways to do this:</p>
+<ul>
+<li><p>A R-based user function which can be loaded as a simple function
+or in certain circumstances translated to C to run more
+efficiently</p></li>
+<li><p>A C function that you define and integrate into code</p></li>
+</ul>
+</div>
+<div id="r-based-user-functions" class="section level2">
+<h2>R based user functions</h2>
+<p>A R-based user function is the most convenient to include in the ODE,
+but is slower than what you could have done if it was written in <code>C</code> ,
+<code>C++</code> or some other compiled language. This was requested <a href="https://github.com/nlmixrdevelopment/RxODE/issues/162#issue-568886732">in
+github</a>
+with an appropriate example; However, I will use a very simple example
+here to simply illustrate the concepts.</p>
+<pre class="r"><code>newAbs &lt;- function(x) {
+  if (x &lt; 0) {
+    -x
+  } else {
+    x
+  }
+}
+
+f &lt;- rxode2({
+  a &lt;- newAbs(time)
+})</code></pre>
+<pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’
+## In file included from /usr/share/R/include/R.h:71,
+##                  from /home/matt/R/x86_64-pc-linux-gnu-library/4.4/rxode2parse/include/rxode2parse.h:33,
+##                  from /home/matt/R/x86_64-pc-linux-gnu-library/4.4/rxode2/include/rxode2.h:9,
+##                  from /home/matt/R/x86_64-pc-linux-gnu-library/4.4/rxode2parse/include/rxode2_model_shared.h:3,
+##                  from rx_dd7f723d39f6770328f28eef63a5fe04_.c:117:
+## /usr/share/R/include/R_ext/Complex.h:80:6: warning: ISO C99 doesn’t support unnamed structs/unions [-Wpedantic]
+##    80 |     };
+##       |      ^
+## rx_dd7f723d39f6770328f28eef63a5fe04_.c: In function ‘rx_dd7f723d39f6770328f28eef63a5fe04__dydt’:
+## rx_dd7f723d39f6770328f28eef63a5fe04_.c:498:12: warning: variable ‘a’ set but not used [-Wunused-but-set-variable]
+##   498 |     double a = NA_REAL;
+##       |            ^</code></pre>
+<pre class="r"><code>e &lt;- et(-10, 10, length.out=40)</code></pre>
+<p>Now that the ODE has been compiled the R functions will be called
+while solving the ODE. Since this is calling R, this forces the
+parallization to be turned off since R is single-threaded. It also
+takes more time to solve since it is shuttling back and forth between
+R and C. Lets see how this very simple function performs:</p>
+<pre class="r"><code>mb1 &lt;- microbenchmark::microbenchmark(withoutC=suppressWarnings(rxSolve(f,e)))
+
+library(ggplot2)
+autoplot(mb1) + rxTheme()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/benmchmark1-1.png" width="672" /></p>
+<p>Not terribly bad, even though it is shuffling between R and C.</p>
+<p>You can make it a better by converting the functions to C:</p>
+<pre class="r"><code># Create C functions automatically with `rxFun()`
+rxFun(newAbs)</code></pre>
+<pre><code>## → finding duplicate expressions in d(newAbs)/d(x)...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in d(newAbs)/d(x)...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## converted R function &#39;newAbs&#39; to C (will now use in rxode2)</code></pre>
+<pre><code>## converted R function &#39;rx_newAbs_d_x&#39; to C (will now use in rxode2)</code></pre>
+<pre><code>## Added derivative table for &#39;newAbs&#39;</code></pre>
+<pre class="r"><code># Recompile to use the C functions
+# Note it would recompile anyway if you didn&#39;t do this step,
+# it just makes sure that it doesn&#39;t recompile every step in
+# the benchmark
+f &lt;- rxode2({
+  a &lt;- newAbs(time)
+})</code></pre>
+<pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’
+## In file included from /usr/share/R/include/R.h:71,
+##                  from /home/matt/R/x86_64-pc-linux-gnu-library/4.4/rxode2parse/include/rxode2parse.h:33,
+##                  from /home/matt/R/x86_64-pc-linux-gnu-library/4.4/rxode2/include/rxode2.h:9,
+##                  from /home/matt/R/x86_64-pc-linux-gnu-library/4.4/rxode2parse/include/rxode2_model_shared.h:3,
+##                  from rx_064e684126e57c2c0cbc53d1155b9145_.c:117:
+## /usr/share/R/include/R_ext/Complex.h:80:6: warning: ISO C99 doesn’t support unnamed structs/unions [-Wpedantic]
+##    80 |     };
+##       |      ^
+## rx_064e684126e57c2c0cbc53d1155b9145_.c: In function ‘rx_064e684126e57c2c0cbc53d1155b9145__dydt’:
+## rx_064e684126e57c2c0cbc53d1155b9145_.c:500:10: warning: unused variable ‘__udf’ [-Wunused-variable]
+##   500 |   double __udf[1];
+##       |          ^~~~~
+## rx_064e684126e57c2c0cbc53d1155b9145_.c:498:12: warning: variable ‘a’ set but not used [-Wunused-but-set-variable]
+##   498 |     double a = NA_REAL;
+##       |            ^
+## rx_064e684126e57c2c0cbc53d1155b9145_.c: In function ‘rx_064e684126e57c2c0cbc53d1155b9145__calc_lhs’:
+## rx_064e684126e57c2c0cbc53d1155b9145_.c:536:10: warning: unused variable ‘__udf’ [-Wunused-variable]
+##   536 |   double __udf[1];
+##       |          ^~~~~</code></pre>
+<pre class="r"><code>mb2 &lt;- microbenchmark::microbenchmark(withC=rxSolve(f,e, cores=1))
+
+mb &lt;- rbind(mb1, mb2)
+autoplot(mb) + rxTheme() + xgxr::xgx_scale_y_log10()</code></pre>
+<pre><code>## Scale for y is already present.
+## Adding another scale for y, which will replace the existing scale.</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/convertC-1.png" width="672" /></p>
+<pre class="r"><code>print(mb)</code></pre>
+<pre><code>## Unit: milliseconds
+##      expr      min       lq     mean   median        uq       max neval
+##  withoutC 7.469293 7.625126 9.379168 7.886387 10.422244 18.182975   100
+##     withC 2.358775 2.401169 2.629410 2.439151  2.537441  7.577106   100</code></pre>
+<p>The C version is almost twice as fast as the R version. You may have
+noticed the conversion also created C versions of the first
+derivative. This is done automatically and gives not just C versions
+of function, but C versions of the derivatives and registers them with
+<code>rxode2</code>. This allows the C versions to work with not only <code>rxode2</code>
+but <code>nlmixr2</code> models.</p>
+<p>This function was setup in advance to allow this type of
+conversion. In general the derivatives will be calculated if there is
+not a <code>return()</code> statement in the user defined function. This means
+simply let R return the last value instead of explictly calling out
+the <code>return()</code>. Many people prefer this method of coding.</p>
+<p>Even if there is a <code>return</code> function, the function could be converted
+to <code>C</code>. In the github issue, they used a function that would not
+convert the derivatives:</p>
+<pre class="r"><code># Light
+f_R &lt;- function(actRad, k_0, a_k) {
+  photfac &lt;- a_k * actRad + k_0
+  if (photfac &gt; 1) {
+    photfac = 1
+  }
+  return(photfac)
+}
+
+rxFun(f_R)</code></pre>
+<pre><code>## function contains return statement; derivatives not calculated</code></pre>
+<pre><code>## converted R function &#39;f_R&#39; to C (will now use in rxode2)</code></pre>
+<p>While this is still helpful because some functions have early returns,
+the <code>nlmixr2</code> models requiring derivatives would be calculated be
+non-optimized finite differences when this occurs. While this gets
+into the internals of <code>rxode2</code> and <code>nlmixr2</code> you can see this more
+easily when calculating the derivatives:</p>
+<pre class="r"><code>rxFromSE(&quot;Derivative(f_R(actRad, k_0, a_k),k_0)&quot;)</code></pre>
+<pre><code>## [1] &quot;(f_R(actRad,(k_0)+6.05545445239334e-06,a_k)-f_R(actRad,k_0,a_k))/6.05545445239334e-06&quot;</code></pre>
+<p>Whereas the originally defined function <code>newAbs()</code> would use the new
+derivatives calculated as well:</p>
+<pre class="r"><code>rxFromSE(&quot;Derivative(newAbs(x),x)&quot;)</code></pre>
+<pre><code>## [1] &quot;rx_newAbs_d_x(x)&quot;</code></pre>
+<p>In some circumstances, the conversion to C is not possible, though you
+can still use the R function.</p>
+<p>There are some requirements for R functions to be integrated into the
+<code>rxode2</code> system:</p>
+<ul>
+<li><p>The function must have a set number of arguments, variable
+arguments like <code>f(…)</code> are currently not allowed.</p></li>
+<li><p>The function is given each argument as a single number, and the
+function should return a single number</p></li>
+</ul>
+<p>If these requirements are met you can use the R function in
+<code>rxode2</code>. Additional requirements for conversion to C include:</p>
+<ul>
+<li><p>Any functions that you use within the R function must be
+understood and available to <code>rxode2</code>.</p>
+<ul>
+<li>Practically speaking if you have <code>fun2()</code> which refers to
+<code>fun1()</code>, <code>fun1()</code> must be changed to C code and available to
+<code>rxode2</code> before changing the function <code>fun2()</code> to C.</li>
+</ul></li>
+<li><p>The functions can include <code>if</code>/<code>else</code> assignments or simple return
+statements (either by returning a value or having that value on a
+line by itself). Special R control structures and functions (like
+<code>for</code> and <code>lapply</code>) cannot be present.</p></li>
+<li><p>The function cannot refer to any package functions</p></li>
+<li><p>As mentioned, if the <code>return()</code> statement is present, the
+derivative C functions and <code>rxode2</code>’s derivative table is not
+updated.</p></li>
+</ul>
+</div>
+<div id="c-based-functions" class="section level2">
+<h2>C based functions</h2>
+<p>You can add your own C functions directly into rxode2 as well using
+<code>rxFun()</code>:</p>
+<pre class="r"><code>fun &lt;- &quot;
+ double fun(double a, double b, double c) {
+   return a*a+b*a+c;
+ }
+&quot; ## C-code for function
+
+rxFun(&quot;fun&quot;, c(&quot;a&quot;, &quot;b&quot;, &quot;c&quot;), fun)</code></pre>
+<p>If you wanted you could also use C functions or expressions for the derivatives by using the <code>rxD()</code> function:</p>
+<pre class="r"><code>rxD(&quot;fun&quot;, list(
+   function(a, b, c) { # derivative of arg1: a
+     paste0(&quot;2*&quot;, a, &quot;+&quot;, b)
+   },
+   function(a, b, c) { # derivative of arg2: b
+     return(a)
+   },
+   function(a, b, c) { # derivative of arg3: c
+     return(&quot;0.0&quot;)
+   }
+))</code></pre>
+<p>Removing the function with <code>rxRmFun()</code> will also remove the derivative
+table:</p>
+<pre class="r"><code>rxRmFun(&quot;fun&quot;)</code></pre>
+</div>
+<div id="a-nlmixr2-example" class="section level2">
+<h2>A nlmixr2 example</h2>
+<p>We will also use a very artificial example to illustrate the
+differences in R and C evaluation in <code>nlmixr2()</code> in a very small
+example.</p>
+<pre class="r"><code>library(nlmixr2)</code></pre>
+<pre><code>## Loading required package: nlmixr2data</code></pre>
+<pre class="r"><code>gg &lt;- function(x, y) {
+  x * y
+}
+
+g &lt;- function() {
+  ini({
+    tke &lt;- 0.5
+    add.sd &lt;- sqrt(0.1)
+  })
+  model({
+    ke &lt;- tke
+    ipre &lt;- gg(10, exp(-ke * t))
+    lipre &lt;- log(ipre)
+    ipre ~ add(add.sd)
+  })
+}
+
+dat &lt;- nlmixr2data::Wang2007
+dat$DV &lt;- dat$Y
+
+mbn1 &lt;- microbenchmark::microbenchmark(withR=suppressMessages(nlmixr2(g, dat, &quot;nlminb&quot;, control=list(print=0))))</code></pre>
+<pre><code>##
+</code></pre>
+<pre class="r"><code>mbn &lt;- rbind(mbn1, mbn2)
+autoplot(mb) + rxTheme() + xgxr::xgx_scale_y_log10()</code></pre>
+<pre><code>## Scale for y is already present.
+## Adding another scale for y, which will replace the existing scale.</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/nlmixrCudf-1.png" width="672" /></p>
+<pre class="r"><code>print(mbn)</code></pre>
+<pre><code>## Unit: seconds
+##   expr      min       lq     mean   median       uq      max neval
+##  withR 4.599030 4.742592 4.862967 4.827024 4.910834 6.878099   100
+##  withC 1.548247 1.656798 1.768397 1.742349 1.872952 2.586074   100</code></pre>
+<p>You can clearly see the need for C function in <code>nlmixr2</code> optimization</p>
+</div>
+<div id="conclusion" class="section level2">
+<h2>Conclusion</h2>
+<p>This is the first user function that is added to the
+<code>rxode2</code>/<code>nlmixr2</code>. It is powerful and can be fast if you convert
+your functions to C.</p>
+</div>
