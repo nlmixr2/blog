@@ -14,7 +14,14 @@ library(rxode2)
 ```
 
 Both nlmixr2 and rxode2 have been updated, the below describes all the
-nlmixr2 related packages (maintained by the nlmixr2 team)
+nlmixr2 related packages (maintained by the nlmixr2 team).  Most of
+items in this release are bug fixes.
+
+One of the changes will make random number generation platform
+independent.  Unfortunately, this means simulations from within
+`rxode2`/`nlmixr2` will have different numbers drawn from random
+distributions but I think platform independence is important enough to
+push this change through.
 
 ### Versions of new packages
 

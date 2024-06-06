@@ -10,7 +10,13 @@ tags: [new-version]
 
 
 <p>Both nlmixr2 and rxode2 have been updated, the below describes all the
-nlmixr2 related packages (maintained by the nlmixr2 team)</p>
+nlmixr2 related packages (maintained by the nlmixr2 team). Most of
+items in this release are bug fixes.</p>
+<p>One of the changes will make random number generation platform
+independent. Unfortunately, this means simulations from within
+<code>rxode2</code>/<code>nlmixr2</code> will have different numbers drawn from random
+distributions but I think platform independence is important enough to
+push this change through.</p>
 <div id="versions-of-new-packages" class="section level3">
 <h3>Versions of new packages</h3>
 <p><code>nlmixr2</code> <code>2.1.2</code> was released 30 May 2024 which requires the newest
