@@ -1,0 +1,134 @@
+---
+title: nlmixr2 2.1.2/ rxode2 2.1.3
+author: Matthew Fidler
+date: '2024-01-09'
+slug: []
+categories: [rxode2, nlmixr2]
+tags: [new-version]
+---
+
+
+
+<p>Both nlmixr2 and rxode2 have been updated, the below describes all the
+nlmixr2 related packages (maintained by the nlmixr2 team)</p>
+<div id="versions-of-new-packages" class="section level3">
+<h3>Versions of new packages</h3>
+<p><code>nlmixr2</code> <code>2.1.2</code> was released 30 May 2024 which requires the newest
+(and recently released) engine packages:</p>
+<ul>
+<li><p><code>nlmixr2plot</code> <code>2.0.9</code> (released 29 May 2024)</p></li>
+<li><p><code>nlmixr2extra</code> <code>2.0.10</code> (released 29 May 2024)</p></li>
+<li><p><code>nlmixr2est</code> <code>2.2.2</code> (released 28 May 2024)</p></li>
+</ul>
+<p>And <code>rxode2</code> <code>2.1.3</code> was released on 28 May 2024 and requires the
+newest engine packages:</p>
+<ul>
+<li><p><code>rxode2et</code> <code>2.0.13</code> (released on 27 May 2024)</p></li>
+<li><p><code>rxode2random</code> <code>2.1.0</code> (released on 27 May 2024)</p></li>
+<li><p><code>rxode2parse</code> <code>2.0.19</code> (released on 25 May 2024)</p></li>
+</ul>
+<p>The related package <code>nonmem2rx</code> has also been updated, though the rest
+of the <code>nlmixr2</code> related CRAN packages have not been updated.</p>
+</div>
+<div id="new-features" class="section level3">
+<h3>New features</h3>
+<p>I will be blogging about a few new features but want to mention a few
+now:</p>
+<ul>
+<li><p>Random number generation is now platform independent. Unfortunately
+this means that this changes simulation results in this release,
+though the upside is that mac and linux/pc will no longer give
+different results for simulated values.</p></li>
+<li><p>If you forget to add the <code>est</code> to the nlmixr2 model, it can infer
+the estimation method from the nlmixr2 control type (like
+<code>foceiControl()</code>)</p></li>
+<li><p><code>saem</code> has a fix to handle certain non-mu covariates to have more
+reasonable results.</p></li>
+<li><p>The time after dose calculation some edge cases with the MDV were
+fixed.</p></li>
+</ul>
+</div>
+<div id="changes" class="section level1">
+<h1>Changes</h1>
+<p>The truncated changelog for these packages are below:</p>
+</div>
+<div id="nlmixr2-2.1.2" class="section level1">
+<h1>nlmixr2 2.1.2</h1>
+<ul>
+<li>Re-export the population only estimation control methods.</li>
+</ul>
+</div>
+<div id="nlmixr2plot-2.0.9" class="section level1">
+<h1>nlmixr2plot 2.0.9</h1>
+<ul>
+<li>Bug fix for <code>vpcPlot()</code> where input data frame for models did not
+stratify all the time when the columns were upper case.</li>
+</ul>
+</div>
+<div id="nlmixr2extra-2.0.10" class="section level1">
+<h1>nlmixr2extra 2.0.10</h1>
+<ul>
+<li><code>bootstrapFit()</code> fixes <code>se</code> option (Issue #66)</li>
+</ul>
+</div>
+<div id="nlmixr2est-2.2.2" class="section level1">
+<h1>nlmixr2est 2.2.2</h1>
+<div id="breaking-changes" class="section level2">
+<h2>Breaking changes</h2>
+<ul>
+<li><p>Saem non-mu reference input parameters/covariates were fixed so they
+work correctly with fixed parameters (Issue #445)</p></li>
+<li><p>Focei changed back to having a lower bound for standard deviations
+when not specified. This means that best model fits may change. You
+can revert to the old settings by using
+<code>foceiControl(sdLowerFact=0.0)</code>. You can also change the factors to
+other values than the default value, that is
+<code>foceiControl(sdLowerFact=0.000001)</code> for instance which would
+multiply the initial value by <code>0.000001</code> when either the lower bound
+isn’t specified or the lower bound is specified as zero for the
+error estimates related to error-based standard deviations.</p></li>
+<li><p>In <code>nlmixr2</code>, expressions are optimized. Because of that
+optimization, numerical rounding differences can cause different
+directions in optimization when fixing parameters in the model
+vs. fixing the parameters manually.</p>
+<p>This means that the fixed parameters in a model vs hard-coded fixed
+parameters could give different values in the final model.</p>
+<p>A new option <code>literalFix</code> was introduced which change the fixed
+population parameters to constants in the model while running the
+optimization. This makes the output of fixing within the model and
+fixing manually the same (which is what is likely expected). The
+default is for this to be turned on (ie. <code>literalFix=TRUE</code>). You
+can get back the old behavior by using the option
+<code>literalFix=FALSE</code>.</p></li>
+<li><p>In <code>saem</code>, the monte-carlo sampling occurs for all parameters
+including non-informative ETAs. A fix ensure that non-informative
+etas in <code>saem</code> are fixed to zero while sampling the <code>phi</code> values.
+This may change results for models with uninformative etas. To
+ignore the uninformative etas with <code>saem</code> you ca use use the prior
+<code>saem</code> handling with <code>saemControl(handleUninformativeEtas=FALSE)</code>.</p></li>
+</ul>
+</div>
+<div id="new-features-1" class="section level2">
+<h2>New features</h2>
+<ul>
+<li><p>Gracefully degrade when $cov is not in the right form (see #423)</p></li>
+<li><p>Add support for PopED in place solving (used in babelmixr2)</p></li>
+<li><p>If <code>est=foceiControl()</code> or other nlmixr2 control with the class
+<code>foceiControl</code> infer the estimation method is <code>focei</code></p></li>
+</ul>
+</div>
+</div>
+<div id="rxode2et-2.0.13" class="section level1">
+<h1>rxode2et 2.0.13</h1>
+<ul>
+<li>Fix import of data where there are NA times</li>
+</ul>
+</div>
+<div id="rxode2parse-2.0.19" class="section level1">
+<h1>rxode2parse 2.0.19</h1>
+<ul>
+<li><p>Added a evid suffix of 60 for cases where evid=2 adds an on event
+(fixes tad() calculation in certain edge cases)</p></li>
+<li><p>Initialize all variables to <code>NA</code></p></li>
+</ul>
+</div>

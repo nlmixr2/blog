@@ -1,0 +1,136 @@
+---
+title: nlmixr2 2.1.2/ rxode2 2.1.3
+author: Matthew Fidler
+date: '2024-06-06'
+slug: []
+categories: [rxode2, nlmixr2]
+tags: [new-version]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(nlmixr2)
+library(rxode2)
+```
+
+Both nlmixr2 and rxode2 have been updated, the below describes all the
+nlmixr2 related packages (maintained by the nlmixr2 team)
+
+### Versions of new packages
+
+`nlmixr2` `2.1.2` was released 30 May 2024 which requires the newest
+(and recently released) engine packages:
+
+- `nlmixr2plot` `2.0.9` (released 29 May 2024)
+
+- `nlmixr2extra` `2.0.10` (released 29 May 2024)
+
+- `nlmixr2est` `2.2.2` (released 28 May 2024)
+
+And `rxode2` `2.1.3` was released on 28 May 2024 and requires the
+newest engine packages:
+
+- `rxode2et` `2.0.13` (released on 27 May 2024)
+
+- `rxode2random` `2.1.0` (released on 27 May 2024)
+
+- `rxode2parse` `2.0.19` (released on 25 May 2024)
+
+The related package `nonmem2rx` has also been updated, though the rest
+of the `nlmixr2` related CRAN packages have not been updated.
+
+### New features
+
+I will be blogging about a few new features but want to mention a few
+now:
+
+- Random number generation is now platform independent. Unfortunately
+  this means that this changes simulation results in this release,
+  though the upside is that mac and linux/pc will no longer give
+  different results for simulated values.
+
+- If you forget to add the `est` to the nlmixr2 model, it can infer
+  the estimation method from the nlmixr2 control type (like
+  `foceiControl()`)
+
+- `saem` has a fix to handle certain non-mu covariates to have more
+  reasonable results.
+
+- The time after dose calculation some edge cases with the MDV were
+  fixed.
+
+# Changes
+The truncated changelog for these packages are below:
+
+# nlmixr2 2.1.2
+
+* Re-export the population only estimation control methods.
+
+# nlmixr2plot 2.0.9
+
+* Bug fix for `vpcPlot()` where input data frame for models did not
+  stratify all the time when the columns were upper case.
+
+# nlmixr2extra 2.0.10
+
+* `bootstrapFit()` fixes `se` option (Issue #66)
+
+# nlmixr2est 2.2.2
+
+## Breaking changes
+
+- Saem non-mu reference input parameters/covariates were fixed so they
+  work correctly with fixed parameters (Issue #445)
+
+- Focei changed back to having a lower bound for standard deviations
+  when not specified. This means that best model fits may change.  You
+  can revert to the old settings by using
+  `foceiControl(sdLowerFact=0.0)`.  You can also change the factors to
+  other values than the default value, that is
+  `foceiControl(sdLowerFact=0.000001)` for instance which would
+  multiply the initial value by `0.000001` when either the lower bound
+  isn't specified or the lower bound is specified as zero for the
+  error estimates related to error-based standard deviations.
+
+- In `nlmixr2`, expressions are optimized.  Because of that
+  optimization, numerical rounding differences can cause different
+  directions in optimization when fixing parameters in the model
+  vs. fixing the parameters manually.
+
+  This means that the fixed parameters in a model vs hard-coded fixed
+  parameters could give different values in the final model.
+
+  A new option `literalFix` was introduced which change the fixed
+  population parameters to constants in the model while running the
+  optimization.  This makes the output of fixing within the model and
+  fixing manually the same (which is what is likely expected). The
+  default is for this to be turned on (ie. `literalFix=TRUE`).  You
+  can get back the old behavior by using the option
+  `literalFix=FALSE`.
+
+- In `saem`, the monte-carlo sampling occurs for all parameters
+  including non-informative ETAs.  A fix ensure that non-informative
+  etas in `saem` are fixed to zero while sampling the `phi` values.
+  This may change results for models with uninformative etas. To
+  ignore the uninformative etas with `saem` you ca use use the prior
+  `saem` handling with `saemControl(handleUninformativeEtas=FALSE)`.
+
+## New features
+
+- Gracefully degrade when $cov is not in the right form (see #423)
+
+- Add support for PopED in place solving (used in babelmixr2)
+
+- If `est=foceiControl()` or other nlmixr2 control with the class
+  `foceiControl` infer the estimation method is `focei`
+
+# rxode2et 2.0.13
+
+* Fix import of data where there are NA times
+
+# rxode2parse 2.0.19
+
+* Added a evid suffix of 60 for cases where evid=2 adds an on event
+  (fixes tad() calculation in certain edge cases)
+
+* Initialize all variables to `NA`
