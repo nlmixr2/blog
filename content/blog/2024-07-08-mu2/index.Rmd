@@ -33,9 +33,12 @@ In optimization routines like `saem`, these are switched out with a single param
 
 Once the best $\phi$ is found, then the population, individual and covariates can be found by linear regression of the individual $\phi$ values versus the information in the optimization.
 
-This linear model is important.
+This linear model adds important stability and speed when determining
+these parameters in the mu-expression.  (It also adds rules like they
+must not be time-varying for instance).
 
-In old versions of rxode2 and nlmixr2 the $\mathsf{DataCovariate}$ had to be in the dataset itself. This classic weight covariate adjustment:
+In old versions of rxode2 and nlmixr2 the $\mathsf{DataCovariate}$ had
+to be in the dataset itself. This classic weight covariate adjustment:
 
 $$
 \exp\left(\theta_{Cl}+\eta_{Cl}\right)\times\left(\frac{WT}{70}\right)^{3/4}
