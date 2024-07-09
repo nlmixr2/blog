@@ -22,23 +22,23 @@ tags: [mu]
 \]</span></p>
 <p>In optimization routines like <code>saem</code>, these are switched out with a single parameter during optimization classically called <span class="math inline">\(\phi\)</span> in both NONMEM and Monolix.</p>
 <p>Once the best <span class="math inline">\(\phi\)</span> is found, then the population, individual and covariates can be found by linear regression of the individual <span class="math inline">\(\phi\)</span> values versus the information in the optimization.</p>
-<p>This linear model adds important stability and speed when determining
-these parameters in the mu-expression. (It also adds rules like they
-must not be time-varying for instance).</p>
-<p>In old versions of rxode2 and nlmixr2 the <span class="math inline">\(\mathsf{DataCovariate}\)</span> had
-to be in the dataset itself. This classic weight covariate adjustment:</p>
+<p>This linear model adds important stability and speed when determining these parameters in the mu-expression. (It also adds rules like they must not be time-varying for instance).</p>
+<p>In old versions of rxode2 and nlmixr2 the <span class="math inline">\(\mathsf{DataCovariate}\)</span> had to be in the dataset itself. This classic weight covariate adjustment:</p>
 <p><span class="math display">\[
 \exp\left(\theta_{Cl}+\eta_{Cl}\right)\times\left(\frac{WT}{70}\right)^{3/4}
 \]</span></p>
 <p>would have to written:</p>
 <p><span class="math display">\[
-\exp\left(\theta_{Cl}+\eta_{Cl} + \frac{WT}{70}+3/4\times\log\left(WT/70\right)\right)
+\exp\left(\theta_{Cl}+\eta_{Cl} + 3/4\times\log\left(\frac{WT}{70}\right)\right)
 \]</span></p>
 <p>If you wanted to estimate the population parameter <span class="math inline">\(3/4\)</span> to see if it approaches the correct value you could with:</p>
 <p><span class="math display">\[
-\exp\left(\theta_{Cl}+\eta_{Cl} + \frac{WT}{70}+\theta_{Cl, \textsf{cov}}\times\mathsf{DataCovariate}\right)
+\exp\left(\theta_{Cl}+\eta_{Cl} + \theta_{Cl, \textsf{cov}}\times\mathsf{DataCovariate}\right)
 \]</span></p>
-<p>Where <span class="math display">\[\mathsf{DataCovariate}\]</span> is defined in the data as <span class="math inline">\(\log\left(WT/70\right)\)</span>.</p>
+<p>Where</p>
+<p>$$</p>
+<p> =()</p>
+<p>$$</p>
 <p>This is easy enough to do and adds stabilization.</p>
 <p>However, with mu referencing 2.0 you can simply use an additive expression to setup mu-referencing:</p>
 <p><span class="math display">\[
@@ -129,20 +129,10 @@ print(one)</code></pre>
 1   tka eta.ka    id
 2   tcl eta.cl    id log(0.0142857142857143 * WT)*wt.cl
 3    tv  eta.v    id</code></pre>
-<p>Here it shows the transformation that is used when creating the
-transformed data used for mu-based covariate modeling. In this case,
-we have <code>log(0.0142857142857143 * WT)</code>. It is a bit different than
-what is written because it is prepossessed by <code>symengine</code> and looks at
-the derivative with respect to the covariate parameter <code>wt.cl</code>.</p>
-<p>In general, I am excited by this new feature in nlmixr2 because it
-adds a new level of simplicity to user-based models and more often
-detects mu-referenced code when it may not have been detected in the
-past.</p>
+<p>Here it shows the transformation that is used when creating the transformed data used for mu-based covariate modeling. In this case, we have <code>log(0.0142857142857143 * WT)</code>. It is a bit different than what is written because it is prepossessed by <code>symengine</code> and looks at the derivative with respect to the covariate parameter <code>wt.cl</code>.</p>
+<p>In general, I am excited by this new feature in nlmixr2 because it adds a new level of simplicity to user-based models and more often detects mu-referenced code when it may not have been detected in the past.</p>
 <div id="why-the-pokemon-icon" class="section level3">
 <h3>Why the Pokemon icon?</h3>
-<p>Why the icon for mu2 referencing? Every time I hear mu2 I think of the
-ultimate genetically modified Pokemon
-<a href="https://goofy-legends-gl.fandom.com/wiki/Mewtwo">mewtwo</a> (which is a
-link to where the image comes from).</p>
+<p>Why the icon for mu2 referencing? Every time I hear mu2 I think of the ultimate genetically modified Pokemon <a href="https://goofy-legends-gl.fandom.com/wiki/Mewtwo">mewtwo</a> (which is a link to where the image comes from).</p>
 </div>
 </div>
