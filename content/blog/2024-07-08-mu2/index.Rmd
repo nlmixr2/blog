@@ -56,9 +56,7 @@ $$
 Where
 
 $$
-
 \mathsf{DataCovariate} =\log\left(\frac{WT}{70}\right)
-
 $$
 
 This is easy enough to do and adds stabilization.
@@ -106,7 +104,7 @@ print(one)
 
 If the mu2 referencing is supported it will show the following mu reference table:
 
-```         
+```
 ── μ-referencing ($muRefTable): ──
   theta    eta level                         covariates
 1   tka eta.ka    id
