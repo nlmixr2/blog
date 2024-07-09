@@ -100,12 +100,12 @@ print(one)
 
 If the mu2 referencing is supported it will show the following mu reference table:
 
-```         
-── μ-referencing ($muRefTable): ──  
+```
+── μ-referencing ($muRefTable): ──
   theta    eta level                         covariates
-1   tka eta.ka    id                                   
+1   tka eta.ka    id
 2   tcl eta.cl    id log(0.0142857142857143 * WT)*wt.cl
-3    tv  eta.v    id                                   
+3    tv  eta.v    id
 ```
 
 Here it shows the transformation that is used when creating the transformed data used for mu-based covariate modeling. In this case, we have `log(0.0142857142857143 * WT)`. It is a bit different than what is written because it is prepossessed by `symengine` and looks at the derivative with respect to the covariate parameter `wt.cl`.
@@ -114,4 +114,7 @@ In general, I am excited by this new feature in nlmixr2.
 
 ### Why the Pokemon icon?
 
-Why the icon for mu2 referencing? Every time I hear mu2 I think of the ultimate genetically modified Pokemon mewtwo.
+Why the icon for mu2 referencing? Every time I hear mu2 I think of the
+ultimate genetically modified Pokemon
+[mewtwo](https://goofy-legends-gl.fandom.com/wiki/Mewtwo) (which is a
+link to where the image comes from).
