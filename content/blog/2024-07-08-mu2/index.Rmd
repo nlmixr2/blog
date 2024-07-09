@@ -1,0 +1,121 @@
+---
+title: nlmixr2/rxode2 mu referencing 2.0
+author: Matthew Fidler
+date: '2024-07-08'
+slug: []
+categories: [rxode2, nlmixr2]
+tags: [mu]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(nlmixr2)
+library(rxode2)
+```
+
+This month, I will talk about about a new iteration of mu-referencing in nlmixr2, which I call mu2.
+
+## What is mu referencing in nlmixr2
+
+mu-referencing is combining a fixed effect, random effect and possibly a covariate in the form:
+
+$$
+\theta_\mathsf{pop}+\eta_\mathsf{individual}+\theta_\mathsf{covariate}\times \mathsf{DataCovariate}
+$$
+
+Often they are placed in exponentials for these to be log-normally distributed like:
+
+$$
+\exp\left(\theta_\mathsf{pop}+\eta_\mathsf{individual}+\theta_\mathsf{covariate}\times \mathsf{DataCovariate}\right)
+$$
+
+In optimization routines like `saem`, these are switched out with a single parameter during optimization classically called $\phi$ in both NONMEM and Monolix.
+
+Once the best $\phi$ is found, then the population, individual and covariates can be found by linear regression of the individual $\phi$ values versus the information in the optimization.
+
+This linear model adds important stability and speed when determining these parameters in the mu-expression. (It also adds rules like they must not be time-varying for instance).
+
+In old versions of rxode2 and nlmixr2 the $\mathsf{DataCovariate}$ had to be in the dataset itself. This classic weight covariate adjustment:
+
+$$
+\exp\left(\theta_{Cl}+\eta_{Cl}\right)\times\left(\frac{WT}{70}\right)^{3/4}
+$$
+
+would have to written:
+
+$$
+\exp\left(\theta_{Cl}+\eta_{Cl} + 3/4\times\log\left(\frac{WT}{70}\right)\right)
+$$
+
+If you wanted to estimate the population parameter $3/4$ to see if it approaches the correct value you could with:
+
+$$
+\exp\left(\theta_{Cl}+\eta_{Cl} + \theta_{Cl, \textsf{cov}}\times\mathsf{DataCovariate}\right)
+$$
+
+Where
+
+$$
+\mathsf{DataCovariate} =\log\left(\frac{WT}{70}\right)
+$$
+
+This is easy enough to do and adds stabilization.
+
+However, with mu referencing 2.0 you can simply use an additive expression to setup mu-referencing:
+
+$$
+\exp\left(\theta_{Cl}+\eta_{Cl} + \frac{WT}{70}+\theta_{Cl, \textsf{cov}}\times\log\left(WT/70\right)\right)
+$$
+
+This is a bit more convenient than creating a column in the dataset that does this conversion and less user-based intervention to make `nlmixr2` use linear models when it can.
+
+## Checking for mu2 referencing
+
+In `rxode2` / `nlmixr2` you can check to see if your version of nlmixr2 supports the mu2 referencing by evaluating the functional form:
+
+```{r muRef}
+one.compartment <- function() {
+  ini({
+    tka <- log(1.57); label("Ka")
+    tcl <- log(2.72); label("Cl")
+    tv <- log(31.5); label("V")
+    wt.cl <- 0.75; label("WT on CL")
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+    add.sd <- 0.7
+  })
+  # and a model block with the error specification and model specification
+  model({
+    ka <- exp(tka + eta.ka)
+    cl <- exp(tcl + eta.cl + wt.cl*log(WT/70))
+    v <- exp(tv + eta.v)
+    d/dt(depot) <- -ka * depot
+    d/dt(center) <- ka * depot - cl / v * center
+    cp <- center / v
+    cp ~ add(add.sd)
+  })
+}
+
+one <- one.compartment()
+
+print(one)
+```
+
+If the mu2 referencing is supported it will show the following mu reference table:
+
+```
+── μ-referencing ($muRefTable): ──
+  theta    eta level                         covariates
+1   tka eta.ka    id
+2   tcl eta.cl    id log(0.0142857142857143 * WT)*wt.cl
+3    tv  eta.v    id
+```
+
+Here it shows the transformation that is used when creating the transformed data used for mu-based covariate modeling. In this case, we have `log(0.0142857142857143 * WT)`. It is a bit different than what is written because it is prepossessed by `symengine` and looks at the derivative with respect to the covariate parameter `wt.cl`.
+
+In general, I am excited by this new feature in nlmixr2 because it adds a new level of simplicity to user-based models and more often detects mu-referenced code when it may not have been detected in the past.
+
+### Why the Pokemon icon?
+
+Why the icon for mu2 referencing? Every time I hear mu2 I think of the ultimate genetically modified Pokemon [mewtwo](https://goofy-legends-gl.fandom.com/wiki/Mewtwo) (which is a link to where the image comes from).

@@ -1,0 +1,138 @@
+---
+title: nlmixr2/rxode2 mu referencing 2.0
+author: Matthew Fidler
+date: '2024-07-08'
+slug: []
+categories: [rxode2, nlmixr2]
+tags: [mu]
+---
+
+
+
+<p>This month, I will talk about about a new iteration of mu-referencing in nlmixr2, which I call mu2.</p>
+<div id="what-is-mu-referencing-in-nlmixr2" class="section level2">
+<h2>What is mu referencing in nlmixr2</h2>
+<p>mu-referencing is combining a fixed effect, random effect and possibly a covariate in the form:</p>
+<p><span class="math display">\[
+\theta_\mathsf{pop}+\eta_\mathsf{individual}+\theta_\mathsf{covariate}\times \mathsf{DataCovariate}
+\]</span></p>
+<p>Often they are placed in exponentials for these to be log-normally distributed like:</p>
+<p><span class="math display">\[
+\exp\left(\theta_\mathsf{pop}+\eta_\mathsf{individual}+\theta_\mathsf{covariate}\times \mathsf{DataCovariate}\right)
+\]</span></p>
+<p>In optimization routines like <code>saem</code>, these are switched out with a single parameter during optimization classically called <span class="math inline">\(\phi\)</span> in both NONMEM and Monolix.</p>
+<p>Once the best <span class="math inline">\(\phi\)</span> is found, then the population, individual and covariates can be found by linear regression of the individual <span class="math inline">\(\phi\)</span> values versus the information in the optimization.</p>
+<p>This linear model adds important stability and speed when determining these parameters in the mu-expression. (It also adds rules like they must not be time-varying for instance).</p>
+<p>In old versions of rxode2 and nlmixr2 the <span class="math inline">\(\mathsf{DataCovariate}\)</span> had to be in the dataset itself. This classic weight covariate adjustment:</p>
+<p><span class="math display">\[
+\exp\left(\theta_{Cl}+\eta_{Cl}\right)\times\left(\frac{WT}{70}\right)^{3/4}
+\]</span></p>
+<p>would have to written:</p>
+<p><span class="math display">\[
+\exp\left(\theta_{Cl}+\eta_{Cl} + 3/4\times\log\left(\frac{WT}{70}\right)\right)
+\]</span></p>
+<p>If you wanted to estimate the population parameter <span class="math inline">\(3/4\)</span> to see if it approaches the correct value you could with:</p>
+<p><span class="math display">\[
+\exp\left(\theta_{Cl}+\eta_{Cl} + \theta_{Cl, \textsf{cov}}\times\mathsf{DataCovariate}\right)
+\]</span></p>
+<p>Where</p>
+<p><span class="math display">\[
+\mathsf{DataCovariate} =\log\left(\frac{WT}{70}\right)
+\]</span></p>
+<p>This is easy enough to do and adds stabilization.</p>
+<p>However, with mu referencing 2.0 you can simply use an additive expression to setup mu-referencing:</p>
+<p><span class="math display">\[
+\exp\left(\theta_{Cl}+\eta_{Cl} + \frac{WT}{70}+\theta_{Cl, \textsf{cov}}\times\log\left(WT/70\right)\right)
+\]</span></p>
+<p>This is a bit more convenient than creating a column in the dataset that does this conversion and less user-based intervention to make <code>nlmixr2</code> use linear models when it can.</p>
+</div>
+<div id="checking-for-mu2-referencing" class="section level2">
+<h2>Checking for mu2 referencing</h2>
+<p>In <code>rxode2</code> / <code>nlmixr2</code> you can check to see if your version of nlmixr2 supports the mu2 referencing by evaluating the functional form:</p>
+<pre class="r"><code>one.compartment &lt;- function() {
+  ini({
+    tka &lt;- log(1.57); label(&quot;Ka&quot;)
+    tcl &lt;- log(2.72); label(&quot;Cl&quot;)
+    tv &lt;- log(31.5); label(&quot;V&quot;)
+    wt.cl &lt;- 0.75; label(&quot;WT on CL&quot;)
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+    add.sd &lt;- 0.7
+  })
+  # and a model block with the error specification and model specification
+  model({
+    ka &lt;- exp(tka + eta.ka)
+    cl &lt;- exp(tcl + eta.cl + wt.cl*log(WT/70))
+    v &lt;- exp(tv + eta.v)
+    d/dt(depot) &lt;- -ka * depot
+    d/dt(center) &lt;- ka * depot - cl / v * center
+    cp &lt;- center / v
+    cp ~ add(add.sd)
+  })
+}
+
+one &lt;- one.compartment()
+
+print(one)</code></pre>
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ─────────────────────────────────────────────── 
+##  ── Initalization: ──  
+## Fixed Effects ($theta): 
+##       tka       tcl        tv     wt.cl    add.sd 
+## 0.4510756 1.0006319 3.4499875 0.7500000 0.7000000 
+## 
+## Omega ($omega): 
+##        eta.ka eta.cl eta.v
+## eta.ka    0.6    0.0   0.0
+## eta.cl    0.0    0.3   0.0
+## eta.v     0.0    0.0   0.1
+## 
+## States ($state or $stateDf): 
+##   Compartment Number Compartment Name
+## 1                  1            depot
+## 2                  2           center
+##  ── μ-referencing ($muRefTable): ──  
+##   theta    eta level                         covariates
+## 1   tka eta.ka    id                                   
+## 2   tcl eta.cl    id log(0.0142857142857143 * WT)*wt.cl
+## 3    tv  eta.v    id                                   
+## 
+##  ── Model (Normalized Syntax): ── 
+## function() {
+##     ini({
+##         tka &lt;- 0.451075619360217
+##         label(&quot;Ka&quot;)
+##         tcl &lt;- 1.00063188030791
+##         label(&quot;Cl&quot;)
+##         tv &lt;- 3.44998754583159
+##         label(&quot;V&quot;)
+##         wt.cl &lt;- 0.75
+##         label(&quot;WT on CL&quot;)
+##         add.sd &lt;- c(0, 0.7)
+##         eta.ka ~ 0.6
+##         eta.cl ~ 0.3
+##         eta.v ~ 0.1
+##     })
+##     model({
+##         ka &lt;- exp(tka + eta.ka)
+##         cl &lt;- exp(tcl + eta.cl + wt.cl * log(WT/70))
+##         v &lt;- exp(tv + eta.v)
+##         d/dt(depot) &lt;- -ka * depot
+##         d/dt(center) &lt;- ka * depot - cl/v * center
+##         cp &lt;- center/v
+##         cp ~ add(add.sd)
+##     })
+## }</code></pre>
+<p>If the mu2 referencing is supported it will show the following mu reference table:</p>
+<pre><code>── μ-referencing ($muRefTable): ──
+  theta    eta level                         covariates
+1   tka eta.ka    id
+2   tcl eta.cl    id log(0.0142857142857143 * WT)*wt.cl
+3    tv  eta.v    id</code></pre>
+<p>Here it shows the transformation that is used when creating the transformed data used for mu-based covariate modeling. In this case, we have <code>log(0.0142857142857143 * WT)</code>. It is a bit different than what is written because it is prepossessed by <code>symengine</code> and looks at the derivative with respect to the covariate parameter <code>wt.cl</code>.</p>
+<p>In general, I am excited by this new feature in nlmixr2 because it adds a new level of simplicity to user-based models and more often detects mu-referenced code when it may not have been detected in the past.</p>
+<div id="why-the-pokemon-icon" class="section level3">
+<h3>Why the Pokemon icon?</h3>
+<p>Why the icon for mu2 referencing? Every time I hear mu2 I think of the ultimate genetically modified Pokemon <a href="https://goofy-legends-gl.fandom.com/wiki/Mewtwo">mewtwo</a> (which is a link to where the image comes from).</p>
+</div>
+</div>
