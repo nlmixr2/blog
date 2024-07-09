@@ -129,8 +129,15 @@ print(one)</code></pre>
 1   tka eta.ka    id
 2   tcl eta.cl    id log(0.0142857142857143 * WT)*wt.cl
 3    tv  eta.v    id</code></pre>
-<p>Here it shows the transformation that is used when creating the transformed data used for mu-based covariate modeling. In this case, we have <code>log(0.0142857142857143 * WT)</code>. It is a bit different than what is written because it is prepossessed by <code>symengine</code> and looks at the derivative with respect to the covariate parameter <code>wt.cl</code>.</p>
-<p>In general, I am excited by this new feature in nlmixr2.</p>
+<p>Here it shows the transformation that is used when creating the
+transformed data used for mu-based covariate modeling. In this case,
+we have <code>log(0.0142857142857143 * WT)</code>. It is a bit different than
+what is written because it is prepossessed by <code>symengine</code> and looks at
+the derivative with respect to the covariate parameter <code>wt.cl</code>.</p>
+<p>In general, I am excited by this new feature in nlmixr2 because it
+adds a new level of simplicity to user-based models and more often
+detects mu-referenced code when it may not have been detected in the
+past.</p>
 <div id="why-the-pokemon-icon" class="section level3">
 <h3>Why the Pokemon icon?</h3>
 <p>Why the icon for mu2 referencing? Every time I hear mu2 I think of the

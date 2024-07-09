@@ -111,9 +111,16 @@ If the mu2 referencing is supported it will show the following mu reference tabl
 3    tv  eta.v    id
 ```
 
-Here it shows the transformation that is used when creating the transformed data used for mu-based covariate modeling. In this case, we have `log(0.0142857142857143 * WT)`. It is a bit different than what is written because it is prepossessed by `symengine` and looks at the derivative with respect to the covariate parameter `wt.cl`.
+Here it shows the transformation that is used when creating the
+transformed data used for mu-based covariate modeling. In this case,
+we have `log(0.0142857142857143 * WT)`. It is a bit different than
+what is written because it is prepossessed by `symengine` and looks at
+the derivative with respect to the covariate parameter `wt.cl`.
 
-In general, I am excited by this new feature in nlmixr2.
+In general, I am excited by this new feature in nlmixr2 because it
+adds a new level of simplicity to user-based models and more often
+detects mu-referenced code when it may not have been detected in the
+past.
 
 ### Why the Pokemon icon?
 
