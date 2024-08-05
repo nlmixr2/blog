@@ -36,7 +36,8 @@ the parameters that `linCmt()` does (described
 There is both advantages and disadvantages to have the algorithm
 detect the variables.  One of advantages is calculating does not
 require as much manual intervention (which I am for automation as much
-as possible), but the disadvantage is incorrect detection of the parameters.
+as possible), but the disadvantage is incorrect detection of the
+parameters.
 
 Here are the examples from the manual:
 
@@ -44,22 +45,27 @@ Here are the examples from the manual:
 ## Note that rxode2 parses the names to figure out the best PK parameter
 params <- rxDerived(cl = 29.4, v = 23.4, Vp = 114, vp2 = 4614, q = 270, q2 = 73)
 
+print(params)
+
 ## That is why this gives the same results as the value before
 
 params <- rxDerived(CL = 29.4, V1 = 23.4, V2 = 114, V3 = 4614, Q2 = 270, Q3 = 73)
+print(params)
 
 ## You may also use micro-constants alpha/beta etc.
 
 params <- rxDerived(k12 = 0.1, k21 = 0.2, k13 = 0.3, k31 = 0.4, kel = 10, v = 10)
+print(params)
 
 ## or you can mix vectors and scalars
-
 params <- rxDerived(CL = 29.4, V = 1:3)
+print(params)
 
 ## If you want, you can round to a number of significant digits
 ## with the `digits` argument:
 
 params <- rxDerived(CL = 29.4, V = 1:3, digits = 2)
+print(params)
 ```
 
 Note that none of these show a data-frame, so an additional example of
@@ -71,7 +77,12 @@ df <- data.frame(CL=1:10, V=20:29)
 rxDerived(df)
 ```
 
-Regardless of which you use, these functions are generally useful for doing PK translations
+This is not really present in `calc_derived()` and not all the same
+parameters are output (rxode2 seems to have the microconstants but
+`calc_derived()` does not seem to have these yet)
+
+Regardless of which you use, these functions are generally useful for
+doing PK translations and can save you from doing these by hand.
 
 
 ### Notes
