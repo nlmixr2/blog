@@ -1,0 +1,104 @@
+---
+title: rxode2 calculating derived PK model
+author: Matthew Fidler
+date: '2024-08-05'
+slug: []
+categories: [rxode2, nlmixr2]
+tags: [mu]
+---
+
+
+
+<p>One of the things that can be useful from time to time is to calculate
+different PK parameters based on whatever parameters you have
+estimated.</p>
+<p>There is a great function,
+<a href="https://kestrel99.github.io/pmxTools/reference/calc_derived.html"><code>calc_derived()</code></a>
+in <code>pmxTools</code> that allows this calculation of the derived parameters
+(by my collaborators Justin Wilkins and Bill Denney).</p>
+<p>I think this is an underrated function that can help many people with
+typical calculations.</p>
+<p><code>rxode2</code> has the same type of function, which can be helpful to test
+the <code>linCmt()</code> functions,
+<a href="https://nlmixr2.github.io/rxode2parse/reference/rxDerived.html"><code>rxDerived()</code></a>.</p>
+<p>You may notice that this does not have as many arguments as the
+<code>calc_derived()</code> this is because this uses the same method to detect
+the parameters that <code>linCmt()</code> does (described
+<a href="https://nlmixr2.github.io/rxode2/articles/rxode2-model-types.html#solved-compartment-models">here</a>).</p>
+<p>There is both advantages and disadvantages to have the algorithm
+detect the variables. One of advantages is calculating does not
+require as much manual intervention (which I am for automation as much
+as possible), but the disadvantage is incorrect detection of the
+parameters.</p>
+<p>Here are the examples from the manual:</p>
+<pre class="r"><code>## Note that rxode2 parses the names to figure out the best PK parameter
+params &lt;- rxDerived(cl = 29.4, v = 23.4, Vp = 114, vp2 = 4614, q = 270, q2 = 73)
+
+print(params)</code></pre>
+<pre><code>##     vc     kel      k12      k21      k13        k31  vp  vp2    vss   cl   q
+## 1 23.4 1.25641 11.53846 2.368421 3.119658 0.01582141 114 4614 4751.4 29.4 270
+##   q2   t12alpha  t12beta t12gamma   alpha      beta       gamma          A
+## 1 73 0.03916129 1.165945 154.9193 17.6998 0.5944938 0.004474246 0.03827859
+##             B            C    fracA     fracB       fracC
+## 1 0.004346657 0.0001097954 0.895719 0.1017118 0.002569213</code></pre>
+<pre class="r"><code>## That is why this gives the same results as the value before
+
+params &lt;- rxDerived(CL = 29.4, V1 = 23.4, V2 = 114, V3 = 4614, Q2 = 270, Q3 = 73)
+print(params)</code></pre>
+<pre><code>##     vc     kel      k12      k21      k13        k31  vp  vp2    vss   cl   q
+## 1 23.4 1.25641 11.53846 2.368421 3.119658 0.01582141 114 4614 4751.4 29.4 270
+##   q2   t12alpha  t12beta t12gamma   alpha      beta       gamma          A
+## 1 73 0.03916129 1.165945 154.9193 17.6998 0.5944938 0.004474246 0.03827859
+##             B            C    fracA     fracB       fracC
+## 1 0.004346657 0.0001097954 0.895719 0.1017118 0.002569213</code></pre>
+<pre class="r"><code>## You may also use micro-constants alpha/beta etc.
+
+params &lt;- rxDerived(k12 = 0.1, k21 = 0.2, k13 = 0.3, k31 = 0.4, kel = 10, v = 10)
+print(params)</code></pre>
+<pre><code>##   vc kel k12 k21 k13 k31 vp vp2  vss  cl q q2   t12alpha  t12beta t12gamma
+## 1 10  10 0.1 0.2 0.3 0.4  5 7.5 22.5 100 1  3 0.06655954 1.785817 3.502186
+##      alpha      beta     gamma          A            B            C     fracA
+## 1 10.41394 0.3881401 0.1979185 0.09986136 0.0001169989 2.164562e-05 0.9986136
+##         fracB        fracC
+## 1 0.001169989 0.0002164562</code></pre>
+<pre class="r"><code>## or you can mix vectors and scalars
+params &lt;- rxDerived(CL = 29.4, V = 1:3)
+print(params)</code></pre>
+<pre><code>##   vc  kel vss   cl   t12alpha alpha         A fracA
+## 1  1 29.4   1 29.4 0.02357643  29.4 1.0000000     1
+## 2  2 14.7   2 29.4 0.04715287  14.7 0.5000000     1
+## 3  3  9.8   3 29.4 0.07072930   9.8 0.3333333     1</code></pre>
+<pre class="r"><code>## If you want, you can round to a number of significant digits
+## with the `digits` argument:
+
+params &lt;- rxDerived(CL = 29.4, V = 1:3, digits = 2)
+print(params)</code></pre>
+<pre><code>##   vc  kel vss cl t12alpha alpha    A fracA
+## 1  1 29.0   1 29    0.024  29.0 1.00     1
+## 2  2 15.0   2 29    0.047  15.0 0.50     1
+## 3  3  9.8   3 29    0.071   9.8 0.33     1</code></pre>
+<p>Note that none of these show a data-frame, so an additional example of
+this is:</p>
+<pre class="r"><code>df &lt;- data.frame(CL=1:10, V=20:29)
+
+rxDerived(df)</code></pre>
+<pre><code>##    vc       kel vss cl  t12alpha     alpha          A fracA
+## 1  20 0.0500000  20  1 13.862944 0.0500000 0.05000000     1
+## 2  21 0.0952381  21  2  7.278045 0.0952381 0.04761905     1
+## 3  22 0.1363636  22  3  5.083079 0.1363636 0.04545455     1
+## 4  23 0.1739130  23  4  3.985596 0.1739130 0.04347826     1
+## 5  24 0.2083333  24  5  3.327106 0.2083333 0.04166667     1
+## 6  25 0.2400000  25  6  2.888113 0.2400000 0.04000000     1
+## 7  26 0.2692308  26  7  2.574547 0.2692308 0.03846154     1
+## 8  27 0.2962963  27  8  2.339372 0.2962963 0.03703704     1
+## 9  28 0.3214286  28  9  2.156458 0.3214286 0.03571429     1
+## 10 29 0.3448276  29 10  2.010127 0.3448276 0.03448276     1</code></pre>
+<p>This is not really present in <code>calc_derived()</code> and not all the same
+parameters are output (rxode2 seems to have the microconstants but
+<code>calc_derived()</code> does not seem to have these yet)</p>
+<p>Regardless of which you use, these functions are generally useful for
+doing PK translations and can save you from doing these by hand.</p>
+<div id="notes" class="section level3">
+<h3>Notes</h3>
+<p>The icon comes from <a href="https://www.flaticon.com/free-icon/calculation_8123662">here</a></p>
+</div>
