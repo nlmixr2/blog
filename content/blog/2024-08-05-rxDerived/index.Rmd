@@ -1,5 +1,5 @@
 ---
-title: rxode2 calculating derived PK model
+title: rxode2 calculating derived PK model parameters
 author: Matthew Fidler
 date: '2024-08-05'
 slug: []
