@@ -25,8 +25,8 @@ links:
   url: https://github.com/nlmixr2/courses/raw/main/PopSim2024/PopSim2024.zip
 location: Copenhagen, Denmark
 show_post_time: false
-subtitle: PopSim 2023
-title: "Advanced modelling workshop in nlmixr2"
+subtitle: PopSim 2024
+title: "Simulation and parameter estimation with rxode2 and nlmixr2"
 ---
 
 ## Workshop overview 
