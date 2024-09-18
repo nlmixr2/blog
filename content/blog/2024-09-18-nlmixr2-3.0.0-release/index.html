@@ -144,8 +144,9 @@ modeling. Standard mu referencing is not called out.</p></li>
 <li><p>There is a new log-likelihood profiling functions exported for use
 with you <code>nlmixr2</code> fits.</p></li>
 </ul>
-<p>The next is a technical discussion on why/how things have changed, if
-you want you can simply <a href="#Changelog">jump to the overall changes</a>.</p>
+<p>I have a <a href="#api">technical discussion on why/how things have changed</a>,
+or <a href="#Changelog">jump to the overall changes</a>. The next section
+discusses why our dependencies have changed.</p>
 <div id="why-has-the-number-of-dependencies-changed" class="section level2">
 <h2>Why has the number of dependencies changed?</h2>
 <p>In
@@ -156,14 +157,15 @@ maintain. This was mostly because of compilation time, and the
 separate package.</p>
 <p>In the last release, they requested that we reduce the number of
 packages for <code>rxode2</code> because it took too much of their time to
-maintain the split they requested. This is because there are <a href="https://cran.r-project.org/doc/manuals/R-exts.html#Linking-to-native-routines-in-other-packages-1">binary
-dependencies</a>
-between all of the packages that were split off. This means that
-<code>rxode2</code> had to depend on exact versions of the packages
-<code>rxode2random</code>, <code>rxode2parse</code>, and <code>rxode2et</code>. If this
-did not happen, you could crash R. A new sentence in their manual has
-been added since I started about this practice (or I simply don’t
-remember seeing it):</p>
+maintain the split they requested.</p>
+<p>This is because the <code>rxode2</code>, <code>rxode2random</code>, <code>rxode2et</code> and
+<code>rxode2parse</code> have <a href="https://cran.r-project.org/doc/manuals/R-exts.html#Linking-to-native-routines-in-other-packages-1">binary
+inter-dependencies</a>
+between all of the packages that were split off.</p>
+<p>This means that <code>rxode2</code>/<code>nlmixr2est</code> had to depend on exact versions
+of the packages <code>rxode2random</code>, <code>rxode2parse</code>, and <code>rxode2et</code>. If
+this did not happen, you could crash R. A sentence in their manual
+talks about how fragile this is:</p>
 <blockquote>
 <p><strong>NB:</strong> is mechanism is fragile, as changes to the interface
 provided by <strong>packA</strong> have to be recognised by <strong>packB</strong>. The
@@ -176,15 +178,17 @@ to matches that it was compiled against.</p>
 <p>I can see how this was very painful to maintain on CRAN’s end (and it
 was difficult to maintain from my end as well).</p>
 <p>I must say, that CRAN is a small group of volunteers who manage a
-great number of very useful R packages. Not only that they make sure
+great number of very useful R packages. They make sure
 that the packages more or less interact well with each other, which is
-actually a non-trivial task that makes <code>CRAN</code> just work, when compared
+actually a non-trivial task. This makes <code>CRAN</code> just work, when compared
 to other repositories where this is not enforced.</p>
 <p>So, in short, “CRAN gives, CRAN takes away, blessed be the name of
-CRAN” (to quote Job).</p>
+CRAN” (to mis-quote Job).</p>
 <p>Note that I have taken other steps to make this easier to maintain on
 my side and CRAN’s side too. For those who are interested I will talk
 about them in below in the <a href="#api"><code>ABI/ABI</code> section</a>.</p>
+<div id="Changelog">
+
 </div>
 <div id="changelog" class="section level2">
 <h2>Changelog</h2>
@@ -479,156 +483,20 @@ which needs the following line in the NAMESPACE:</p>
 #&#39; @export
 #&#39; @author Matthew L. Fidler
 #&#39; @examples
-#&#39;
 #&#39; .rxode2ptrs()
 .rxode2ptrs &lt;- function() {
   .Call(`_rxode2_rxode2Ptr`, PACKAGE = &quot;rxode2&quot;)
 }</code></pre>
 <p>Which (of course) works for <code>rxode2</code>:</p>
-<pre class="r"><code>rxode2::.rxode2ptrs()</code></pre>
+<pre class="r"><code>rxode2::.rxode2ptrs()[1:3]</code></pre>
 <pre><code>## $rxode2rxRmvnSEXP
-## &lt;pointer: 0x7367682c68f0&gt;
+## &lt;pointer: 0x71f4638c68f0&gt;
 ## 
 ## $rxode2rxParProgress
-## &lt;pointer: 0x7367684c49c0&gt;
+## &lt;pointer: 0x71f463ac49c0&gt;
 ## 
 ## $rxode2getRxSolve_
-## &lt;pointer: 0x7367684c5ba0&gt;
-## 
-## $rxode2indSolve
-## &lt;pointer: 0x7367684d0d20&gt;
-## 
-## $rxode2getTime
-## &lt;pointer: 0x7367684c5bd0&gt;
-## 
-## $rxode2isRstudio
-## &lt;pointer: 0x7367684dbc10&gt;
-## 
-## $rxode2iniSubjectE
-## &lt;pointer: 0x7367684cc7d0&gt;
-## 
-## $rxode2sortIds
-## &lt;pointer: 0x7367684eaf70&gt;
-## 
-## $getSolvingOptionsInd
-## &lt;pointer: 0x7367684d92c0&gt;
-## 
-## $rxode2getUpdateInis
-## &lt;pointer: 0x7367684d92d0&gt;
-## 
-## $rxode2_rxode2_rxModelVars_
-## &lt;pointer: 0x7367682c1590&gt;
-## 
-## $rxode2_par_solve
-## &lt;pointer: 0x7367684cfbe0&gt;
-## 
-## $rxode2rxGetId
-## &lt;pointer: 0x7367684c3f00&gt;
-## 
-## $rxode2getIndLambda
-## &lt;pointer: 0x7367684d9310&gt;
-## 
-## $rxode2getIndLambdaYj
-## &lt;pointer: 0x7367684d9320&gt;
-## 
-## $rxode2getIndLogitLow
-## &lt;pointer: 0x7367684d9330&gt;
-## 
-## $rxode2getIndLogitHi
-## &lt;pointer: 0x7367684d9340&gt;
-## 
-## $rxode2setIndParPtr
-## &lt;pointer: 0x7367684d9350&gt;
-## 
-## $rxode2getIndParPtr
-## &lt;pointer: 0x7367684d93b0&gt;
-## 
-## $rxode2getIndNallTimes
-## &lt;pointer: 0x7367684d9400&gt;
-## 
-## $rxode2setIndIdx
-## &lt;pointer: 0x7367684d9410&gt;
-## 
-## $rxode2getIndIx
-## &lt;pointer: 0x7367684d9420&gt;
-## 
-## $rxode2getIndEvid
-## &lt;pointer: 0x7367684d9450&gt;
-## 
-## $rxode2getIndLhs
-## &lt;pointer: 0x7367684d9480&gt;
-## 
-## $rxode2getIndNdoses
-## &lt;pointer: 0x7367684d9490&gt;
-## 
-## $rxode2getIndNevid2
-## &lt;pointer: 0x7367684d94a0&gt;
-## 
-## $rxode2setIndSolve
-## &lt;pointer: 0x7367684d94b0&gt;
-## 
-## $rxode2getIndSolve
-## &lt;pointer: 0x7367684d94c0&gt;
-## 
-## $rxode2getIndDv
-## &lt;pointer: 0x7367684d94d0&gt;
-## 
-## $rxode2getIndYj
-## &lt;pointer: 0x7367684d9510&gt;
-## 
-## $rxode2getIndLimit
-## &lt;pointer: 0x7367684d9520&gt;
-## 
-## $rxode2getIndCens
-## &lt;pointer: 0x7367684d9520&gt;
-## 
-## $rxode2getIndIdx
-## &lt;pointer: 0x7367684d9590&gt;
-## 
-## $rxode2getOpNeq
-## &lt;pointer: 0x7367684d95a0&gt;
-## 
-## $rxode2setOpNeq
-## &lt;pointer: 0x7367684d95b0&gt;
-## 
-## $rxode2hasOpBadSolve
-## &lt;pointer: 0x7367684d95c0&gt;
-## 
-## $rxode2getOpNlin
-## &lt;pointer: 0x7367684d95d0&gt;
-## 
-## $rxode2getOpCores
-## &lt;pointer: 0x7367684d95e0&gt;
-## 
-## $rxode2getOpNlhs
-## &lt;pointer: 0x7367684d95f0&gt;
-## 
-## $rxode2getOpStiff
-## &lt;pointer: 0x7367684d9600&gt;
-## 
-## $rxode2resetOpBadSolve
-## &lt;pointer: 0x7367684d9610&gt;
-## 
-## $rxode2getRxNsub
-## &lt;pointer: 0x7367684d9620&gt;
-## 
-## $rxode2hasRxLimit
-## &lt;pointer: 0x7367684d9630&gt;
-## 
-## $rxode2hasRxCens
-## &lt;pointer: 0x7367684d9640&gt;
-## 
-## $rxode2getRxNall
-## &lt;pointer: 0x7367684d9650&gt;
-## 
-## $rxode2getRxNobs
-## &lt;pointer: 0x7367684d9660&gt;
-## 
-## $rxode2getRxNobs2
-## &lt;pointer: 0x7367684d9670&gt;
-## 
-## $rxode2getOpIndSolve
-## &lt;pointer: 0x7367684d9680&gt;</code></pre>
+## &lt;pointer: 0x71f463ac5ba0&gt;</code></pre>
 </div>
 <div id="step-2-create-the-user-interface-header" class="section level4">
 <h4>Step 2 create the user interface header</h4>
