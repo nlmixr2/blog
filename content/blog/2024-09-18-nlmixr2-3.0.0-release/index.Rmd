@@ -17,7 +17,8 @@ library(babelmixr2)
 `nlmixr2` 3.0 has been released and most of the related packages in
 the `nlmixr2` ecosystem have been updated as well. Since there were a
 few non-backward compatible changes and breaking changes, the version
-has been bumped from 2 to 3. Most code will run the same, but
+has been bumped from 2 to 3. Most code will run the same, but because
+of the breaking change, we changed the major version.
 
 The big changes are:
 

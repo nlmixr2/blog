@@ -12,7 +12,8 @@ tags: []
 <p><code>nlmixr2</code> 3.0 has been released and most of the related packages in
 the <code>nlmixr2</code> ecosystem have been updated as well. Since there were a
 few non-backward compatible changes and breaking changes, the version
-has been bumped from 2 to 3. Most code will run the same, but</p>
+has been bumped from 2 to 3. Most code will run the same, but because
+of the breaking change, we changed the major version.</p>
 <p>The big changes are:</p>
 <ul>
 <li><p>Non abi binary linkages between every package. This means you will not
@@ -240,148 +241,148 @@ which needs the following line in the NAMESPACE:</p>
 <p>Which (of course) works for <code>rxode2</code>:</p>
 <pre class="r"><code>rxode2::.rxode2ptrs()</code></pre>
 <pre><code>## $rxode2rxRmvnSEXP
-## &lt;pointer: 0x7b909e0c68f0&gt;
+## &lt;pointer: 0x7c6001cc68f0&gt;
 ## 
 ## $rxode2rxParProgress
-## &lt;pointer: 0x7b909e2c49c0&gt;
+## &lt;pointer: 0x7c6001ec49c0&gt;
 ## 
 ## $rxode2getRxSolve_
-## &lt;pointer: 0x7b909e2c5ba0&gt;
+## &lt;pointer: 0x7c6001ec5ba0&gt;
 ## 
 ## $rxode2indSolve
-## &lt;pointer: 0x7b909e2d0d20&gt;
+## &lt;pointer: 0x7c6001ed0d20&gt;
 ## 
 ## $rxode2getTime
-## &lt;pointer: 0x7b909e2c5bd0&gt;
+## &lt;pointer: 0x7c6001ec5bd0&gt;
 ## 
 ## $rxode2isRstudio
-## &lt;pointer: 0x7b909e2dbc10&gt;
+## &lt;pointer: 0x7c6001edbc10&gt;
 ## 
 ## $rxode2iniSubjectE
-## &lt;pointer: 0x7b909e2cc7d0&gt;
+## &lt;pointer: 0x7c6001ecc7d0&gt;
 ## 
 ## $rxode2sortIds
-## &lt;pointer: 0x7b909e2eaf70&gt;
+## &lt;pointer: 0x7c6001eeaf70&gt;
 ## 
 ## $getSolvingOptionsInd
-## &lt;pointer: 0x7b909e2d92c0&gt;
+## &lt;pointer: 0x7c6001ed92c0&gt;
 ## 
 ## $rxode2getUpdateInis
-## &lt;pointer: 0x7b909e2d92d0&gt;
+## &lt;pointer: 0x7c6001ed92d0&gt;
 ## 
 ## $rxode2_rxode2_rxModelVars_
-## &lt;pointer: 0x7b909e0c1590&gt;
+## &lt;pointer: 0x7c6001cc1590&gt;
 ## 
 ## $rxode2_par_solve
-## &lt;pointer: 0x7b909e2cfbe0&gt;
+## &lt;pointer: 0x7c6001ecfbe0&gt;
 ## 
 ## $rxode2rxGetId
-## &lt;pointer: 0x7b909e2c3f00&gt;
+## &lt;pointer: 0x7c6001ec3f00&gt;
 ## 
 ## $rxode2getIndLambda
-## &lt;pointer: 0x7b909e2d9310&gt;
+## &lt;pointer: 0x7c6001ed9310&gt;
 ## 
 ## $rxode2getIndLambdaYj
-## &lt;pointer: 0x7b909e2d9320&gt;
+## &lt;pointer: 0x7c6001ed9320&gt;
 ## 
 ## $rxode2getIndLogitLow
-## &lt;pointer: 0x7b909e2d9330&gt;
+## &lt;pointer: 0x7c6001ed9330&gt;
 ## 
 ## $rxode2getIndLogitHi
-## &lt;pointer: 0x7b909e2d9340&gt;
+## &lt;pointer: 0x7c6001ed9340&gt;
 ## 
 ## $rxode2setIndParPtr
-## &lt;pointer: 0x7b909e2d9350&gt;
+## &lt;pointer: 0x7c6001ed9350&gt;
 ## 
 ## $rxode2getIndParPtr
-## &lt;pointer: 0x7b909e2d93b0&gt;
+## &lt;pointer: 0x7c6001ed93b0&gt;
 ## 
 ## $rxode2getIndNallTimes
-## &lt;pointer: 0x7b909e2d9400&gt;
+## &lt;pointer: 0x7c6001ed9400&gt;
 ## 
 ## $rxode2setIndIdx
-## &lt;pointer: 0x7b909e2d9410&gt;
+## &lt;pointer: 0x7c6001ed9410&gt;
 ## 
 ## $rxode2getIndIx
-## &lt;pointer: 0x7b909e2d9420&gt;
+## &lt;pointer: 0x7c6001ed9420&gt;
 ## 
 ## $rxode2getIndEvid
-## &lt;pointer: 0x7b909e2d9450&gt;
+## &lt;pointer: 0x7c6001ed9450&gt;
 ## 
 ## $rxode2getIndLhs
-## &lt;pointer: 0x7b909e2d9480&gt;
+## &lt;pointer: 0x7c6001ed9480&gt;
 ## 
 ## $rxode2getIndNdoses
-## &lt;pointer: 0x7b909e2d9490&gt;
+## &lt;pointer: 0x7c6001ed9490&gt;
 ## 
 ## $rxode2getIndNevid2
-## &lt;pointer: 0x7b909e2d94a0&gt;
+## &lt;pointer: 0x7c6001ed94a0&gt;
 ## 
 ## $rxode2setIndSolve
-## &lt;pointer: 0x7b909e2d94b0&gt;
+## &lt;pointer: 0x7c6001ed94b0&gt;
 ## 
 ## $rxode2getIndSolve
-## &lt;pointer: 0x7b909e2d94c0&gt;
+## &lt;pointer: 0x7c6001ed94c0&gt;
 ## 
 ## $rxode2getIndDv
-## &lt;pointer: 0x7b909e2d94d0&gt;
+## &lt;pointer: 0x7c6001ed94d0&gt;
 ## 
 ## $rxode2getIndYj
-## &lt;pointer: 0x7b909e2d9510&gt;
+## &lt;pointer: 0x7c6001ed9510&gt;
 ## 
 ## $rxode2getIndLimit
-## &lt;pointer: 0x7b909e2d9520&gt;
+## &lt;pointer: 0x7c6001ed9520&gt;
 ## 
 ## $rxode2getIndCens
-## &lt;pointer: 0x7b909e2d9520&gt;
+## &lt;pointer: 0x7c6001ed9520&gt;
 ## 
 ## $rxode2getIndIdx
-## &lt;pointer: 0x7b909e2d9590&gt;
+## &lt;pointer: 0x7c6001ed9590&gt;
 ## 
 ## $rxode2getOpNeq
-## &lt;pointer: 0x7b909e2d95a0&gt;
+## &lt;pointer: 0x7c6001ed95a0&gt;
 ## 
 ## $rxode2setOpNeq
-## &lt;pointer: 0x7b909e2d95b0&gt;
+## &lt;pointer: 0x7c6001ed95b0&gt;
 ## 
 ## $rxode2hasOpBadSolve
-## &lt;pointer: 0x7b909e2d95c0&gt;
+## &lt;pointer: 0x7c6001ed95c0&gt;
 ## 
 ## $rxode2getOpNlin
-## &lt;pointer: 0x7b909e2d95d0&gt;
+## &lt;pointer: 0x7c6001ed95d0&gt;
 ## 
 ## $rxode2getOpCores
-## &lt;pointer: 0x7b909e2d95e0&gt;
+## &lt;pointer: 0x7c6001ed95e0&gt;
 ## 
 ## $rxode2getOpNlhs
-## &lt;pointer: 0x7b909e2d95f0&gt;
+## &lt;pointer: 0x7c6001ed95f0&gt;
 ## 
 ## $rxode2getOpStiff
-## &lt;pointer: 0x7b909e2d9600&gt;
+## &lt;pointer: 0x7c6001ed9600&gt;
 ## 
 ## $rxode2resetOpBadSolve
-## &lt;pointer: 0x7b909e2d9610&gt;
+## &lt;pointer: 0x7c6001ed9610&gt;
 ## 
 ## $rxode2getRxNsub
-## &lt;pointer: 0x7b909e2d9620&gt;
+## &lt;pointer: 0x7c6001ed9620&gt;
 ## 
 ## $rxode2hasRxLimit
-## &lt;pointer: 0x7b909e2d9630&gt;
+## &lt;pointer: 0x7c6001ed9630&gt;
 ## 
 ## $rxode2hasRxCens
-## &lt;pointer: 0x7b909e2d9640&gt;
+## &lt;pointer: 0x7c6001ed9640&gt;
 ## 
 ## $rxode2getRxNall
-## &lt;pointer: 0x7b909e2d9650&gt;
+## &lt;pointer: 0x7c6001ed9650&gt;
 ## 
 ## $rxode2getRxNobs
-## &lt;pointer: 0x7b909e2d9660&gt;
+## &lt;pointer: 0x7c6001ed9660&gt;
 ## 
 ## $rxode2getRxNobs2
-## &lt;pointer: 0x7b909e2d9670&gt;
+## &lt;pointer: 0x7c6001ed9670&gt;
 ## 
 ## $rxode2getOpIndSolve
-## &lt;pointer: 0x7b909e2d9680&gt;</code></pre>
+## &lt;pointer: 0x7c6001ed9680&gt;</code></pre>
 </div>
 <div id="step-2-create-the-user-interface-header" class="section level2">
 <h2>Step 2 create the user interface header</h2>
