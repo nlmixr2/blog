@@ -1,0 +1,486 @@
+---
+title: nlmixr2 3.0
+author: Matthew Fidler
+date: '2024-09-18'
+slug: []
+categories: [rxode2, nlmixr2, babelmixr2]
+tags: []
+---
+
+
+
+<p><code>nlmixr2</code> 3.0 has been released and most of the related packages in
+the <code>nlmixr2</code> ecosystem have been updated as well. Since there were a
+few non-backward compatible changes and breaking changes, the version
+has been bumped from 2 to 3. Most code will run the same, but</p>
+<p>The big changes are:</p>
+<ul>
+<li><p>Non abi binary linkages between every package. This means you will not
+get messages about needing to re-compile the packages during CRAN
+updates (and it means much more stable packages and the ability to
+make more frequent updates). To me, this is as important an
+achievement to maintainability as removing python’s <code>sympy</code> from
+<code>nlmixr</code>.</p></li>
+<li><p>New syntax for lower triangular matrices. I will likely discuss why
+in a later blog post, but for now I will show the differences:</p></li>
+</ul>
+<pre class="r"><code># The old syntax (which is still supported)
+lotri({
+  a+b ~ c(1,
+               0.1, 1)
+  c ~ 1
+})</code></pre>
+<pre><code>##     a   b c
+## a 1.0 0.1 0
+## b 0.1 1.0 0
+## c 0.0 0.0 1</code></pre>
+<pre class="r"><code># the new syntax, lower triangular matrices can be suplied row by row;
+# if restarting it would restart the block matrix
+lotri({
+  a ~ 1
+  b ~ c(0.1, 1)
+  c ~ 1
+})</code></pre>
+<pre><code>##     a   b c
+## a 1.0 0.1 0
+## b 0.1 1.0 0
+## c 0.0 0.0 1</code></pre>
+<ul>
+<li><code>rxode2</code>/<code>nlmixr2</code> will re-order matrices as needed to make them in
+a banded-matrix format preferred by the estimation tool. This is
+done when parsing the matrices but can be seen here:</li>
+</ul>
+<pre class="r"><code>
+m &lt;- lotri({
+  a + b + c + d + e + f + g + h + i + j + k + l + m + n + o +
+  p ~ c(0.4, 0, 0.3, 0, 0, 0, -0.1, 0, 0, 0.2, 0, 0, 0,
+        0, 0.5, 0, 0, 0, 0, 0, 1.3, 0, 0, 0, 0, 0, -0.6, 0.8,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.2,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0.9, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0.9, 0, 0, 0, 0, 0, 0, 0, 0, 0, -0.2, 0, 0.3,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2.1, 0.2, 0, 0, 0.2,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0.4, 0, 0, 0, 0, 0, -1.1,
+        0.9, 0, 0, 0, 0, 0, 0, 0, 4.7, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0.5, 0, 0.2, 0, 0, 0, 1.9)
+})
+
+# note that m is in a non-banded matrix format
+m
+
+# Internally the lotri function rcm (standing for the reverse Cuthill
+# McKee (RCM) algorithm algorithm)
+m &lt;- lotri::rcm(m)
+
+# If you specified this as an ini block, you would then see the
+# following code instead:
+lotri::lotriAsExpression(m, useIni=TRUE)
+
+# which is both much easier to read and also helps the nlmixr2
+# estimation routines.
+
+# If you prefer the old syntax on output you can use
+# options(lotri.plusNames=TRUE)
+withr::with_options(list(lotri.plusNames=TRUE),{
+  lotri::lotriAsExpression(m, useIni=TRUE)
+})</code></pre>
+<ul>
+<li><p>In <code>rxode2</code> simulations, <code>iCov</code> has been refactored to run faster
+than it did before.</p></li>
+<li><p>In <code>rxode2</code> you can now assign a variable to a string (<code>a &lt;- "string"</code>)</p></li>
+<li><p>Now you can specify per-variable interpolation (<code>linear(WT)</code>, or
+<code>nocb(WT)</code> etc) inside your model.</p></li>
+<li><p>There is a new type of handling of <code>mu</code>-referenced equations, called
+<code>mu</code>3. (We already have
+<a href="https://blog.nlmixr2.org/blog/2024-07-08-mu2/"><code>mu</code>2</a>). <code>saem</code> will
+now message if it is using <code>mu</code>2 or <code>mu</code>3 referencing while
+modeling. Standard mu referencing is not called out.</p></li>
+</ul>
+<div id="why-has-the-number-of-dependencies-changed" class="section level1">
+<h1>Why has the number of dependencies changed?</h1>
+<p>In
+<a href="https://blog.nlmixr2.org/blog/2022-10-19-rxode2-2.0.9-release/">2022</a>,
+<code>CRAN</code> requested we split <code>rxode2</code>, giving us more packages to
+maintain. This was mostly because of compilation time, and the
+<code>stan</code>-based, large-compilation time <code>rxode2ll</code> is still its own
+separate package.</p>
+<p>In the last release, they requested that we reduce the number of
+packages for <code>rxode2</code> because it took too much of their time to
+maintain the split they requested. This is because there are <a href="https://cran.r-project.org/doc/manuals/R-exts.html#Linking-to-native-routines-in-other-packages-1">binary
+dependencies</a>
+between all of the packages that were split off. This means that
+<code>rxode2</code> had to depend on exact versions of the packages
+<code>rxode2random</code>, <code>rxode2parse</code>, and <code>rxode2et</code> (in practicality is
+simply needed to be compiled against the versions listed). If this
+did not happen, you could crash R. A new sentence in their manual has
+been added since I started about this practice (or I simply don’t
+remember seeing it):</p>
+<blockquote>
+<p><strong>NB:</strong> is mechanism is fragile, as changes to the interface
+provided by <strong>packA</strong> have to be recognised by <strong>packB</strong>. The
+consequences of not doing so have included serious corruption to the
+memory pool of the R session. Either <strong>packB</strong> has to depend on the
+exact version of packA or there needs to be a mechanism for
+<strong>packB</strong> to test at runtime the version of <strong>packA</strong> it is linked
+to matches that it was compiled against.</p>
+</blockquote>
+<p>I can see how this was very painful to maintain on CRAN’s end (and it
+was difficult to maintain from my end as well).</p>
+<p>I must say, that CRAN is a small group of volunteers who manage a
+great number of very useful R packages. Not only that they make sure
+that the packages more or less interact well with each other, which is
+actually a non-trivial task that makes <code>CRAN</code> just work, when compared
+to other repositories where this is not enforced.</p>
+<p>So, in short, “CRAN gives, CRAN takes away, blessed be the name of
+CRAN”.</p>
+<p>Note that I have taken other steps to make this easier to maintain on
+my side and CRAN’s side too. For those who are interested I will talk
+about them below.</p>
+<p>I am writing this technical aside because I couldn’t find a solution
+for this problem on the internet or in the writing R extension manual
+(my internet searching skills could probably be improved). Also note
+that if you are using <code>Rcpp</code> and exposing the <code>C++</code> calls, this is
+done for you (but not for <code>C</code> calls).</p>
+</div>
+<div id="what-is-an-abi" class="section level1">
+<h1>What is an ABI?</h1>
+<p>An <code>ABI</code> stands for application binary interface and is determined by
+the compiler and the platform at the time of compile. Each function
+has an address in memory. This is why when some down-stream
+dependency like <code>rxode2parse</code> are updated the functions that are
+specified change memory addresses. When <code>rxode2</code> tries to call a
+function from the parser, R memory’s is corrupted and R crashes. Of
+course you can fix this by recompiling the <code>rxode2</code> version but
+usually waiting for the binary that links was a better
+solution.</p>
+<p>Addresses of other items other than C functions can also change (like
+C/C++ structures), so direct access of these items is also something
+that can cause memory corruption.</p>
+<p>This ABI interface is what happens when you register a <code>C</code> callable in
+any package.</p>
+</div>
+<div id="the-solution-creating-an-api" class="section level1">
+<h1>The solution – creating an API</h1>
+<p>An <code>API</code> is the Application Programming Interface. It has been
+popularized by web <code>API</code>s and can be created for your R package with
+packages like <code>plumber</code>, however it can be any application programming
+interface.</p>
+<div id="step-one-determine-and-export-the-c-structures-and-c-functions-to-be-used" class="section level2">
+<h2>Step One – determine and export the C structures and C functions to be used</h2>
+<p>To create the <code>API</code> I needed to do two things:</p>
+<ul>
+<li><p>Figure out what functions I would be using (and therefore allow
+others to use) from <code>rxode2</code>.</p></li>
+<li><p>Figure out what structures that I would need to access (like the ODE
+states, the calculated values of the equations etc). This will also
+allow other packages to use these functions in their code as well.</p></li>
+</ul>
+<p>The first thing that will need to be done is to create thin accessing
+functions for the underlying <code>C</code> structures. Since we are using <code>R</code>
+which is really based on <code>C</code>, they will need to be C compatible. The
+<a href="https://github.com/nlmixr2/rxode2/blob/096e100cabe187833b884e9c183083f5fa71cbf0/src/rx2api.c#L77-L79">code
+below</a>
+shows how to access the calculated variables inside <code>rxode2</code>:</p>
+<pre class="c"><code>double *getIndLhs(rx_solving_options_ind* ind) {
+  return ind-&gt;lhs;
+}</code></pre>
+<p>The next step is to create a function that grabs the memory addresses
+of these thin C structure access functions as well as any other functions
+that you will expose in the <code>API</code>.</p>
+<p>You wrap all of these functions and place them into a R list structure
+using R’s function <code>R_MakeExternalPtrFn()</code>. An example function is
+below and is based on the <a href="https://github.com/nlmixr2/rxode2/blob/096e100cabe187833b884e9c183083f5fa71cbf0/src/init.c#L358-L533">actual <code>rxode2</code> API pointer
+function</a>:</p>
+<pre class="c"><code>SEXP _rxode2_rxode2Ptr(void) {
+  int pro = 0;  // Counter for the number of PROTECT calls
+  // Create an external pointer for _lotriLstToMat
+  SEXP rxode2rxRmvnSEXP = PROTECT(R_MakeExternalPtrFn((DL_FUNC)&amp;_rxode2_rxRmvnSEXP, R_NilValue, R_NilValue)); pro++;
+  // more code here
+  // Unprotect all protected objects
+  UNPROTECT(pro);
+
+  // Return the list of external pointers
+  return ret;
+}</code></pre>
+<p>After creating the <code>C</code> function, you register it as you a standard
+function R calls from <code>C</code>. In this case we have:</p>
+<pre class="c"><code>void R_init_rxode2(DllInfo *info){
+  R_CallMethodDef callMethods[]  = {
+    {&quot;_rxode2_rxode2Ptr&quot;, (DL_FUNC) &amp;_rxode2_rxode2Ptr, 0},
+    // more registered functions
+    {NULL, NULL, 0}
+  };
+  static const R_CMethodDef cMethods[] = {
+    {NULL, NULL, 0, NULL}
+  };
+
+  R_registerRoutines(info, cMethods, callMethods, NULL, NULL);
+  R_useDynamicSymbols(info, FALSE);
+}</code></pre>
+<p>and of course you need to register the functions to be seen in R,
+which needs the following line in the NAMESPACE:</p>
+<pre><code>useDynLib(rxode2, .registration=TRUE)</code></pre>
+<p>Which for <code>rxode2</code> comes from the roxygen2 line:</p>
+<pre class="r"><code>#&#39; @useDynLib rxode2, .registration=TRUE</code></pre>
+<p>Once all of that is done, you can create an exported R function that
+<a href="https://github.com/nlmixr2/rxode2/blob/096e100cabe187833b884e9c183083f5fa71cbf0/R/rxode-options.R#L19C1-L32C2">lists the function pointers</a>:</p>
+<pre class="r"><code>#&#39; Get the rxode2 function pointers
+#&#39;
+#&#39; This function is used to get the function pointers for rxode2.  This is
+#&#39; used to allow rxode2 to have binary linkage to nlmixr2est.
+#&#39;
+#&#39; @return a list of function pointers
+#&#39; @export
+#&#39; @author Matthew L. Fidler
+#&#39; @examples
+#&#39;
+#&#39; .rxode2ptrs()
+.rxode2ptrs &lt;- function() {
+  .Call(`_rxode2_rxode2Ptr`, PACKAGE = &quot;rxode2&quot;)
+}</code></pre>
+<p>Which (of course) works for <code>rxode2</code>:</p>
+<pre class="r"><code>rxode2::.rxode2ptrs()</code></pre>
+<pre><code>## $rxode2rxRmvnSEXP
+## &lt;pointer: 0x7b909e0c68f0&gt;
+## 
+## $rxode2rxParProgress
+## &lt;pointer: 0x7b909e2c49c0&gt;
+## 
+## $rxode2getRxSolve_
+## &lt;pointer: 0x7b909e2c5ba0&gt;
+## 
+## $rxode2indSolve
+## &lt;pointer: 0x7b909e2d0d20&gt;
+## 
+## $rxode2getTime
+## &lt;pointer: 0x7b909e2c5bd0&gt;
+## 
+## $rxode2isRstudio
+## &lt;pointer: 0x7b909e2dbc10&gt;
+## 
+## $rxode2iniSubjectE
+## &lt;pointer: 0x7b909e2cc7d0&gt;
+## 
+## $rxode2sortIds
+## &lt;pointer: 0x7b909e2eaf70&gt;
+## 
+## $getSolvingOptionsInd
+## &lt;pointer: 0x7b909e2d92c0&gt;
+## 
+## $rxode2getUpdateInis
+## &lt;pointer: 0x7b909e2d92d0&gt;
+## 
+## $rxode2_rxode2_rxModelVars_
+## &lt;pointer: 0x7b909e0c1590&gt;
+## 
+## $rxode2_par_solve
+## &lt;pointer: 0x7b909e2cfbe0&gt;
+## 
+## $rxode2rxGetId
+## &lt;pointer: 0x7b909e2c3f00&gt;
+## 
+## $rxode2getIndLambda
+## &lt;pointer: 0x7b909e2d9310&gt;
+## 
+## $rxode2getIndLambdaYj
+## &lt;pointer: 0x7b909e2d9320&gt;
+## 
+## $rxode2getIndLogitLow
+## &lt;pointer: 0x7b909e2d9330&gt;
+## 
+## $rxode2getIndLogitHi
+## &lt;pointer: 0x7b909e2d9340&gt;
+## 
+## $rxode2setIndParPtr
+## &lt;pointer: 0x7b909e2d9350&gt;
+## 
+## $rxode2getIndParPtr
+## &lt;pointer: 0x7b909e2d93b0&gt;
+## 
+## $rxode2getIndNallTimes
+## &lt;pointer: 0x7b909e2d9400&gt;
+## 
+## $rxode2setIndIdx
+## &lt;pointer: 0x7b909e2d9410&gt;
+## 
+## $rxode2getIndIx
+## &lt;pointer: 0x7b909e2d9420&gt;
+## 
+## $rxode2getIndEvid
+## &lt;pointer: 0x7b909e2d9450&gt;
+## 
+## $rxode2getIndLhs
+## &lt;pointer: 0x7b909e2d9480&gt;
+## 
+## $rxode2getIndNdoses
+## &lt;pointer: 0x7b909e2d9490&gt;
+## 
+## $rxode2getIndNevid2
+## &lt;pointer: 0x7b909e2d94a0&gt;
+## 
+## $rxode2setIndSolve
+## &lt;pointer: 0x7b909e2d94b0&gt;
+## 
+## $rxode2getIndSolve
+## &lt;pointer: 0x7b909e2d94c0&gt;
+## 
+## $rxode2getIndDv
+## &lt;pointer: 0x7b909e2d94d0&gt;
+## 
+## $rxode2getIndYj
+## &lt;pointer: 0x7b909e2d9510&gt;
+## 
+## $rxode2getIndLimit
+## &lt;pointer: 0x7b909e2d9520&gt;
+## 
+## $rxode2getIndCens
+## &lt;pointer: 0x7b909e2d9520&gt;
+## 
+## $rxode2getIndIdx
+## &lt;pointer: 0x7b909e2d9590&gt;
+## 
+## $rxode2getOpNeq
+## &lt;pointer: 0x7b909e2d95a0&gt;
+## 
+## $rxode2setOpNeq
+## &lt;pointer: 0x7b909e2d95b0&gt;
+## 
+## $rxode2hasOpBadSolve
+## &lt;pointer: 0x7b909e2d95c0&gt;
+## 
+## $rxode2getOpNlin
+## &lt;pointer: 0x7b909e2d95d0&gt;
+## 
+## $rxode2getOpCores
+## &lt;pointer: 0x7b909e2d95e0&gt;
+## 
+## $rxode2getOpNlhs
+## &lt;pointer: 0x7b909e2d95f0&gt;
+## 
+## $rxode2getOpStiff
+## &lt;pointer: 0x7b909e2d9600&gt;
+## 
+## $rxode2resetOpBadSolve
+## &lt;pointer: 0x7b909e2d9610&gt;
+## 
+## $rxode2getRxNsub
+## &lt;pointer: 0x7b909e2d9620&gt;
+## 
+## $rxode2hasRxLimit
+## &lt;pointer: 0x7b909e2d9630&gt;
+## 
+## $rxode2hasRxCens
+## &lt;pointer: 0x7b909e2d9640&gt;
+## 
+## $rxode2getRxNall
+## &lt;pointer: 0x7b909e2d9650&gt;
+## 
+## $rxode2getRxNobs
+## &lt;pointer: 0x7b909e2d9660&gt;
+## 
+## $rxode2getRxNobs2
+## &lt;pointer: 0x7b909e2d9670&gt;
+## 
+## $rxode2getOpIndSolve
+## &lt;pointer: 0x7b909e2d9680&gt;</code></pre>
+</div>
+<div id="step-2-create-the-user-interface-header" class="section level2">
+<h2>Step 2 create the user interface header</h2>
+<p>For me, I want the user interface functions to be the same as what I
+declared in the <code>API</code>, used in the second package (like <code>nlmixr2est</code>).</p>
+<p>To do this, I create a header called
+<a href="https://github.com/nlmixr2/rxode2/blob/37105c33944589fb6a07d0376d9b1c41ea7b61ab/inst/include/rxode2ptr.h"><code>rxode2ptr.h</code></a>
+in the <code>inst/include</code> directory.</p>
+<p>In that header, I declare the type definition of each of the functions
+that will be accessed in the other package as well as an external
+function pointer to the exported function:</p>
+<pre class="c"><code>typedef double *(*getIndLhs_t)(rx_solving_options_ind* ind);
+extern getIndLhs_t getIndLhs;</code></pre>
+<p>Then <a href="https://github.com/nlmixr2/rxode2/blob/37105c33944589fb6a07d0376d9b1c41ea7b61ab/inst/include/rxode2ptr.h#L167-L218">create a <code>static inline</code> function</a> (that is it is only defined
+when called) that takes the pointers from the <code>rxode2::.rxode2ptrs()</code>
+and assigns them the function pointer <code>getIndLhs</code>:</p>
+<pre class="c"><code>static inline SEXP iniRxodePtrs0(SEXP p) {
+  if (_rxode2_rxRmvnSEXP_ == NULL) { // only assign if not already assigned
+    // more code
+    getIndLhs = (getIndLhs_t) R_ExternalPtrAddrFn(VECTOR_ELT(p, 23));
+    // more code
+  }
+  return R_NilValue;
+}</code></pre>
+<p>Note that this function is keyed to the number of API elements exposed
+and assumes a specific order. Therefore, you should add elements
+sequentially and make sure <code>API</code> needs less elements than exported by
+<code>rxode2</code> (which is coded in as an exception in <code>nlmixr2est</code>)</p>
+<p>Finally we create code that defines the function pointers in a single
+file and creates an R expression that will register all the C pointer
+functions.</p>
+<pre class="c"><code>#define iniRxode2ptr                                    \
+  _rxode2_rxRmvnSEXP_t _rxode2_rxRmvnSEXP_ = NULL;      \
+  // more code
+getIndLhs_t getIndLhs = NULL;                         \
+SEXP iniRxodePtrs(SEXP ptr) {                         \
+  return iniRxodePtrs0(ptr);                          \
+}                                                     \</code></pre>
+<p>This is all that needs to be done for <code>rxode2</code> to expose the <code>API</code></p>
+</div>
+<div id="step-3-using-the-api-in-nlmixr2est" class="section level2">
+<h2>Step 3 using the API in <code>nlmixr2est</code></h2>
+<p>For most <code>C</code> (or <code>C++</code>) files if the header has an accommodation for
+C++, simply using:</p>
+<pre class="c"><code>#include &lt;rxode2ptr.h&gt;</code></pre>
+<p>Will register and expose the functions as needed.</p>
+<p>In one file, you will also need to declare the function pointers and
+function pointer with the line:</p>
+<pre class="c"><code>#include &lt;rxode2ptr.h&gt;
+// if in C++ wrap with extern &quot;C&quot; {}
+
+// if you want to change the name of the function you can use #define
+// iniRxodePtrs _your_fn_name
+
+iniRxode2ptr // do not include a ; since it will be flagged as a significant warning by CRAN</code></pre>
+<p>When registering the Calls inside of <code>nlmixr2est</code> you will need to add the ``</p>
+<pre class="c"><code>SEXP iniRxodePtrs(SEXP ptr);
+/// some code
+
+void R_init_nlmixr2est(DllInfo *info){
+  R_CallMethodDef callMethods[]  = {
+    {&quot;iniRxodePtrs&quot;, (DL_FUNC) &amp;iniRxodePtrs, 1},
+    // more registered functions
+    {NULL, NULL, 0}
+  };
+  static const R_CMethodDef cMethods[] = {
+    {NULL, NULL, 0, NULL}
+  };
+
+  R_registerRoutines(info, cMethods, callMethods, NULL, NULL);
+  R_useDynamicSymbols(info, FALSE);
+}</code></pre>
+<p>Last you need to register the API when loading <code>nlmixr2est</code>:</p>
+<pre class="r"><code># This will be saved when compiled
+# This way you will know if something has changed in the API
+rxode2.api &lt;- names(rxode2::.rxode2ptrs())
+
+.iniRxode2Ptr &lt;- function() {
+  .ptr &lt;- rxode2::.rxode2ptrs()
+  .nptr &lt;- names(.ptr)
+  # Cheks for API changes
+  if (length(rxode2.api) &gt; length(.nptr)) {
+    stop(&quot;nlmixr2est requires a newer version of rxode2 api, cannot run nlmixr2est\ntry `install.packages(\&quot;rxode2\&quot;)` to get a newer version of rxode2&quot;, call.=FALSE)
+  } else {
+    .nptr &lt;- .nptr[seq_along(rxode2.api)]
+    if (!identical(rxode2.api, .nptr)) {
+      .bad &lt;- TRUE
+      stop(&quot;nlmixr2est needs a different version of rxode2 api, cannot run nlmixr2est\ntry `install.packages(\&quot;rxode2\&quot;)` to get a newer version of rxode2, or update both packages&quot;, call.=FALSE)
+    }
+  }
+  .Call(`iniRxodePtrs`, .ptr,
+        PACKAGE = &quot;nlmixr2est&quot;)
+}
+
+.onLoad &lt;- function(libname, pkgname) {
+  # other code
+  .iniRxode2Ptr()
+}</code></pre>
+<p>This same procedure can be used to expose all the <code>API</code> functions to
+<code>R</code>.</p>
+</div>
+</div>
