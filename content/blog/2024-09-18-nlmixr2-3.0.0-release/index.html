@@ -160,8 +160,7 @@ maintain the split they requested. This is because there are <a href="https://cr
 dependencies</a>
 between all of the packages that were split off. This means that
 <code>rxode2</code> had to depend on exact versions of the packages
-<code>rxode2random</code>, <code>rxode2parse</code>, and <code>rxode2et</code> (in practicality is
-simply needed to be compiled against the versions listed). If this
+<code>rxode2random</code>, <code>rxode2parse</code>, and <code>rxode2et</code>. If this
 did not happen, you could crash R. A new sentence in their manual has
 been added since I started about this practice (or I simply don’t
 remember seeing it):</p>
@@ -182,7 +181,7 @@ that the packages more or less interact well with each other, which is
 actually a non-trivial task that makes <code>CRAN</code> just work, when compared
 to other repositories where this is not enforced.</p>
 <p>So, in short, “CRAN gives, CRAN takes away, blessed be the name of
-CRAN”.</p>
+CRAN” (to quote Job).</p>
 <p>Note that I have taken other steps to make this easier to maintain on
 my side and CRAN’s side too. For those who are interested I will talk
 about them in below in the <a href="#api"><code>ABI/ABI</code> section</a>.</p>
@@ -488,148 +487,148 @@ which needs the following line in the NAMESPACE:</p>
 <p>Which (of course) works for <code>rxode2</code>:</p>
 <pre class="r"><code>rxode2::.rxode2ptrs()</code></pre>
 <pre><code>## $rxode2rxRmvnSEXP
-## &lt;pointer: 0x75a21b8c68f0&gt;
+## &lt;pointer: 0x7367682c68f0&gt;
 ## 
 ## $rxode2rxParProgress
-## &lt;pointer: 0x75a21bac49c0&gt;
+## &lt;pointer: 0x7367684c49c0&gt;
 ## 
 ## $rxode2getRxSolve_
-## &lt;pointer: 0x75a21bac5ba0&gt;
+## &lt;pointer: 0x7367684c5ba0&gt;
 ## 
 ## $rxode2indSolve
-## &lt;pointer: 0x75a21bad0d20&gt;
+## &lt;pointer: 0x7367684d0d20&gt;
 ## 
 ## $rxode2getTime
-## &lt;pointer: 0x75a21bac5bd0&gt;
+## &lt;pointer: 0x7367684c5bd0&gt;
 ## 
 ## $rxode2isRstudio
-## &lt;pointer: 0x75a21badbc10&gt;
+## &lt;pointer: 0x7367684dbc10&gt;
 ## 
 ## $rxode2iniSubjectE
-## &lt;pointer: 0x75a21bacc7d0&gt;
+## &lt;pointer: 0x7367684cc7d0&gt;
 ## 
 ## $rxode2sortIds
-## &lt;pointer: 0x75a21baeaf70&gt;
+## &lt;pointer: 0x7367684eaf70&gt;
 ## 
 ## $getSolvingOptionsInd
-## &lt;pointer: 0x75a21bad92c0&gt;
+## &lt;pointer: 0x7367684d92c0&gt;
 ## 
 ## $rxode2getUpdateInis
-## &lt;pointer: 0x75a21bad92d0&gt;
+## &lt;pointer: 0x7367684d92d0&gt;
 ## 
 ## $rxode2_rxode2_rxModelVars_
-## &lt;pointer: 0x75a21b8c1590&gt;
+## &lt;pointer: 0x7367682c1590&gt;
 ## 
 ## $rxode2_par_solve
-## &lt;pointer: 0x75a21bacfbe0&gt;
+## &lt;pointer: 0x7367684cfbe0&gt;
 ## 
 ## $rxode2rxGetId
-## &lt;pointer: 0x75a21bac3f00&gt;
+## &lt;pointer: 0x7367684c3f00&gt;
 ## 
 ## $rxode2getIndLambda
-## &lt;pointer: 0x75a21bad9310&gt;
+## &lt;pointer: 0x7367684d9310&gt;
 ## 
 ## $rxode2getIndLambdaYj
-## &lt;pointer: 0x75a21bad9320&gt;
+## &lt;pointer: 0x7367684d9320&gt;
 ## 
 ## $rxode2getIndLogitLow
-## &lt;pointer: 0x75a21bad9330&gt;
+## &lt;pointer: 0x7367684d9330&gt;
 ## 
 ## $rxode2getIndLogitHi
-## &lt;pointer: 0x75a21bad9340&gt;
+## &lt;pointer: 0x7367684d9340&gt;
 ## 
 ## $rxode2setIndParPtr
-## &lt;pointer: 0x75a21bad9350&gt;
+## &lt;pointer: 0x7367684d9350&gt;
 ## 
 ## $rxode2getIndParPtr
-## &lt;pointer: 0x75a21bad93b0&gt;
+## &lt;pointer: 0x7367684d93b0&gt;
 ## 
 ## $rxode2getIndNallTimes
-## &lt;pointer: 0x75a21bad9400&gt;
+## &lt;pointer: 0x7367684d9400&gt;
 ## 
 ## $rxode2setIndIdx
-## &lt;pointer: 0x75a21bad9410&gt;
+## &lt;pointer: 0x7367684d9410&gt;
 ## 
 ## $rxode2getIndIx
-## &lt;pointer: 0x75a21bad9420&gt;
+## &lt;pointer: 0x7367684d9420&gt;
 ## 
 ## $rxode2getIndEvid
-## &lt;pointer: 0x75a21bad9450&gt;
+## &lt;pointer: 0x7367684d9450&gt;
 ## 
 ## $rxode2getIndLhs
-## &lt;pointer: 0x75a21bad9480&gt;
+## &lt;pointer: 0x7367684d9480&gt;
 ## 
 ## $rxode2getIndNdoses
-## &lt;pointer: 0x75a21bad9490&gt;
+## &lt;pointer: 0x7367684d9490&gt;
 ## 
 ## $rxode2getIndNevid2
-## &lt;pointer: 0x75a21bad94a0&gt;
+## &lt;pointer: 0x7367684d94a0&gt;
 ## 
 ## $rxode2setIndSolve
-## &lt;pointer: 0x75a21bad94b0&gt;
+## &lt;pointer: 0x7367684d94b0&gt;
 ## 
 ## $rxode2getIndSolve
-## &lt;pointer: 0x75a21bad94c0&gt;
+## &lt;pointer: 0x7367684d94c0&gt;
 ## 
 ## $rxode2getIndDv
-## &lt;pointer: 0x75a21bad94d0&gt;
+## &lt;pointer: 0x7367684d94d0&gt;
 ## 
 ## $rxode2getIndYj
-## &lt;pointer: 0x75a21bad9510&gt;
+## &lt;pointer: 0x7367684d9510&gt;
 ## 
 ## $rxode2getIndLimit
-## &lt;pointer: 0x75a21bad9520&gt;
+## &lt;pointer: 0x7367684d9520&gt;
 ## 
 ## $rxode2getIndCens
-## &lt;pointer: 0x75a21bad9520&gt;
+## &lt;pointer: 0x7367684d9520&gt;
 ## 
 ## $rxode2getIndIdx
-## &lt;pointer: 0x75a21bad9590&gt;
+## &lt;pointer: 0x7367684d9590&gt;
 ## 
 ## $rxode2getOpNeq
-## &lt;pointer: 0x75a21bad95a0&gt;
+## &lt;pointer: 0x7367684d95a0&gt;
 ## 
 ## $rxode2setOpNeq
-## &lt;pointer: 0x75a21bad95b0&gt;
+## &lt;pointer: 0x7367684d95b0&gt;
 ## 
 ## $rxode2hasOpBadSolve
-## &lt;pointer: 0x75a21bad95c0&gt;
+## &lt;pointer: 0x7367684d95c0&gt;
 ## 
 ## $rxode2getOpNlin
-## &lt;pointer: 0x75a21bad95d0&gt;
+## &lt;pointer: 0x7367684d95d0&gt;
 ## 
 ## $rxode2getOpCores
-## &lt;pointer: 0x75a21bad95e0&gt;
+## &lt;pointer: 0x7367684d95e0&gt;
 ## 
 ## $rxode2getOpNlhs
-## &lt;pointer: 0x75a21bad95f0&gt;
+## &lt;pointer: 0x7367684d95f0&gt;
 ## 
 ## $rxode2getOpStiff
-## &lt;pointer: 0x75a21bad9600&gt;
+## &lt;pointer: 0x7367684d9600&gt;
 ## 
 ## $rxode2resetOpBadSolve
-## &lt;pointer: 0x75a21bad9610&gt;
+## &lt;pointer: 0x7367684d9610&gt;
 ## 
 ## $rxode2getRxNsub
-## &lt;pointer: 0x75a21bad9620&gt;
+## &lt;pointer: 0x7367684d9620&gt;
 ## 
 ## $rxode2hasRxLimit
-## &lt;pointer: 0x75a21bad9630&gt;
+## &lt;pointer: 0x7367684d9630&gt;
 ## 
 ## $rxode2hasRxCens
-## &lt;pointer: 0x75a21bad9640&gt;
+## &lt;pointer: 0x7367684d9640&gt;
 ## 
 ## $rxode2getRxNall
-## &lt;pointer: 0x75a21bad9650&gt;
+## &lt;pointer: 0x7367684d9650&gt;
 ## 
 ## $rxode2getRxNobs
-## &lt;pointer: 0x75a21bad9660&gt;
+## &lt;pointer: 0x7367684d9660&gt;
 ## 
 ## $rxode2getRxNobs2
-## &lt;pointer: 0x75a21bad9670&gt;
+## &lt;pointer: 0x7367684d9670&gt;
 ## 
 ## $rxode2getOpIndSolve
-## &lt;pointer: 0x75a21bad9680&gt;</code></pre>
+## &lt;pointer: 0x7367684d9680&gt;</code></pre>
 </div>
 <div id="step-2-create-the-user-interface-header" class="section level4">
 <h4>Step 2 create the user interface header</h4>

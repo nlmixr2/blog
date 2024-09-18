@@ -124,8 +124,7 @@ maintain the split they requested.  This is because there are [binary
 dependencies](https://cran.r-project.org/doc/manuals/R-exts.html#Linking-to-native-routines-in-other-packages-1)
 between all of the packages that were split off.  This means that
 `rxode2` had to depend on exact versions of the packages
-`rxode2random`, `rxode2parse`, and `rxode2et` (in practicality is
-simply needed to be compiled against the versions listed).  If this
+`rxode2random`, `rxode2parse`, and `rxode2et`.  If this
 did not happen, you could crash R.  A new sentence in their manual has
 been added since I started about this practice (or I simply don't
 remember seeing it):
@@ -148,7 +147,7 @@ actually a non-trivial task that makes `CRAN` just work, when compared
 to other repositories where this is not enforced.
 
 So, in short, "CRAN gives, CRAN takes away, blessed be the name of
-CRAN".
+CRAN" (to quote Job).
 
 Note that I have taken other steps to make this easier to maintain on
 my side and CRAN's side too.  For those who are interested I will talk
