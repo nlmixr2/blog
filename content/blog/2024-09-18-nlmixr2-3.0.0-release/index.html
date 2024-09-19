@@ -167,7 +167,7 @@ of the packages <code>rxode2random</code>, <code>rxode2parse</code>, and <code>r
 this did not happen, you could crash R. A sentence in their manual
 talks about how fragile this is:</p>
 <blockquote>
-<p><strong>NB:</strong> is mechanism is fragile, as changes to the interface
+<p><strong>NB:</strong> this mechanism is fragile, as changes to the interface
 provided by <strong>packA</strong> have to be recognised by <strong>packB</strong>. The
 consequences of not doing so have included serious corruption to the
 memory pool of the R session. Either <strong>packB</strong> has to depend on the
@@ -490,13 +490,13 @@ which needs the following line in the NAMESPACE:</p>
 <p>Which (of course) works for <code>rxode2</code>:</p>
 <pre class="r"><code>rxode2::.rxode2ptrs()[1:3]</code></pre>
 <pre><code>## $rxode2rxRmvnSEXP
-## &lt;pointer: 0x71f4638c68f0&gt;
+## &lt;pointer: 0x735bc70c68f0&gt;
 ## 
 ## $rxode2rxParProgress
-## &lt;pointer: 0x71f463ac49c0&gt;
+## &lt;pointer: 0x735bc72c49c0&gt;
 ## 
 ## $rxode2getRxSolve_
-## &lt;pointer: 0x71f463ac5ba0&gt;</code></pre>
+## &lt;pointer: 0x735bc72c5ba0&gt;</code></pre>
 </div>
 <div id="step-2-create-the-user-interface-header" class="section level4">
 <h4>Step 2 create the user interface header</h4>

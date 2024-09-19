@@ -132,7 +132,7 @@ of the packages `rxode2random`, `rxode2parse`, and `rxode2et`.  If
 this did not happen, you could crash R.  A sentence in their manual
 talks about how fragile this is:
 
-> **NB:** is mechanism is fragile, as changes to the interface
+> **NB:** this mechanism is fragile, as changes to the interface
 > provided by **packA** have to be recognised by **packB**. The
 > consequences of not doing so have included serious corruption to the
 > memory pool of the R session. Either **packB** has to depend on the
