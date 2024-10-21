@@ -1,0 +1,144 @@
+---
+title: monolix2rx
+author: Matthew Fidler
+date: '2024-10-21'
+slug: []
+categories: [rxode2, monolix2rx, monolix, babelmixr2]
+tags: []
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rxode2)
+library(nlmixr2)
+```
+# monolix2rx has been released on CRAN.
+
+I am excited to announce that as part of the `nlmixr2` `3.0` series of
+releases, you now have a way to import a `Monolix` model into
+`rxode2`/`nlmixr2`.  This is similar to how you can import the output
+of `nonmem` into a `rxode2` model with `nonmem2rx`.
+
+## Worked example
+
+In this example, we will:
+
+1. Import a `Monolix` model to `rxode2`
+
+2. Check the validation of that import simply with `plot(rx)`
+
+3. Further convert the `rxode2` model to a `nlmixr2` fit object.
+
+
+```{r}
+
+library(monolix2rx)
+# First load in the model; in this case the theo model
+# This is modified from the Monolix demos by saving the model
+# file as a text file (hence you can access without model library).
+# Additionally some of the file paths were shortened so they could
+# be included with monolix2rx
+
+pkgTheo <- system.file("theo", package="monolix2rx")
+mlxtranFile <- file.path(pkgTheo, "theophylline_project.mlxtran")
+
+# Note in your own project, you would simply use the file path, you do
+# not have to use system.file .  This is only because you are loading
+# the monlix model from the `monolix2rx` package.
+rx <- monolix2rx(mlxtranFile)
+
+rx
+
+# Look at the validation
+plot(rx)
+
+# If you want this to be converted to a nlmixr2 fit you can also
+# convert it to a nlmixr2 model using babelmixr2
+
+library(babelmixr2)
+fit <- as.nlmixr2(rx)
+
+fit
+
+# This means you can do anything you could in `nlmixr2` with this
+# model, even add something like conditional weighted residuals:
+
+fit <- addCwres(fit)
+print(fit)
+```
+
+## Key notes in importing models to `rxode2` and `nlmixr2`
+
+There are a few things to note in any conversion from `monolix` to
+`rxode2` and `nlmixr2`:
+
+- The ODE solvers are different (there is no `lsoda` solver in
+  `monolix`). This means there are more expected differences in
+  solutions when comparing to importing `ADVAN13` from `NONMEM`.
+
+- `rxode2`/`nlmixr2` event tables and event handling are more closely
+  aligned to `NONMEM` event tables and event handling.  The Monolix
+  data-set definition is different and uses `ADM`, which means when
+  observe differences between the imported model and the solved model,
+  this can be due data conversion or model conversion.  You may want
+  to simulate yourself to see if you can reproduce other known items
+  in the model to validate the model translation is correct.
+
+- Models in Monolix may not import correctly if they are using the
+  Monolix model library without having `Monolix` [setup to read them
+  in](https://nlmixr2.github.io/monolix2rx/#translating-models-from-the-monolix-model-library).
+
+- When using/sharing/converting Monolix models, you will need to
+  include the model ODE model file, the data (for QCing, optional),
+  the mlxtran file, and the model fit output directory (reading
+  parameter estimates, and output, also optional but can be quite
+  helpful).
+
+## Notes about the new matrix specification in `lotri`
+
+As promised in the last release, I am quickly commenting on why we
+decided to split the lines to allow the following syntax for matrices:
+
+``` r
+a ~ 0.2
+b ~ c(0.01, 0.2)
+```
+
+As noted in the imported matrix with the covariance of the population
+parameters, these matrices can be quite large.  Because of their size,
+without splitting them in an easier to read format it is difficult to
+tell the covariance between `a` and `b` is `0.01`. When the matrices
+get large enough, not only do they use this format but they also call
+out what parameter is part of the covariance matrix
+
+In the theopylline example, we have one line of the covariance matrix
+listed as:
+
+```r
+a ~ c(omega_ka = -0.0001227, omega_V = -6.5914e-05, omega_Cl = -0.00041194,
+      a = 0.015333)
+```
+
+This covariance matrix now clearly shows that the covariance between
+`omega_V` and `a` is very small (`-6.59e-5`). To me, the legibility is
+worth the extra method of inputting covariance matrices in `lotri`.
+
+
+## What this means
+
+With the conversion of a `nlmixr2` fit to `NONMEM` and a `nlmixr2` fit
+to `Monolix`, this means that using `nlmixr2` you can convert between
+`NONMEM`, `nlmixr2` and `Monolix` making the `nlmixr2` a format and
+tool you can use to convert models and streamline processes of
+pharmacometric modeling.
+
+This is what we are talking about in our free tutorial at ACoP 2024
+"Using Past Models to Bridge to Open Models and Open Science using
+nlmixr2": Thursday, November 14, 2024 8:00 AM - 12:00 PM MST Location:
+Sonoran Sky Ballroom 1 - 4.  Bring your laptops with `babelmixr2`
+setup and you can follow along.
+
+Here we will talk about the conversion process, and some things you
+can do with the `nlmixr2` model format including optimal design in
+`PopED` (which we have a poster about at ACoP), and individualizing
+dosing using `posologyr`.
