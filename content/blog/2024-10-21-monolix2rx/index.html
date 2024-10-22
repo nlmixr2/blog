@@ -34,7 +34,7 @@ pkgTheo &lt;- system.file(&quot;theo&quot;, package=&quot;monolix2rx&quot;)
 mlxtranFile &lt;- file.path(pkgTheo, &quot;theophylline_project.mlxtran&quot;)
 
 # Note in your own project, you would simply use the file path, you do
-# not have to use system.file .  This is only because you are loading
+# not have to use `system.file()`.  This is only because you are loading
 # the monlix model from the `monolix2rx` package.
 rx &lt;- monolix2rx(mlxtranFile)</code></pre>
 <pre><code>## ℹ integrated model file &#39;oral1_1cpt_kaVCl.txt&#39; into mlxtran object</code></pre>
@@ -54,7 +54,7 @@ rx &lt;- monolix2rx(mlxtranFile)</code></pre>
 <pre><code>## ℹ solving pred problem</code></pre>
 <pre><code>## ℹ done</code></pre>
 <pre class="r"><code>rx</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────── 
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────────────────── 
 ##  ── Initalization: ──  
 ## Fixed Effects ($theta): 
 ##      ka_pop       V_pop      Cl_pop           a           b 
@@ -139,6 +139,7 @@ fit &lt;- as.nlmixr2(rx)</code></pre>
 <pre><code>## → optimizing duplicate expressions in EBE model...</code></pre>
 <pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre><code>## → compiling EBE model...</code></pre>
+<pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’</code></pre>
 <pre><code>## ✔ done</code></pre>
 <pre><code>## → Calculating residuals/tables</code></pre>
 <pre><code>## ✔ done</code></pre>
@@ -155,7 +156,7 @@ fit &lt;- as.nlmixr2(rx)</code></pre>
 ## ── Time (sec fit$time): ──
 ## 
 ##            setup optimize covariance table compress as.nlmixr2
-## elapsed 0.002043    5e-06      7e-06 0.065    0.007      2.492
+## elapsed 0.002383    5e-06      7e-06 0.058    0.007      2.483
 ## 
 ## ── Population Parameters (fit$parFixed or fit$parFixedDf): ──
 ## 
@@ -191,6 +192,37 @@ fit &lt;- as.nlmixr2(rx)</code></pre>
 # model, even add something like conditional weighted residuals:
 
 fit &lt;- addCwres(fit)</code></pre>
+<pre><code>## → loading into symengine environment...</code></pre>
+<pre><code>## → pruning branches (`if`/`else`) of full model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → calculate jacobian</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → calculate sensitivities</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → calculate ∂(f)/∂(η)</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → calculate ∂(R²)/∂(η)</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → finding duplicate expressions in inner model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in inner model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → finding duplicate expressions in EBE model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in EBE model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → compiling inner model...</code></pre>
+<pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → finding duplicate expressions in FD model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in FD model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → compiling EBE model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → compiling events FD model...</code></pre>
+<pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’</code></pre>
+<pre><code>## ✔ done</code></pre>
 <pre><code>## → Calculating residuals/tables</code></pre>
 <pre><code>## ✔ done</code></pre>
 <pre class="r"><code>print(fit)</code></pre>
@@ -206,7 +238,7 @@ fit &lt;- addCwres(fit)</code></pre>
 ## ── Time (sec $time): ──
 ## 
 ##            setup optimize covariance table compress as.nlmixr2
-## elapsed 0.002043    5e-06      7e-06 0.065    0.007      2.492
+## elapsed 0.002383    5e-06      7e-06 0.058    0.007      2.483
 ## 
 ## ── Population Parameters ($parFixed or $parFixedDf): ──
 ## 
@@ -250,14 +282,15 @@ fit &lt;- addCwres(fit)</code></pre>
 solutions when comparing to importing <code>ADVAN13</code> from <code>NONMEM</code>.</p></li>
 <li><p><code>rxode2</code>/<code>nlmixr2</code> event tables and event handling are more closely
 aligned to <code>NONMEM</code> event tables and event handling. The Monolix
-data-set definition is different and uses <code>ADM</code>, which means when
+data-set definition is different and uses <code>ADM</code>, which means when you
 observe differences between the imported model and the solved model,
 this can be due data conversion or model conversion. You may want
 to simulate yourself to see if you can reproduce other known items
 in the model to validate the model translation is correct.</p></li>
 <li><p>Models in Monolix may not import correctly if they are using the
-Monolix model library without having <code>Monolix</code> <a href="https://nlmixr2.github.io/monolix2rx/#translating-models-from-the-monolix-model-library">setup to read them
-in</a>.</p></li>
+Monolix model library without having <code>Monolix</code> setup to read them
+(<a href="https://nlmixr2.github.io/monolix2rx/#translating-models-from-the-monolix-model-library">details
+here</a>).</p></li>
 <li><p>When using/sharing/converting Monolix models, you will need to
 include the model ODE model file, the data (for QCing, optional),
 the mlxtran file, and the model fit output directory (reading
