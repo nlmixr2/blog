@@ -17,55 +17,8 @@ library(nlmixr2)
 I am excited to announce that as part of the `nlmixr2` `3.0` series of
 releases, you now have a way to import a `Monolix` model into
 `rxode2`/`nlmixr2`.  This is similar to how you can import the output
-of `nonmem` into a `rxode2` model with `nonmem2rx`.
-
-## Worked example
-
-In this example, we will:
-
-1. Import a `Monolix` model to `rxode2`
-
-2. Check the validation of that import simply with `plot(rx)`
-
-3. Further convert the `rxode2` model to a `nlmixr2` fit object.
-
-
-```{r}
-
-library(monolix2rx)
-# First load in the model; in this case the theo model
-# This is modified from the Monolix demos by saving the model
-# file as a text file (hence you can access without model library).
-# Additionally some of the file paths were shortened so they could
-# be included with monolix2rx
-
-pkgTheo <- system.file("theo", package="monolix2rx")
-mlxtranFile <- file.path(pkgTheo, "theophylline_project.mlxtran")
-
-# Note in your own project, you would simply use the file path, you do
-# not have to use `system.file()`.  This is only because you are loading
-# the monlix model from the `monolix2rx` package.
-rx <- monolix2rx(mlxtranFile)
-
-rx
-
-# Look at the validation
-plot(rx)
-
-# If you want this to be converted to a nlmixr2 fit you can also
-# convert it to a nlmixr2 model using babelmixr2
-
-library(babelmixr2)
-fit <- as.nlmixr2(rx)
-
-fit
-
-# This means you can do anything you could in `nlmixr2` with this
-# model, even add something like conditional weighted residuals:
-
-fit <- addCwres(fit)
-print(fit)
-```
+of `nonmem` into a `rxode2` model with `nonmem2rx`.  I am also in the
+process of releasing a bug-fix revision now.
 
 ## Key notes in importing models to `rxode2` and `nlmixr2`
 
@@ -143,3 +96,63 @@ Here we will talk about the conversion process, and some things you
 can do with the `nlmixr2` model format including optimal design in
 `PopED` (which we have a poster about at ACoP), and individualizing
 dosing using `posologyr`.
+
+## Other notes
+
+Note that other things in the `nlmixr2` ecosystem have been updated
+including `dparser` (so it will work on older R versions) and
+`nlmixr2est` (adding a new mu-referencing `mu`-4 that will work with
+`monolix2rx` and other similar models better).
+
+This more frequent release does not have the same impact of making the
+whole `nlmixr2` ecosystem unstable with the `3.0` release.  This means
+we will update more frequently since the impact on CRAN is smaller.
+
+
+## Worked example
+
+In this example, we will:
+
+1. Import a `Monolix` model to `rxode2`
+
+2. Check the validation of that import simply with `plot(rx)`
+
+3. Further convert the `rxode2` model to a `nlmixr2` fit object.
+
+
+```{r}
+
+library(monolix2rx)
+# First load in the model; in this case the theo model
+# This is modified from the Monolix demos by saving the model
+# file as a text file (hence you can access without model library).
+# Additionally some of the file paths were shortened so they could
+# be included with monolix2rx
+
+pkgTheo <- system.file("theo", package="monolix2rx")
+mlxtranFile <- file.path(pkgTheo, "theophylline_project.mlxtran")
+
+# Note in your own project, you would simply use the file path, you do
+# not have to use `system.file()`.  This is only because you are loading
+# the monlix model from the `monolix2rx` package.
+rx <- monolix2rx(mlxtranFile)
+
+rx
+
+# Look at the validation
+plot(rx)
+
+# If you want this to be converted to a nlmixr2 fit you can also
+# convert it to a nlmixr2 model using babelmixr2
+
+library(babelmixr2)
+fit <- as.nlmixr2(rx)
+
+fit
+
+# This means you can do anything you could in `nlmixr2` with this
+# model, even add something like conditional weighted residuals:
+
+fit <- addCwres(fit)
+print(fit)
+```

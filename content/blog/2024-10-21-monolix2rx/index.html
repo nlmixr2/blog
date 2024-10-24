@@ -14,7 +14,81 @@ tags: []
 <p>I am excited to announce that as part of the <code>nlmixr2</code> <code>3.0</code> series of
 releases, you now have a way to import a <code>Monolix</code> model into
 <code>rxode2</code>/<code>nlmixr2</code>. This is similar to how you can import the output
-of <code>nonmem</code> into a <code>rxode2</code> model with <code>nonmem2rx</code>.</p>
+of <code>nonmem</code> into a <code>rxode2</code> model with <code>nonmem2rx</code>. I am also in the
+process of releasing a bug-fix revision now.</p>
+<div id="key-notes-in-importing-models-to-rxode2-and-nlmixr2" class="section level2">
+<h2>Key notes in importing models to <code>rxode2</code> and <code>nlmixr2</code></h2>
+<p>There are a few things to note in any conversion from <code>monolix</code> to
+<code>rxode2</code> and <code>nlmixr2</code>:</p>
+<ul>
+<li><p>The ODE solvers are different (there is no <code>lsoda</code> solver in
+<code>monolix</code>). This means there are more expected differences in
+solutions when comparing to importing <code>ADVAN13</code> from <code>NONMEM</code>.</p></li>
+<li><p><code>rxode2</code>/<code>nlmixr2</code> event tables and event handling are more closely
+aligned to <code>NONMEM</code> event tables and event handling. The Monolix
+data-set definition is different and uses <code>ADM</code>, which means when you
+observe differences between the imported model and the solved model,
+this can be due data conversion or model conversion. You may want
+to simulate yourself to see if you can reproduce other known items
+in the model to validate the model translation is correct.</p></li>
+<li><p>Models in Monolix may not import correctly if they are using the
+Monolix model library without having <code>Monolix</code> setup to read them
+(<a href="https://nlmixr2.github.io/monolix2rx/#translating-models-from-the-monolix-model-library">details
+here</a>).</p></li>
+<li><p>When using/sharing/converting Monolix models, you will need to
+include the model ODE model file, the data (for QCing, optional),
+the mlxtran file, and the model fit output directory (reading
+parameter estimates, and output, also optional but can be quite
+helpful).</p></li>
+</ul>
+</div>
+<div id="notes-about-the-new-matrix-specification-in-lotri" class="section level2">
+<h2>Notes about the new matrix specification in <code>lotri</code></h2>
+<p>As promised in the last release, I am quickly commenting on why we
+decided to split the lines to allow the following syntax for matrices:</p>
+<pre class="r"><code>a ~ 0.2
+b ~ c(0.01, 0.2)</code></pre>
+<p>As noted in the imported matrix with the covariance of the population
+parameters, these matrices can be quite large. Because of their size,
+without splitting them in an easier to read format it is difficult to
+tell the covariance between <code>a</code> and <code>b</code> is <code>0.01</code>. When the matrices
+get large enough, not only do they use this format but they also call
+out what parameter is part of the covariance matrix</p>
+<p>In the theopylline example, we have one line of the covariance matrix
+listed as:</p>
+<pre class="r"><code>a ~ c(omega_ka = -0.0001227, omega_V = -6.5914e-05, omega_Cl = -0.00041194,
+      a = 0.015333)</code></pre>
+<p>This covariance matrix now clearly shows that the covariance between
+<code>omega_V</code> and <code>a</code> is very small (<code>-6.59e-5</code>). To me, the legibility is
+worth the extra method of inputting covariance matrices in <code>lotri</code>.</p>
+</div>
+<div id="what-this-means" class="section level2">
+<h2>What this means</h2>
+<p>With the conversion of a <code>nlmixr2</code> fit to <code>NONMEM</code> and a <code>nlmixr2</code> fit
+to <code>Monolix</code>, this means that using <code>nlmixr2</code> you can convert between
+<code>NONMEM</code>, <code>nlmixr2</code> and <code>Monolix</code> making the <code>nlmixr2</code> a format and
+tool you can use to convert models and streamline processes of
+pharmacometric modeling.</p>
+<p>This is what we are talking about in our free tutorial at ACoP 2024
+“Using Past Models to Bridge to Open Models and Open Science using
+nlmixr2”: Thursday, November 14, 2024 8:00 AM - 12:00 PM MST Location:
+Sonoran Sky Ballroom 1 - 4. Bring your laptops with <code>babelmixr2</code>
+setup and you can follow along.</p>
+<p>Here we will talk about the conversion process, and some things you
+can do with the <code>nlmixr2</code> model format including optimal design in
+<code>PopED</code> (which we have a poster about at ACoP), and individualizing
+dosing using <code>posologyr</code>.</p>
+</div>
+<div id="other-notes" class="section level2">
+<h2>Other notes</h2>
+<p>Note that other things in the <code>nlmixr2</code> ecosystem have been updated
+including <code>dparser</code> (so it will work on older R versions) and
+<code>nlmixr2est</code> (adding a new mu-referencing <code>mu</code>-4 that will work with
+<code>monolix2rx</code> and other similar models better).</p>
+<p>This more frequent release does not have the same impact of making the
+whole <code>nlmixr2</code> ecosystem unstable with the <code>3.0</code> release. This means
+we will update more frequently since the impact on CRAN is smaller.</p>
+</div>
 <div id="worked-example" class="section level2">
 <h2>Worked example</h2>
 <p>In this example, we will:</p>
@@ -54,7 +128,7 @@ rx &lt;- monolix2rx(mlxtranFile)</code></pre>
 <pre><code>## ℹ solving pred problem</code></pre>
 <pre><code>## ℹ done</code></pre>
 <pre class="r"><code>rx</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────────────────── 
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────── 
 ##  ── Initalization: ──  
 ## Fixed Effects ($theta): 
 ##      ka_pop       V_pop      Cl_pop           a           b 
@@ -156,7 +230,7 @@ fit &lt;- as.nlmixr2(rx)</code></pre>
 ## ── Time (sec fit$time): ──
 ## 
 ##            setup optimize covariance table compress as.nlmixr2
-## elapsed 0.002383    5e-06      7e-06 0.058    0.007      2.483
+## elapsed 0.002197    5e-06      7e-06 0.066    0.007       2.93
 ## 
 ## ── Population Parameters (fit$parFixed or fit$parFixedDf): ──
 ## 
@@ -238,7 +312,7 @@ fit &lt;- addCwres(fit)</code></pre>
 ## ── Time (sec $time): ──
 ## 
 ##            setup optimize covariance table compress as.nlmixr2
-## elapsed 0.002383    5e-06      7e-06 0.058    0.007      2.483
+## elapsed 0.002197    5e-06      7e-06 0.066    0.007       2.93
 ## 
 ## ── Population Parameters ($parFixed or $parFixedDf): ──
 ## 
@@ -271,68 +345,5 @@ fit &lt;- addCwres(fit)</code></pre>
 ## # ℹ 14 more variables: omega_Cl &lt;dbl&gt;, CONC &lt;dbl&gt;, depot &lt;dbl&gt;, central &lt;dbl&gt;,
 ## #   ka &lt;dbl&gt;, V &lt;dbl&gt;, Cl &lt;dbl&gt;, Cc &lt;dbl&gt;, tad &lt;dbl&gt;, dosenum &lt;dbl&gt;,
 ## #   WRES &lt;dbl&gt;, CPRED &lt;dbl&gt;, CRES &lt;dbl&gt;, CWRES &lt;dbl&gt;</code></pre>
-</div>
-<div id="key-notes-in-importing-models-to-rxode2-and-nlmixr2" class="section level2">
-<h2>Key notes in importing models to <code>rxode2</code> and <code>nlmixr2</code></h2>
-<p>There are a few things to note in any conversion from <code>monolix</code> to
-<code>rxode2</code> and <code>nlmixr2</code>:</p>
-<ul>
-<li><p>The ODE solvers are different (there is no <code>lsoda</code> solver in
-<code>monolix</code>). This means there are more expected differences in
-solutions when comparing to importing <code>ADVAN13</code> from <code>NONMEM</code>.</p></li>
-<li><p><code>rxode2</code>/<code>nlmixr2</code> event tables and event handling are more closely
-aligned to <code>NONMEM</code> event tables and event handling. The Monolix
-data-set definition is different and uses <code>ADM</code>, which means when you
-observe differences between the imported model and the solved model,
-this can be due data conversion or model conversion. You may want
-to simulate yourself to see if you can reproduce other known items
-in the model to validate the model translation is correct.</p></li>
-<li><p>Models in Monolix may not import correctly if they are using the
-Monolix model library without having <code>Monolix</code> setup to read them
-(<a href="https://nlmixr2.github.io/monolix2rx/#translating-models-from-the-monolix-model-library">details
-here</a>).</p></li>
-<li><p>When using/sharing/converting Monolix models, you will need to
-include the model ODE model file, the data (for QCing, optional),
-the mlxtran file, and the model fit output directory (reading
-parameter estimates, and output, also optional but can be quite
-helpful).</p></li>
-</ul>
-</div>
-<div id="notes-about-the-new-matrix-specification-in-lotri" class="section level2">
-<h2>Notes about the new matrix specification in <code>lotri</code></h2>
-<p>As promised in the last release, I am quickly commenting on why we
-decided to split the lines to allow the following syntax for matrices:</p>
-<pre class="r"><code>a ~ 0.2
-b ~ c(0.01, 0.2)</code></pre>
-<p>As noted in the imported matrix with the covariance of the population
-parameters, these matrices can be quite large. Because of their size,
-without splitting them in an easier to read format it is difficult to
-tell the covariance between <code>a</code> and <code>b</code> is <code>0.01</code>. When the matrices
-get large enough, not only do they use this format but they also call
-out what parameter is part of the covariance matrix</p>
-<p>In the theopylline example, we have one line of the covariance matrix
-listed as:</p>
-<pre class="r"><code>a ~ c(omega_ka = -0.0001227, omega_V = -6.5914e-05, omega_Cl = -0.00041194,
-      a = 0.015333)</code></pre>
-<p>This covariance matrix now clearly shows that the covariance between
-<code>omega_V</code> and <code>a</code> is very small (<code>-6.59e-5</code>). To me, the legibility is
-worth the extra method of inputting covariance matrices in <code>lotri</code>.</p>
-</div>
-<div id="what-this-means" class="section level2">
-<h2>What this means</h2>
-<p>With the conversion of a <code>nlmixr2</code> fit to <code>NONMEM</code> and a <code>nlmixr2</code> fit
-to <code>Monolix</code>, this means that using <code>nlmixr2</code> you can convert between
-<code>NONMEM</code>, <code>nlmixr2</code> and <code>Monolix</code> making the <code>nlmixr2</code> a format and
-tool you can use to convert models and streamline processes of
-pharmacometric modeling.</p>
-<p>This is what we are talking about in our free tutorial at ACoP 2024
-“Using Past Models to Bridge to Open Models and Open Science using
-nlmixr2”: Thursday, November 14, 2024 8:00 AM - 12:00 PM MST Location:
-Sonoran Sky Ballroom 1 - 4. Bring your laptops with <code>babelmixr2</code>
-setup and you can follow along.</p>
-<p>Here we will talk about the conversion process, and some things you
-can do with the <code>nlmixr2</code> model format including optimal design in
-<code>PopED</code> (which we have a poster about at ACoP), and individualizing
-dosing using <code>posologyr</code>.</p>
 </div>
 </div>
