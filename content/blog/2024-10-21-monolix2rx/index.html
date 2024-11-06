@@ -128,7 +128,7 @@ rx &lt;- monolix2rx(mlxtranFile)</code></pre>
 <pre><code>## ℹ solving pred problem</code></pre>
 <pre><code>## ℹ done</code></pre>
 <pre class="r"><code>rx</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────── 
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────────────────── 
 ##  ── Initalization: ──  
 ## Fixed Effects ($theta): 
 ##      ka_pop       V_pop      Cl_pop           a           b 
@@ -229,8 +229,8 @@ fit &lt;- as.nlmixr2(rx)</code></pre>
 ## 
 ## ── Time (sec fit$time): ──
 ## 
-##            setup optimize covariance table compress as.nlmixr2
-## elapsed 0.002197    5e-06      7e-06 0.066    0.007       2.93
+##           setup optimize covariance table compress as.nlmixr2
+## elapsed 0.00165    3e-06      5e-06 0.046    0.006      2.082
 ## 
 ## ── Population Parameters (fit$parFixed or fit$parFixedDf): ──
 ## 
@@ -311,8 +311,8 @@ fit &lt;- addCwres(fit)</code></pre>
 ## 
 ## ── Time (sec $time): ──
 ## 
-##            setup optimize covariance table compress as.nlmixr2
-## elapsed 0.002197    5e-06      7e-06 0.066    0.007       2.93
+##           setup optimize covariance table compress as.nlmixr2
+## elapsed 0.00165    3e-06      5e-06 0.046    0.006      2.082
 ## 
 ## ── Population Parameters ($parFixed or $parFixedDf): ──
 ## 
