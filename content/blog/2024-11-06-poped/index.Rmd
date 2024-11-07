@@ -13,7 +13,7 @@ library(rxode2)
 library(nlmixr2)
 library(babelmixr2)
 ```
-# New babelmixr2 integrates PopED integration
+# New babelmixr2 integrates PopED
 
 I am excited to announce today a new version of `babelmixr2` has been
 released that streamlines creating fast, efficient `PopED` databases
