@@ -1,7 +1,7 @@
 ---
 title: babelmixr2 and PopED
 author: Matthew Fidler
-date: '2024-10-21'
+date: '2024-11-05'
 slug: []
 categories: [rxode2, monolix2rx, monolix, nonmem2rx, nonmem, babelmixr2, PopED]
 tags: []
@@ -86,8 +86,9 @@ If you want stickers or to talk more about this you can:
 
 - Stop by our poster: [babelmixr2 and PopED: Quick Conversion of NONMEM, Monolix and nlmixr2/rxode2 Models to PopED Optimal Design Analysis](https://cdmcd.co/6vd4Z8)
 
-- Attend our or our nlmixr2 tutorial on Thursda (Using Past Models to Bridge to
-  Open Models and Open Science using nlmixr2) if you want to talk
+- Attend our or our nlmixr2 tutorial on Thursday ([Using Past Models to Bridge to
+  Open Models and Open Science using nlmixr2](https://blog.nlmixr2.org/courses/acop2024/
+)) if you want to talk
   about this a bit more.
 
 
