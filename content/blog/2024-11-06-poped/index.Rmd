@@ -74,7 +74,7 @@ With the `babelmixr2` package you can:
   ease of translating into a `PopED` database from the tools you use
   (like `nlmixr2`, `NONMEM` and `Monolix`).
 
-Many of the `PopED` models were restated as `babelmixr2`/`PopED`
+Many of the `PopED` models were recoded as `babelmixr2`/`PopED`
 models to show how to use the interface and are included in the
 `babelmixr2` package
 [here](https://github.com/nlmixr2/babelmixr2/tree/main/inst/poped)
