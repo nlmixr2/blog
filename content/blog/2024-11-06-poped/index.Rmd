@@ -13,7 +13,7 @@ library(rxode2)
 library(nlmixr2)
 library(babelmixr2)
 ```
-# New babelmixr2 integrates PopED
+# New babelmixr2 integrates PopED.
 
 I am excited to announce today a new version of `babelmixr2` has been
 released that streamlines creating fast, efficient `PopED` databases
@@ -28,7 +28,9 @@ With the `babelmixr2` package you can:
   [monolix2rx](https://nlmixr2.github.io/monolix2rx)
 
 - Use your existing `nlmixr2` model or create your own
-  `rxode2`/`nlmixr2` model to do optimal design.
+  `rxode2`/`nlmixr2` model
+
+With it in the `nlmixr2` format, you can then quickly do optimal design
 
 ## Key notes in using `PopED` using `babelmixr2`
 
@@ -50,12 +52,14 @@ With the `babelmixr2` package you can:
   results.
 
 - `babelmixr2` translates all error components to variances instead of
-  the standard deviations in the `nlmixr2`/`rxode2` model.
+  the standard deviations in the `nlmixr2`/`rxode2` model (required by
+  `PopED`)
 
 - When there are covariances in the `omega` specification, they will
   be identified as `D[#,#]` in the `PopED` output. To see what these
   numbers refer to it is helpful to see the name translations with
-  `$popedD`.
+  `model$popedD`. Note the `model` must be processed into a rxode2
+  object.
 
 - Depending on your options, `babelmixr2` may literally fix the model
   components, which means indexes may be different than you
@@ -64,32 +68,32 @@ With the `babelmixr2` package you can:
   `PopED`.
 
 - `babelmixr2` uses model times in creating `PopED` databases;
-  therefore models with modeling times in them cannot be used in this translation
+  therefore models with modeling times in them cannot be used in this
+  translation
 
 - `babelmixr2` does not yet support inter-occasion variability models.
 
 - At the current time, the `ODE` solution used is the [fastest of the
-  models tested](https://nlmixr2.github.io/babelmixr2/articles/PopED.html#comparing-method-to-the-speed-of-other-methods), but keep in mind this is problem dependent. To me,
-  the most important feature is not the speed of the model, but the
-  ease of translating into a `PopED` database from the tools you use
-  (like `nlmixr2`, `NONMEM` and `Monolix`).
+  models
+  tested](https://nlmixr2.github.io/babelmixr2/articles/PopED.html#comparing-method-to-the-speed-of-other-methods),
+  but keep in mind this is problem dependent. To me, the most
+  important feature is not the speed of the model, but the ease of
+  translating into a `PopED` database from the tools you use (like
+  `nlmixr2`, `NONMEM` and `Monolix`).
 
-Many of the `PopED` models were recoded as `babelmixr2`/`PopED`
-models to show how to use the interface and are included in the
-`babelmixr2` package
+Many of the `PopED` example models were recoded as
+`babelmixr2`/`PopED` models to show how to use the interface and are
+included in the `babelmixr2` package
 [here](https://github.com/nlmixr2/babelmixr2/tree/main/inst/poped)
-
 
 This blog is coming right before the ACoP 2024 conference.
 
-If you want stickers or to talk more about this you can:
+If you want stickers or to talk more about this or other `nlmixr2` features/request you can:
 
 - Stop by our poster: [babelmixr2 and PopED: Quick Conversion of NONMEM, Monolix and nlmixr2/rxode2 Models to PopED Optimal Design Analysis](https://cdmcd.co/6vd4Z8)
 
 - Attend our or our nlmixr2 tutorial on Thursday ([Using Past Models to Bridge to
   Open Models and Open Science using nlmixr2](https://blog.nlmixr2.org/courses/acop2024/
-)) if you want to talk
-  about this a bit more.
-
+))
 
 Thanks, see you in person soon if you are going to ACoP 2024!
