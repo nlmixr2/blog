@@ -45,7 +45,7 @@ With it in the `nlmixr2` format, you can then quickly do optimal design
 
 - `babelmixr2` loads models into memory and needs to keep track of
   which model is loaded. To help this you need to use
-  `babel.poped.database` in place of `create.poped.database` when
+  [`babel.poped.database`](https://nlmixr2.github.io/babelmixr2/reference/babel.poped.database.html) in place of `create.poped.database` when
   modifying babelmixr2 generated `PopED` databases.  If this isn't
   done, there is a chance that the model loaded will not be the
   expected loaded model and may either crash R or possibly give incorrect
@@ -64,7 +64,7 @@ With it in the `nlmixr2` format, you can then quickly do optimal design
 - Depending on your options, `babelmixr2` may literally fix the model
   components, which means indexes may be different than you
   expect. The best way to get the correct index is use the
-  `babelmixr2` function `babelBpopIdx()` which is useful for using
+  `babelmixr2` function [`babelBpopIdx()`](https://nlmixr2.github.io/babelmixr2/reference/babelBpopIdx.html) which is useful for using
   `PopED`.
 
 - `babelmixr2` uses model times in creating `PopED` databases;
@@ -85,6 +85,14 @@ Many of the `PopED` example models were recoded as
 `babelmixr2`/`PopED` models to show how to use the interface and are
 included in the `babelmixr2` package
 [here](https://github.com/nlmixr2/babelmixr2/tree/main/inst/poped)
+
+One last note, at the time of writing if you are on Windows and want
+to use parallel processing in `PopED` you need a special version of
+`PopED` which can be installed by:
+
+```r
+remotes::install_github("mattfidler/PopED", ref="babelmixr2-win")
+```
 
 This blog is coming right before the ACoP 2024 conference.
 

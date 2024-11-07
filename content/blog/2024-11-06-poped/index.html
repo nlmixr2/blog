@@ -36,7 +36,7 @@ you want (as <a href="https://nlmixr2.github.io/babelmixr2/articles/PopED.html">
 example</a>)</p></li>
 <li><p><code>babelmixr2</code> loads models into memory and needs to keep track of
 which model is loaded. To help this you need to use
-<code>babel.poped.database</code> in place of <code>create.poped.database</code> when
+<a href="https://nlmixr2.github.io/babelmixr2/reference/babel.poped.database.html"><code>babel.poped.database</code></a> in place of <code>create.poped.database</code> when
 modifying babelmixr2 generated <code>PopED</code> databases. If this isn’t
 done, there is a chance that the model loaded will not be the
 expected loaded model and may either crash R or possibly give incorrect
@@ -52,7 +52,7 @@ object.</p></li>
 <li><p>Depending on your options, <code>babelmixr2</code> may literally fix the model
 components, which means indexes may be different than you
 expect. The best way to get the correct index is use the
-<code>babelmixr2</code> function <code>babelBpopIdx()</code> which is useful for using
+<code>babelmixr2</code> function <a href="https://nlmixr2.github.io/babelmixr2/reference/babelBpopIdx.html"><code>babelBpopIdx()</code></a> which is useful for using
 <code>PopED</code>.</p></li>
 <li><p><code>babelmixr2</code> uses model times in creating <code>PopED</code> databases;
 therefore models with modeling times in them cannot be used in this
@@ -70,6 +70,10 @@ translating into a <code>PopED</code> database from the tools you use (like
 <code>babelmixr2</code>/<code>PopED</code> models to show how to use the interface and are
 included in the <code>babelmixr2</code> package
 <a href="https://github.com/nlmixr2/babelmixr2/tree/main/inst/poped">here</a></p>
+<p>One last note, at the time of writing if you are on Windows and want
+to use parallel processing in <code>PopED</code> you need a special version of
+<code>PopED</code> which can be installed by:</p>
+<pre class="r"><code>remotes::install_github(&quot;mattfidler/PopED&quot;, ref=&quot;babelmixr2-win&quot;)</code></pre>
 <p>This blog is coming right before the ACoP 2024 conference.</p>
 <p>If you want stickers or to talk more about this or other <code>nlmixr2</code> features/request you can:</p>
 <ul>
