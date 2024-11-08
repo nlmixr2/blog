@@ -2,7 +2,7 @@
 author: Matt Fidler, Bill Denney, Mirjam Trame, Theo Papathanasiou, Justin Wilkins
 categories:
 - workshop
-date: "2024-11-14"
+date: "2024-11-08"
 draft: false
 event: ACoP (2024)
 event_url: "https://www.go-acop.org/default.asp?id=46&keuze=meeting&mid=21"
