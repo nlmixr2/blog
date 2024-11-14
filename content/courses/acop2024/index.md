@@ -17,7 +17,7 @@ links:
 - icon: github
   icon_pack: fab
   name: code
-  url: https://github.com/nlmixr2/courses/tree/main/ACoP2024
+  url: https://github.com/nlmixr2/courses/raw/refs/heads/main/ACoP2024/ACoP2024.zip
 - icon: file-powerpoint
   icon_pack: fa
   name: powerpoint
