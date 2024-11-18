@@ -21,7 +21,7 @@ links:
 - icon: file-powerpoint
   icon_pack: fa
   name: powerpoint
-  url: https://github.com/nlmixr2/courses/raw/main/ACoP2024/Tutorial-nlmixr2_ACoP15.pptx
+  url: https://github.com/nlmixr2/courses/raw/main/ACoP2024/Tutorial-nlmixr2_ACoP15.pdf
 location: "Phoenix, Arizona USA"
 show_post_time: true
 subtitle: "ACoP 2024"
