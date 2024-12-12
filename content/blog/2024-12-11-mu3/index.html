@@ -1,0 +1,379 @@
+---
+title: nlmixr2/rxode2 mu referencing 3.0/4.0
+author: Matthew Fidler
+date: '2024-12-11'
+slug: []
+categories: [rxode2, nlmixr2]
+tags: [mu]
+---
+
+
+
+<p>This month, I will talk about about a new iteration of mu-referencing in nlmixr2, which I call mu3 and mu4.</p>
+<div id="what-is-mu-referencing-in-nlmixr2-review-from-another-post" class="section level2">
+<h2>What is mu referencing in nlmixr2 – Review from another post</h2>
+<p>From the <a href="https://blog.nlmixr2.org/blog/2024-07-08-mu2/">last blog post</a> about mu-referencing, I will give a brief
+overview of mu-referencing and what mu-2 referencing is and how it is
+expanded a bit more.</p>
+<p>mu-referencing is combining a fixed effect, random effect and possibly a covariate in the form:</p>
+<p><span class="math display">\[
+\theta_\mathsf{pop}+\eta_\mathsf{individual}+\theta_\mathsf{covariate}\times \mathsf{DataCovariate}
+\]</span></p>
+<p>Often they are placed in exponentials for these to be log-normally distributed like:</p>
+<p><span class="math display">\[
+\exp\left(\theta_\mathsf{pop}+\eta_\mathsf{individual}+\theta_\mathsf{covariate}\times \mathsf{DataCovariate}\right)
+\]</span></p>
+<p>In optimization routines like <code>saem</code>, these are switched out with a single parameter during optimization classically called <span class="math inline">\(\phi\)</span> in both NONMEM and Monolix.</p>
+<p>Once the best <span class="math inline">\(\phi\)</span> is found, then the population, individual and covariates can be found by linear regression of the individual <span class="math inline">\(\phi\)</span> values versus the information in the optimization.</p>
+<p>This linear model adds important stability and speed when determining these parameters in the mu-expression. (It also adds rules like they must not be time-varying for instance).</p>
+<p>In old versions of rxode2 and nlmixr2 the <span class="math inline">\(\mathsf{DataCovariate}\)</span> had to be in the dataset itself. This classic weight covariate adjustment:</p>
+<p><span class="math display">\[
+\exp\left(\theta_{Cl}+\eta_{Cl}\right)\times\left(\frac{WT}{70}\right)^{3/4}
+\]</span></p>
+<p>would have to written:</p>
+<p><span class="math display">\[
+\exp\left(\theta_{Cl}+\eta_{Cl} + 3/4\times\log\left(\frac{WT}{70}\right)\right)
+\]</span></p>
+<p>If you wanted to estimate the population parameter <span class="math inline">\(3/4\)</span> to see if it approaches the correct value you could with:</p>
+<p><span class="math display">\[
+\exp\left(\theta_{Cl}+\eta_{Cl} + \theta_{Cl, \textsf{cov}}\times\mathsf{DataCovariate}\right)
+\]</span></p>
+<p>Where</p>
+<p><span class="math display">\[
+\mathsf{DataCovariate} =\log\left(\frac{WT}{70}\right)
+\]</span></p>
+<p>This is easy enough to do and adds stabilization.</p>
+<p>However, with mu referencing 2.0 you can simply use an additive expression to setup mu-referencing:</p>
+<p><span class="math display">\[
+\exp\left(\theta_{Cl}+\eta_{Cl} + \frac{WT}{70}+\theta_{Cl, \textsf{cov}}\times\log\left(WT/70\right)\right)
+\]</span></p>
+<p>This is a bit more convenient than creating a column in the dataset that does this conversion and less user-based intervention to make <code>nlmixr2</code> use linear models when it can.</p>
+</div>
+<div id="checking-for-mu2-referencing" class="section level2">
+<h2>Checking for mu2 referencing</h2>
+<p>In <code>rxode2</code> / <code>nlmixr2</code> you can check to see if your version of nlmixr2 supports the mu2 referencing by evaluating the functional form:</p>
+<pre class="r"><code>one.compartment &lt;- function() {
+  ini({
+    tka &lt;- log(1.57); label(&quot;Ka&quot;)
+    tcl &lt;- log(2.72); label(&quot;Cl&quot;)
+    tv &lt;- log(31.5); label(&quot;V&quot;)
+    wt.cl &lt;- 0.75; label(&quot;WT on CL&quot;)
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+    add.sd &lt;- 0.7
+  })
+  # and a model block with the error specification and model specification
+  model({
+    ka &lt;- exp(tka + eta.ka)
+    cl &lt;- exp(tcl + eta.cl + wt.cl*log(WT/70))
+    v &lt;- exp(tv + eta.v)
+    d/dt(depot) &lt;- -ka * depot
+    d/dt(center) &lt;- ka * depot - cl / v * center
+    cp &lt;- center / v
+    cp ~ add(add.sd)
+  })
+}
+
+one &lt;- one.compartment()
+
+print(one)</code></pre>
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────── 
+##  ── Initalization: ──  
+## Fixed Effects ($theta): 
+##       tka       tcl        tv     wt.cl    add.sd 
+## 0.4510756 1.0006319 3.4499875 0.7500000 0.7000000 
+## 
+## Omega ($omega): 
+##        eta.ka eta.cl eta.v
+## eta.ka    0.6    0.0   0.0
+## eta.cl    0.0    0.3   0.0
+## eta.v     0.0    0.0   0.1
+## 
+## States ($state or $stateDf): 
+##   Compartment Number Compartment Name
+## 1                  1            depot
+## 2                  2           center
+##  ── μ-referencing ($muRefTable): ──  
+##   theta    eta level                         covariates
+## 1   tka eta.ka    id                                   
+## 2   tcl eta.cl    id log(0.0142857142857143 * WT)*wt.cl
+## 3    tv  eta.v    id                                   
+## 
+##  ── Model (Normalized Syntax): ── 
+## function() {
+##     ini({
+##         tka &lt;- 0.451075619360217
+##         label(&quot;Ka&quot;)
+##         tcl &lt;- 1.00063188030791
+##         label(&quot;Cl&quot;)
+##         tv &lt;- 3.44998754583159
+##         label(&quot;V&quot;)
+##         wt.cl &lt;- 0.75
+##         label(&quot;WT on CL&quot;)
+##         add.sd &lt;- c(0, 0.7)
+##         eta.ka ~ 0.6
+##         eta.cl ~ 0.3
+##         eta.v ~ 0.1
+##     })
+##     model({
+##         ka &lt;- exp(tka + eta.ka)
+##         cl &lt;- exp(tcl + eta.cl + wt.cl * log(WT/70))
+##         v &lt;- exp(tv + eta.v)
+##         d/dt(depot) &lt;- -ka * depot
+##         d/dt(center) &lt;- ka * depot - cl/v * center
+##         cp &lt;- center/v
+##         cp ~ add(add.sd)
+##     })
+## }</code></pre>
+<p>If the mu2 referencing is supported it will show the following mu reference table:</p>
+<pre><code>── μ-referencing ($muRefTable): ──
+  theta    eta level                         covariates
+1   tka eta.ka    id
+2   tcl eta.cl    id log(0.0142857142857143 * WT)*wt.cl
+3    tv  eta.v    id</code></pre>
+<p>Here it shows the transformation that is used when creating the transformed data used for mu-based covariate modeling. In this case, we have <code>log(0.0142857142857143 * WT)</code>. It is a bit different than what is written because it is prepossessed by <code>symengine</code> and looks at the derivative with respect to the covariate parameter <code>wt.cl</code>.</p>
+<p>In general, I am excited by this new feature in nlmixr2 because it adds a new level of simplicity to user-based models and more often detects mu-referenced code when it may not have been detected in the past.</p>
+</div>
+<div id="what-is-new-with-mu-referencing-3.0" class="section level2">
+<h2>What is new with mu referencing 3.0</h2>
+<p>The mu referencing 3.0 allows you to specify the mu referencing
+anywhere that makes sense in the model. For example:</p>
+<pre class="r"><code>one.compartment &lt;- function() {
+  ini({
+    tka &lt;- log(1.57); label(&quot;Ka&quot;)
+    tcl &lt;- log(2.72); label(&quot;Cl&quot;)
+    tv &lt;- log(31.5); label(&quot;V&quot;)
+    wt.cl &lt;- 0.75; label(&quot;WT on CL&quot;)
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+    add.sd &lt;- 0.7
+  })
+  # and a model block with the error specification and model specification
+  model({
+    wt70 &lt;- log(WT/70)
+    ka &lt;- exp(tka + eta.ka)
+    cl &lt;- exp(tcl + eta.cl + wt.cl*wt70)
+    v &lt;- exp(tv + eta.v)
+    d/dt(depot) &lt;- -ka * depot
+    d/dt(center) &lt;- ka * depot - cl / v * center
+    cp &lt;- center / v
+    cp ~ add(add.sd)
+  })
+}
+
+one &lt;- one.compartment()
+
+f &lt;- nlmixr2(one, theo_sd, &quot;saem&quot;, control=saemControl(print=0))</code></pre>
+<pre><code>## ℹ loading model to look for μ₃/μ₄ references</code></pre>
+<pre><code>## → loading into symengine environment...</code></pre>
+<pre><code>## → pruning branches (`if`/`else`) of saem model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## ℹ done</code></pre>
+<pre><code>## ℹ μ₃ item: wt70</code></pre>
+<pre><code>## → loading into symengine environment...</code></pre>
+<pre><code>## → pruning branches (`if`/`else`) of saem model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → finding duplicate expressions in saem model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in saem model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’</code></pre>
+<pre><code>## ℹ calculate uninformed etas</code></pre>
+<pre><code>## ℹ done</code></pre>
+<pre><code>## Calculating covariance matrix</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → loading into symengine environment...</code></pre>
+<pre><code>## → pruning branches (`if`/`else`) of saem model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → finding duplicate expressions in saem predOnly model 0...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → finding duplicate expressions in saem predOnly model 1...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in saem predOnly model 1...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → finding duplicate expressions in saem predOnly model 2...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’</code></pre>
+<pre><code>## → Calculating residuals/tables</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → compress origData in nlmixr2 object, save 7040</code></pre>
+<pre><code>## → compress phiM in nlmixr2 object, save 63104</code></pre>
+<pre><code>## → compress parHistData in nlmixr2 object, save 14840</code></pre>
+<pre><code>## → compress saem0 in nlmixr2 object, save 30440</code></pre>
+<pre class="r"><code>print(f)</code></pre>
+<pre><code>## ── nlmixr² SAEM OBJF by FOCEi approximation ──
+## 
+##  Gaussian/Laplacian Likelihoods: AIC() or $objf etc. 
+##  FOCEi CWRES &amp; Likelihoods: addCwres() 
+## 
+## ── Time (sec $time): ──
+## 
+##            setup covariance  saem table compress    other
+## elapsed 0.001598   0.011004 5.108 0.057    0.021 2.379398
+## 
+## ── Population Parameters ($parFixed or $parFixedDf): ──
+## 
+##        Parameter  Est.     SE %RSE Back-transformed(95%CI) BSV(CV%) Shrink(SD)%
+## tka           Ka 0.462  0.194   42       1.59 (1.09, 2.32)     70.8     0.188% 
+## tcl           Cl  1.02 0.0832 8.16       2.77 (2.35, 3.26)     26.5      5.12% 
+## tv             V  3.45 0.0447 1.29         31.7 (29, 34.6)     13.1      9.33% 
+## wt.cl   WT on CL 0.564   0.62  110     0.564 (-0.65, 1.78)                     
+## add.sd           0.696                               0.696                     
+##  
+##   Covariance Type ($covMethod): linFim
+##   No correlations in between subject variability (BSV) matrix
+##   Full BSV covariance ($omega) or correlation ($omegaR; diagonals=SDs) 
+##   Distribution stats (mean/skewness/kurtosis/p-value) available in $shrink 
+##   Information about run found ($runInfo):
+##    • μ₃ item: wt70 
+##   Censoring ($censInformation): No censoring
+## 
+## ── Fit Data (object is a modified tibble): ──
+## # A tibble: 132 × 21
+##   ID     TIME    DV  PRED    RES IPRED   IRES  IWRES eta.ka eta.cl   eta.v    cp
+##   &lt;fct&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;
+## 1 1      0     0.74  0     0.74   0     0.74   1.06  0.0875 -0.549 -0.0849  0   
+## 2 1      0.25  2.84  3.27 -0.430  3.84 -0.998 -1.43  0.0875 -0.549 -0.0849  3.84
+## 3 1      0.57  6.57  5.84  0.733  6.77 -0.202 -0.290 0.0875 -0.549 -0.0849  6.77
+## # ℹ 129 more rows
+## # ℹ 9 more variables: depot &lt;dbl&gt;, center &lt;dbl&gt;, wt70 &lt;dbl&gt;, ka &lt;dbl&gt;,
+## #   cl &lt;dbl&gt;, v &lt;dbl&gt;, tad &lt;dbl&gt;, dosenum &lt;dbl&gt;, WT &lt;dbl&gt;</code></pre>
+<p>Note that the run info shows that <code>nlmixr2</code> shows that the mu-3 referencing was detected:</p>
+<pre class="r"><code>f$runInfo</code></pre>
+<pre><code>## [1] &quot;μ₃ item: wt70&quot;</code></pre>
+<p>This is only calculated when running <code>nlmixr2</code></p>
+</div>
+<div id="what-is-new-with-mu-referencing-4.0" class="section level2">
+<h2>What is new with mu referencing 4.0</h2>
+<p>Another new feature in nlmixr2 is assigning string variables. Internally, rxode2 converts this to a numeric and the converts to a factor in the output.</p>
+<p>For nlmixr2, this means string expressions can be converted to mu referenced expressions too. Here is an example:</p>
+<pre class="r"><code>one.compartment &lt;- function() {
+  ini({
+    tka &lt;- log(1.57); label(&quot;Ka&quot;)
+    tcl &lt;- log(2.72); label(&quot;Cl&quot;)
+    tv &lt;- log(31.5); label(&quot;V&quot;)
+    wt.cl &lt;- 0.75; label(&quot;WT on CL&quot;)
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+    add.sd &lt;- 0.7
+  })
+  # and a model block with the error specification and model specification
+  model({
+    if (WT &lt; 70) {
+      wt70 &lt;- &quot;Less than 70&quot;
+    } else {
+      wt70 &lt;- &quot;Greater than 70&quot;
+    }
+    ka &lt;- exp(tka + eta.ka)
+    cl &lt;- exp(tcl + eta.cl + wt.cl*(wt70 == &quot;Less than 70&quot;))
+    v &lt;- exp(tv + eta.v)
+    d/dt(depot) &lt;- -ka * depot
+    d/dt(center) &lt;- ka * depot - cl / v * center
+    cp &lt;- center / v
+    cp ~ add(add.sd)
+  })
+}
+
+one &lt;- one.compartment()
+
+f &lt;- nlmixr2(one, theo_sd, &quot;saem&quot;, control=saemControl(print=0))</code></pre>
+<pre><code>## ℹ loading model to look for μ₃/μ₄ references</code></pre>
+<pre><code>## → loading into symengine environment...</code></pre>
+<pre><code>## → pruning branches (`if`/`else`) of saem model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## ℹ done</code></pre>
+<pre><code>## ℹ μ₄ item: (wt70 == &quot;Less than 70&quot;)</code></pre>
+<pre><code>## → loading into symengine environment...</code></pre>
+<pre><code>## → pruning branches (`if`/`else`) of saem model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → finding duplicate expressions in saem model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in saem model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’</code></pre>
+<pre><code>## ℹ calculate uninformed etas</code></pre>
+<pre><code>## ℹ done</code></pre>
+<pre><code>## Calculating covariance matrix</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → loading into symengine environment...</code></pre>
+<pre><code>## → pruning branches (`if`/`else`) of saem model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → finding duplicate expressions in saem predOnly model 0...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → finding duplicate expressions in saem predOnly model 1...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in saem predOnly model 1...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → finding duplicate expressions in saem predOnly model 2...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in saem predOnly model 2...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’</code></pre>
+<pre><code>## → Calculating residuals/tables</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → compress origData in nlmixr2 object, save 6600</code></pre>
+<pre><code>## → compress phiM in nlmixr2 object, save 61240</code></pre>
+<pre><code>## → compress parHistData in nlmixr2 object, save 14864</code></pre>
+<pre><code>## → compress saem0 in nlmixr2 object, save 30480</code></pre>
+<pre class="r"><code>print(f)</code></pre>
+<pre><code>## ── nlmixr² SAEM OBJF by FOCEi approximation ──
+## 
+##  Gaussian/Laplacian Likelihoods: AIC() or $objf etc. 
+##  FOCEi CWRES &amp; Likelihoods: addCwres() 
+## 
+## ── Time (sec $time): ──
+## 
+##            setup covariance  saem table compress    other
+## elapsed 0.001763   0.008005 5.204 0.058    0.019 1.907232
+## 
+## ── Population Parameters ($parFixed or $parFixedDf): ──
+## 
+##        Parameter    Est.    SE %RSE Back-transformed(95%CI) BSV(CV%)
+## tka           Ka   0.465 0.196   42       1.59 (1.09, 2.34)     71.4
+## tcl           Cl    1.05 0.108 10.3        2.84 (2.3, 3.51)     26.5
+## tv             V    3.46 0.046 1.33         31.7 (29, 34.7)     13.6
+## wt.cl   WT on CL -0.0911 0.166  182 -0.0911 (-0.416, 0.234)         
+## add.sd             0.697                              0.697         
+##        Shrink(SD)%
+## tka        0.174% 
+## tcl         4.75% 
+## tv          10.8% 
+## wt.cl             
+## add.sd            
+##  
+##   Covariance Type ($covMethod): linFim
+##   No correlations in between subject variability (BSV) matrix
+##   Full BSV covariance ($omega) or correlation ($omegaR; diagonals=SDs) 
+##   Distribution stats (mean/skewness/kurtosis/p-value) available in $shrink 
+##   Information about run found ($runInfo):
+##    • μ₄ item: (wt70 == &quot;Less than 70&quot;) 
+##   Censoring ($censInformation): No censoring
+## 
+## ── Fit Data (object is a modified tibble): ──
+## # A tibble: 132 × 21
+##   ID     TIME    DV  PRED    RES IPRED   IRES  IWRES eta.ka eta.cl   eta.v    cp
+##   &lt;fct&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;
+## 1 1      0     0.74  0     0.74   0     0.74   1.06  0.0689 -0.499 -0.0907  0   
+## 2 1      0.25  2.84  3.28 -0.436  3.81 -0.968 -1.39  0.0689 -0.499 -0.0907  3.81
+## 3 1      0.57  6.57  5.85  0.721  6.74 -0.170 -0.244 0.0689 -0.499 -0.0907  6.74
+## # ℹ 129 more rows
+## # ℹ 9 more variables: depot &lt;dbl&gt;, center &lt;dbl&gt;, wt70 &lt;fct&gt;, ka &lt;dbl&gt;,
+## #   cl &lt;dbl&gt;, v &lt;dbl&gt;, tad &lt;dbl&gt;, dosenum &lt;dbl&gt;, WT &lt;dbl&gt;</code></pre>
+<p>As above, you can see this mu-referenced expression by the <code>$runInfo</code>:</p>
+<pre class="r"><code>f$runInfo</code></pre>
+<pre><code>## [1] &quot;μ₄ item: (wt70 == \&quot;Less than 70\&quot;)&quot;</code></pre>
+<div id="why-the-pokemon-icon" class="section level3">
+<h3>Why the Pokemon icon?</h3>
+<p>Why the icon for mu2 referencing? Every time I hear mu2 I think of the ultimate genetically modified Pokemon <a href="https://goofy-legends-gl.fandom.com/wiki/Mewtwo">mewtwo</a> (which is a link to where the image comes from).</p>
+<p>Since this was expanded from the original article I used it as the
+base, even though now we are at mu3 and mu4 referencing.</p>
+<p>Sicne this article came out in December, the image was expanded with <a href="https://freepik.com/free-vector/christmas-background-with-circular-border-glowing-lights_386293523.htm#fromView=search&amp;page=1&amp;position=9&amp;uuid=f840e1ac-cd53-4aa1-8f69-c6d9e5d12d21">holiday lights</a>.</p>
+</div>
+</div>
