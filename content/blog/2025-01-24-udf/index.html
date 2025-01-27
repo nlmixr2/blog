@@ -22,28 +22,29 @@ models (though classic models still do not allow this).</p></li>
 <li><p>An example that allows linear models to be expanded and possibly
 even automatically initialized.</p></li>
 </ul>
-<p>If interested, this is what was added to <a href="https://github.com/braemd/pmxNODE/pull/1">allow neural network
+<p>If you are interested, this is what was added to <a href="https://github.com/braemd/pmxNODE/pull/1">allow neural network
 ODE</a> to be integrated
 directly in <code>rxode2</code>/<code>nlmixr2</code> using <code>pmxNODE</code>.</p>
-<p>As a note, the user interface is also flexible in generating specific
-code and is also used to allow <code>posologyr</code>
+<p>As a note, the user interface/function models are also flexible in
+generating specific code and is also used to allow <code>posologyr</code>
 (<a href="https://github.com/levenc/posologyr/pull/47">here</a>) to use
 <code>nlmixr2</code>/<code>rxode2</code> models directly for all of its clinical
-optimization routines it is also what is used to generate code for
-<code>NONMEM</code>, <code>Monolix</code> and <code>PopED</code> in <code>babelmixr2</code>.</p>
-<p>In addition to this flexibility there is still one undocumented method to
-register low level C functions from another package to extend
-<code>rxode2</code>/<code>nlmixr2</code> even further.</p>
+optimization routines. The model flexibility is also what is used to
+generate code for <code>NONMEM</code>, <code>Monolix</code> and <code>PopED</code> in <code>babelmixr2</code>.</p>
+<p>In addition to this flexibility there is still a undocumented method
+to register low level C functions from another package to extend
+<code>rxode2</code>/<code>nlmixr2</code> even further (which I will add in further
+documentation or a blog post).</p>
 <p>The collection of these features and programming interface is unique
 to <code>nlmixr2</code> and <code>rxode2</code> (compared to say <code>Monolix</code> or <code>NONMEM</code>). As
 in <code>posologyr</code> and <code>pmxNODE</code>, this allows the language to be expanded
 in so many interesting and unique ways.</p>
-<p>Also, this is a bit more focused on how to add code expansion to a
-package, though it can work with your own code too; for many users
-this is simply a way to add Neural Network ODEs (after loading
-<code>pmxNODE</code>) to <code>rxode2</code>/<code>nlmixr2</code>, linear model expansions or other
-similar sorts of functions.</p>
-<p>If are not interested in the details for using this directly in your
+<p>Also, this blog post is a bit more focused on how to add code
+expansion to a package, though it can work with your own code too; for
+many users this is simply a way to add Neural Network ODEs (after
+loading <code>pmxNODE</code>) to <code>rxode2</code>/<code>nlmixr2</code>, linear model expansions or
+other similar sorts of functions.</p>
+<p>If you are not interested in the details for using this directly in your
 code, but are interested in ramifications of generating code from the
 UI, checkout the following package websites (in order of UI integration):</p>
 <ul>
@@ -54,7 +55,7 @@ model (as well as <code>NONMEM</code>/<code>Monolix</code> model imports)</p></l
 level <code>rxode2</code> code and uses internal functions to personalize
 dosing regimens</p></li>
 <li><p><a href="https://github.com/braemd/pmxNODE"><code>pmxNODE</code></a> which allows nlmixr2
-to use neural network ODEs inside of <code>rxode2</code> and <code>nlmixr2</code> functions</p></li>
+to use neural network ODEs inside of <code>rxode2</code> and <code>nlmixr2</code> functions.</p></li>
 </ul>
 <p><code>rxode2</code>/<code>nlmixr2</code> Extensions don’t need to use the ui features to be
 useful generally. Some good projects that extend <code>nlmixr2</code> are (also
@@ -62,7 +63,7 @@ in order of appearance):</p>
 <ul>
 <li><p><a href="https://richardhooijmaijers.github.io/shinyMixR/articles/shinyMixR-vignette.html"><code>shinyMixR</code></a>
 for a shiny run manager for nlmixr2 models.</p></li>
-<li><p>[<code>PharmTeX</code>][<a href="https://pharmtex.org/" class="uri">https://pharmtex.org/</a>] for generating pdf reports from
+<li><p><a href="https://pharmtex.org/"><code>PharmTeX</code></a> for generating pdf reports from
 a nlmixr2 model.</p></li>
 <li><p><a href="https://nlmixr2.github.io/nlmixr2rpt/"><code>nlmixr2rpt</code></a> for generating
 Word/PowerPoint reports from a nlmixr2 model.</p></li>
@@ -71,11 +72,13 @@ shiny simulator for rxode2.</p></li>
 <li><p><a href="https://github.com/ucl-pharmacometrics/nlmixr2autoinit"><code>nlmixr2autoinit</code></a>
 automated initial estimates for Pop PK analyses using <code>nlmixr2</code></p></li>
 <li><p><a href="https://github.com/ucl-pharmacometrics/nlmixr2auto"><code>nlmixr2auto</code></a>
-automated model selection for Pop PK analyses using <code>nlmixr2</code></p></li>
+automated model selection for Pop PK analyses using <code>nlmixr2</code>.</p></li>
 </ul>
+<p>Let me know if I am missing any excellent tools!</p>
 <p>There are other tools that also translate to nlmixr2 (which I am not
-including at this time).</p>
-<p>Now, back to adding new user functions that generate code in nlmixr2.</p>
+including at this time, but perhaps later).</p>
+<p>Now, back to adding new user functions that generate code in
+<code>rxode2</code>/<code>nlmixr2</code>.</p>
 <div id="functions-to-insert-rxode2-code-into-the-current-model" class="section level2">
 <h2>Functions to insert <code>rxode2</code> code into the current model</h2>
 <p>The first example is allowing named arguments in a function that
@@ -529,7 +532,7 @@ linMod</code></pre>
 ##             iniDf = .iniDf)
 ##     }
 ## }
-## &lt;bytecode: 0x5cf3f55e0ba8&gt;
+## &lt;bytecode: 0x5f6f8337fca0&gt;
 ## &lt;environment: namespace:rxode2&gt;</code></pre>
 <pre class="r"><code># You can also print the s3 method that is used for this method
 
@@ -538,7 +541,7 @@ rxode2:::rxUdfUi.linMod</code></pre>
 ## {
 ##     eval(fun)
 ## }
-## &lt;bytecode: 0x5cf3f5664578&gt;
+## &lt;bytecode: 0x5f6f83403670&gt;
 ## &lt;environment: namespace:rxode2&gt;
 ## attr(,&quot;nargs&quot;)
 ## [1] 2</code></pre>
