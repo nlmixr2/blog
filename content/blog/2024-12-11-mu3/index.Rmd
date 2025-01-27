@@ -120,11 +120,22 @@ Here it shows the transformation that is used when creating the transformed data
 
 In general, I am excited by this new feature in nlmixr2 because it adds a new level of simplicity to user-based models and more often detects mu-referenced code when it may not have been detected in the past.
 
+## What is new with mu referencing 3.0 and 4.0
 
-## What is new with mu referencing 3.0
+The new mu3-referencing allows variables to be specified outside of the
+mu-referenced expression (though not estimating values).
 
-The mu referencing 3.0 allows you to specify the mu referencing
-anywhere that makes sense in the model.  For example:
+Another new feature in nlmixr2 is assigning string variables.
+Internally, rxode2 converts this to a numeric and the converts to a
+factor in the output.
+
+For nlmixr2, this means string expressions can be converted to mu
+referenced expressions too (which is mu4-referencing).
+
+
+### mu 3.0 example
+
+An example of the mu 3.0 referencing:
 
 ```{r mu3}
 one.compartment <- function() {
@@ -167,11 +178,9 @@ f$runInfo
 This is only calculated when running `nlmixr2`
 
 
-## What is new with mu referencing 4.0
+### mu 4.0 example
 
-Another new feature in nlmixr2 is assigning string variables.  Internally, rxode2 converts this to a numeric and the converts to a factor in the output.
-
-For nlmixr2, this means string expressions can be converted to mu referenced expressions too.  Here is an example:
+Here is an example:
 
 ```{r mu4}
 one.compartment <- function() {
@@ -215,10 +224,16 @@ As above, you can see this mu-referenced expression by the `$runInfo`:
 f$runInfo
 ```
 
+## Conclusion
+
+This new method of mu referencing allows more flexibility in model
+specification and more cases where the models will be stable (without
+the user having to make as many model changes)
+
 
 ### Why the Pokemon icon?
 
-Why the icon for mu2 referencing? Every time I hear mu2 I think of the ultimate genetically modified Pokemon [mewtwo](https://goofy-legends-gl.fandom.com/wiki/Mewtwo) (which is a link to where the image comes from).
+Originally with the mu2 referencing? Every time I hear mu2 I think of the ultimate genetically modified Pokemon [mewtwo](https://goofy-legends-gl.fandom.com/wiki/Mewtwo) (which is a link to where the image comes from).
 
 Since this was expanded from the original article I used it as the
 base, even though now we are at mu3 and mu4 referencing.

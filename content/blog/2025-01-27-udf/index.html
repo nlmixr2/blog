@@ -1,0 +1,502 @@
+---
+title: nlmixr2/rxode2 more user functions
+author: Matthew Fidler
+date: '2022-01-27'
+slug: []
+categories: [rxode2, nlmixr2]
+tags: []
+---
+
+
+
+<p>This month I will talk about a new type of user function. Previously,
+I spoke of <a href="https://blog.nlmixr2.org/blog/2024-05-08-user-functions/">user
+functions</a>
+that you can use in your code to extend the functionality of <code>rxode2</code>
+and <code>nlmixr2</code>.</p>
+<p>This month, I will talk about a new type of user function that extends
+<code>nlmixr2</code>/<code>rxode2</code> by allowing certain functions to generate code.</p>
+<p>I will go over examples that could be helpful to extend <code>rxode2</code> ui models:</p>
+<ul>
+<li><p>An example that allows arguments to be named inside of the <code>rxode2</code> ui
+models (though classic models still do not allow this)</p></li>
+<li><p>An example that allows linear models to be expanded and possibly
+even automatically initialized.</p></li>
+</ul>
+<p>If interested, this is what was added to <a href="https://github.com/braemd/pmxNODE/pull/1">allow neural network
+ODE</a> to be integrated
+directly in <code>rxode2</code>/<code>nlmixr2</code> using <code>pmxNODE</code>.</p>
+<p>As a note, the user interface is also flexible in generating specific
+code and is also used to allow <code>posologyr</code>
+(<a href="https://github.com/levenc/posologyr/pull/47">here</a>), and there is
+still one undocumented method to register low level C functions from
+another package to extend <code>rxode2</code>/<code>nlmixr2</code> even further.</p>
+<p>This is a feature that I think is unique to <code>nlmixr2</code> and <code>rxode2</code>
+(compared to say <code>Monolix</code> or <code>NONMEM</code>) that allows expansion in so
+many interesting and unique ways.</p>
+<div id="functions-to-insert-rxode2-code-into-the-current-model" class="section level2">
+<h2>Functions to insert <code>rxode2</code> code into the current model</h2>
+<pre class="r"><code>f &lt;- function() {
+  model({
+    a &lt;- rxpois(lambda=lam)
+  })
+}
+
+# Which will evaluate into a standard rxode2 function that does not
+# support named arguments (since it is translated to C)
+f()
+
+# Which is still true in the standard rxode2:
+
+try(rxode2({
+  a &lt;- rxpois(lambda=lam)
+}))</code></pre>
+<p>This is accomplished by a combination of two functions, which are
+highly commented:</p>
+<pre class="r"><code>rxUdfUi.rxpois &lt;- function(fun) {
+  # Fun is the language object (ie quoted R object) to be evaluated or
+  # changed in the code
+  .fun &lt;- fun
+  # Since the `rxpois` function is built into the rxode2 we need to
+  # have a function with a different conflicts.  In this case, I take
+  # the function name (fun[[1]]), and prepend a &quot;.&quot;, which follows
+  # `rxode2`&#39;s naming convention of un-exported functions.
+  #
+  # This next evaluation changes the expression function to .rxpois()
+  .fun[[1]] &lt;- str2lang(paste0(&quot;.&quot;, deparse1(fun[[1]])))
+  # Since this is still a R expression, you can then evaluate the
+  # function .rxpois to produce the proper code:
+  eval(.fun)
+}
+
+# The above s3 method can be registered in a package or you can use
+# the following code to register it in your session:
+rxode2::.s3register(&quot;rxode2::rxUdfUi&quot;, &quot;rxpois&quot;)
+
+# This is the function that changes the code as needed
+.rxpois &lt;- function(lambda) {
+  # The first part of this code tries to change the value into a
+  # character.  This handles cases like rxpois(lambda=lam),
+  # rxpois(lam), rxpois(&quot;lam&quot;).  It also tries to evaluate the
+  # argument supplied to lambda in case it comes from a different
+  # location.
+  .lam &lt;- as.character(substitute(lambda))
+  .tmp &lt;- try(force(lambda), silent=TRUE)
+  if (!inherits(.tmp, &quot;try-error&quot;)) {
+    if (is.character(.tmp)) {
+      .lam &lt;- lambda
+    }
+  }
+  # This part creates a list with the replacement text, in this case
+  # it woulb be rxpois(lam) where there is no equals included, as
+  # required by `rxode2`:
+  list(replace=paste0(&quot;rxpois(&quot;, .lam, &quot;)&quot;))
+}
+</code></pre>
+<p>In general the list that the function needs to return can have:</p>
+<ul>
+<li><p><code>$replace</code> – The text that will be replaced</p></li>
+<li><p><code>$before</code> – lines that will be placed in the model before the
+current function is found</p></li>
+<li><p><code>$after</code> – lines that are added in the model after the current
+function is found</p></li>
+<li><p><code>$iniDf</code> – the initial estimates <code>data.frame</code> for this problem.
+While calling this function, you can retrieve the initial conditions
+currently used parsing you can get the prior value with
+<code>rxUdfUiIniDf()</code> and then you can modify it inside the function and
+return the new <code>data.frame</code> in this list element. This allows you
+add/delete initial estimates from the model as well as modify the
+model lines themselves.</p></li>
+<li><p><code>$uiUseData</code> – when <code>TRUE</code>, this instructs <code>rxode2</code> and
+<code>nlmixr2est</code> to re-parse this function in the presence of data, this
+means a bit more function setup will need to be done.</p></li>
+<li><p><code>$uiUseMv</code> – when <code>TRUE</code> this instructs <code>rxode2</code> to re-parse the
+function after the initial model variables are calculated.</p></li>
+</ul>
+<p>In addition to the <code>rxUdfUiIniDf()</code> you can get information about the
+parser:</p>
+<ul>
+<li><p><code>rxUdfUiParsing()</code> returns if the rxode2 ui function is being parsed
+currently (this allows a function to be overloaded as a <code>udf</code> for
+calling from <code>rxode2</code> as well as a function for modifying the
+model).</p></li>
+<li><p><code>rxUdfUiNum()</code> during parsing the function you are calling (in the
+example above <code>rxpois()</code> can be called multiple times. This gives
+the number of the function in the model in order (the first would
+give <code>1</code> the second, <code>2</code>, etc). This can be used to create unique
+variables with functions like <code>rxIntToLetter()</code> or <code>rxIntToBase()</code>.</p></li>
+<li><p><code>rxUdfUiIniLhs()</code> which gives the left-handed side of the equation
+where the function is found. This is also a <code>R</code> language object.</p></li>
+<li><p><code>rxUdfUiIniMv()</code> gives the model variables for parsing (can be used
+in functions like <code>linCmt()</code>)</p></li>
+<li><p><code>rxUdfUiData()</code> which specifies the data that are being used to
+simulate, estimate, etc.</p></li>
+<li><p><code>rxUdfUiEst()</code> which gives the estimation/simulation method that is
+being used with the model. For example, with simulation it would be
+<code>rxSolve</code>.</p></li>
+</ul>
+<div id="using-model-variables-in-rxode2-ui-models" class="section level3">
+<h3>Using model variables in <code>rxode2</code> ui models</h3>
+<p>You can also take and change the model and take into consideration the
+<code>rxode2</code> model variables before the full <code>ui</code> has completed its
+parsing. These <code>rxode2</code> model variables has information that might
+change what variables you make or names of variables. For example it
+has what is on the left hand side of the equations (<code>$lhs</code>), what are
+the input parameters (<code>$params</code>) and what is the ODE states
+(<code>$state</code>)).</p>
+<p>If you are using this approach, you will likely need to do the
+following steps:</p>
+<ul>
+<li><p>When data are not being processed, you need to put the function in
+an <code>rxode2</code> acceptable form, no named arguments, no strings, and
+only numbers or variables in the output.</p></li>
+<li><p>The number of arguments of this output needs to be declared in the
+<code>S3</code> method by adding the attribute <code>"nargs"</code> to method. For
+example, the built in <code>testMod1()</code> ui modification function uses
+only one argument when parsed</p></li>
+</ul>
+<p>Below is a commented example of the model variables example:</p>
+<pre class="r"><code>testMod1 &lt;- function(val=1) {
+  # This converts the val to a character if it is somthing like testMod1(b)
+  .val &lt;- as.character(substitute(val))
+  .tmp &lt;- suppressWarnings(try(force(val), silent = TRUE))
+  if (!inherits(.tmp, &quot;try-error&quot;)) {
+    if (is.character(.tmp)) {
+      .val &lt;- val
+    }
+  }
+  # This does the UI parsing
+  if (rxUdfUiParsing()) {
+    # See if the model variables are available
+    .mv &lt;- rxUdfUiMv()
+    if (is.null(.mv)) {
+      # Put this in a rxode2 low level acceptible form, no complex
+      # expressions, no named arguments, something that is suitable
+      # for C.
+      #
+      # The `uiUsMv` tells the parser this needs to be reparsed when
+      # the model variables become avaialble during parsing.
+      return(list(replace=paste0(&quot;testMod1(&quot;, .val, &quot;)&quot;),
+                  uiUseMv=TRUE))
+    } else {
+      # Now that we have the model variables, we can then do something
+      # about this
+      .vars &lt;- .mv$params
+      if (length(.vars) &gt; 0) {
+        # If there is parameters available, this dummy function times
+        # the first input function by the value specified
+        return(list(replace=paste0(.vars[1], &quot;*&quot;, .val)))
+      } else {
+        # If the value isn&#39;t availble, simply replace the function
+        # with the value.
+        return(list(replace=.val))
+      }
+    }
+  }
+  stop(&quot;This function is only for use in rxode2 ui models&quot;,
+       call.=FALSE)
+
+}
+
+rxUdfUi.testMod1 &lt;- function(fun) {
+  eval(fun)
+}
+
+# To allow this to go to the next step, you need to declare how many
+# arguments this argument has, in this case 1.  Bu adding the
+# attribute &quot;nargs&quot;, rxode2 lower level parser knows how to handle
+# this new function.  This allows rxode2 to generate the model
+# variables and send it to the next step.
+
+attr(rxUdfUi.testMod1, &quot;nargs&quot;) &lt;- 1L
+
+# If you are in a package, you can use the rxoygen tag @export to
+# register this as a rxode2 model definition.
+#
+# If you are using this in your own script, you need to register the s3 function
+# One way to do this is:
+rxode2::.s3register(&quot;rxode2::rxUdfUi&quot;, &quot;testMod1&quot;)
+
+## These are some examples of this function in use:
+
+f &lt;- function() {
+  model({
+    a &lt;- b + testMod1(3)
+  })
+}
+
+f &lt;- f()
+
+print(f)</code></pre>
+<pre><code>##  ── rxode2-based Pred model ───────────────────────────────────────────────────────────────────── 
+##  ── Model (Normalized Syntax): ── 
+## function() {
+##     model({
+##         a &lt;- b + (b * 3)
+##     })
+## }</code></pre>
+<pre class="r"><code>f &lt;- function() {
+  model({
+    a &lt;- testMod1(c)
+  })
+}
+
+f &lt;- f()
+
+print(f)</code></pre>
+<pre><code>##  ── rxode2-based Pred model ───────────────────────────────────────────────────────────────────── 
+##  ── Model (Normalized Syntax): ── 
+## function() {
+##     model({
+##         a &lt;- (c * c)
+##     })
+## }</code></pre>
+<pre class="r"><code>f &lt;- function() {
+  model({
+    a &lt;- testMod1(1)
+  })
+}
+
+f &lt;- f()
+
+print(f)</code></pre>
+<pre><code>##  ── rxode2-based Pred model ───────────────────────────────────────────────────────────────────── 
+##  ── Model (Normalized Syntax): ── 
+## function() {
+##     model({
+##         a &lt;- 1
+##     })
+## }</code></pre>
+</div>
+<div id="using-data-for-rxode2-ui-modification-models" class="section level3">
+<h3>Using data for <code>rxode2</code> ui modification models</h3>
+<p>The same steps are needed to use the data in the model replacement;
+You can then use the data and the model to replace the values inside
+the model. A worked example <code>linMod()</code> is included
+that has the ability to use:</p>
+<ul>
+<li>model variables,</li>
+<li>put lines before or after the model,</li>
+<li>add initial conditions</li>
+<li>And use data in the initial estimates</li>
+</ul>
+<pre class="r"><code># You can print the code:
+linMod</code></pre>
+<pre><code>## function (variable, power, dv = &quot;dv&quot;, intercept = TRUE, type = c(&quot;replace&quot;, 
+##     &quot;before&quot;, &quot;after&quot;), num = NULL, iniDf = NULL, data = FALSE, 
+##     mv = FALSE) 
+## {
+##     .dv &lt;- as.character(substitute(dv))
+##     .tmp &lt;- suppressWarnings(try(force(dv), silent = TRUE))
+##     if (!inherits(.tmp, &quot;try-error&quot;)) {
+##         if (is.character(.tmp)) {
+##             .dv &lt;- dv
+##         }
+##     }
+##     .var &lt;- as.character(substitute(variable))
+##     .tmp &lt;- try(force(variable), silent = TRUE)
+##     .doExp3 &lt;- FALSE
+##     if (!inherits(.tmp, &quot;try-error&quot;)) {
+##         if (is.character(.tmp)) {
+##             .var &lt;- variable
+##         }
+##         else if (!inherits(.tmp, &quot;formula&quot;)) {
+##             .dv &lt;- as.character(substitute(dv))
+##             .tmp &lt;- suppressWarnings(try(force(dv), silent = TRUE))
+##             if (!inherits(.tmp, &quot;try-error&quot;)) {
+##                 if (is.character(.tmp)) {
+##                   .dv &lt;- dv
+##                 }
+##             }
+##         }
+##         else if (length(variable) == 2) {
+##             if (!identical(variable[[1]], quote(`~`))) {
+##                 stop(&quot;unexpected formula, needs to be the form ~x^3&quot;, 
+##                   call. = FALSE)
+##             }
+##             .doExp3 &lt;- TRUE
+##             .exp3 &lt;- variable[[2]]
+##         }
+##         else {
+##             if (length(variable) != 3) {
+##                 stop(&quot;unexpected formula, needs to be the form dv~x^3&quot;, 
+##                   call. = FALSE)
+##             }
+##             if (!identical(variable[[1]], quote(`~`))) {
+##                 stop(&quot;unexpected formula, needs to be the form dv~x^3&quot;, 
+##                   call. = FALSE)
+##             }
+##             .dv &lt;- as.character(variable[[2]])
+##             data &lt;- TRUE
+##             .exp3 &lt;- variable[[3]]
+##             .doExp3 &lt;- TRUE
+##         }
+##         if (.doExp3) {
+##             if (length(.exp3) == 1) {
+##                 .var &lt;- variable &lt;- as.character(.exp3)
+##                 power &lt;- 1
+##             }
+##             else if (length(.exp3) == 3) {
+##                 if (!identical(.exp3[[1]], quote(`^`))) {
+##                   stop(&quot;unexpected formula, needs to be the form dv~x^3&quot;, 
+##                     call. = FALSE)
+##                 }
+##                 if (!is.numeric(.exp3[[3]])) {
+##                   stop(&quot;unexpected formula, needs to be the form dv~x^3&quot;, 
+##                     call. = FALSE)
+##                 }
+##                 .var &lt;- variable &lt;- as.character(.exp3[[2]])
+##                 power &lt;- .exp3[[3]]
+##             }
+##             else {
+##                 stop(&quot;unexpected formula, needs to be the form dv~x^3&quot;, 
+##                   call. = FALSE)
+##             }
+##         }
+##     }
+##     checkmate::assertCharacter(.var, len = 1L, any.missing = FALSE, 
+##         pattern = &quot;^[.]*[a-zA-Z]+[a-zA-Z0-9._]*$&quot;, min.chars = 1L, 
+##         .var.name = &quot;variable&quot;)
+##     checkmate::assertCharacter(.dv, len = 1L, any.missing = FALSE, 
+##         pattern = &quot;^[.]*[a-zA-Z]+[a-zA-Z0-9._]*$&quot;, min.chars = 1L, 
+##         .var.name = &quot;dv&quot;)
+##     checkmate::assertLogical(intercept, len = 1L, any.missing = FALSE)
+##     checkmate::assertIntegerish(power, lower = ifelse(intercept, 
+##         0L, 1L), len = 1L)
+##     if (is.null(num)) {
+##         num &lt;- rxUdfUiNum()
+##     }
+##     checkmate::assertIntegerish(num, lower = 1, any.missing = FALSE, 
+##         len = 1)
+##     if (mv &amp;&amp; is.null(rxUdfUiMv())) {
+##         if (intercept) {
+##             return(list(replace = paste0(&quot;linModM(&quot;, .var, &quot;, &quot;, 
+##                 power, &quot;)&quot;), uiUseMv = TRUE))
+##         }
+##         else {
+##             return(list(replace = paste0(&quot;linModM0(&quot;, .var, &quot;, &quot;, 
+##                 power, &quot;)&quot;), uiUseMv = TRUE))
+##         }
+##     }
+##     if (data &amp;&amp; is.null(rxUdfUiData())) {
+##         if (intercept) {
+##             return(list(replace = paste0(&quot;linModD(&quot;, .var, &quot;, &quot;, 
+##                 power, &quot;, &quot;, .dv, &quot;)&quot;), uiUseData = TRUE))
+##         }
+##         else {
+##             return(list(replace = paste0(&quot;linModD0(&quot;, .var, &quot;, &quot;, 
+##                 power, &quot;,&quot;, .dv, &quot;)&quot;), uiUseData = TRUE))
+##         }
+##     }
+##     if (is.null(iniDf)) {
+##         iniDf &lt;- rxUdfUiIniDf()
+##     }
+##     assertIniDf(iniDf, null.ok = TRUE)
+##     type &lt;- match.arg(type)
+##     .mv &lt;- rxUdfUiMv()
+##     if (!is.null(.mv)) {
+##         .varsMv &lt;- c(.mv$lhs, .mv$params, .mv$state)
+##         .pre &lt;- paste0(.var, num, rxIntToLetter(seq_len(power + 
+##             ifelse(intercept, 1L, 0L)) - 1L))
+##         .pre &lt;- vapply(.pre, function(v) {
+##             if (v %in% .varsMv) {
+##                 paste0(&quot;rx.linMod.&quot;, v)
+##             }
+##             else {
+##                 v
+##             }
+##         }, character(1), USE.NAMES = FALSE)
+##     }
+##     else {
+##         .pre &lt;- paste0(&quot;rx.linMod.&quot;, .var, num, rxIntToLetter(seq_len(power + 
+##             ifelse(intercept, 1L, 0L)) - 1L))
+##     }
+##     if (!is.null(iniDf)) {
+##         .theta &lt;- iniDf[!is.na(iniDf$ntheta), , drop = FALSE]
+##         if (length(.theta$ntheta) &gt; 0L) {
+##             .maxTheta &lt;- max(.theta$ntheta)
+##             .theta1 &lt;- .theta[1, ]
+##         }
+##         else {
+##             .maxTheta &lt;- 0L
+##             .theta1 &lt;- .rxBlankIni(&quot;theta&quot;)
+##         }
+##         .theta1$lower &lt;- -Inf
+##         .theta1$upper &lt;- Inf
+##         .theta1$fix &lt;- FALSE
+##         .theta1$label &lt;- NA_character_
+##         .theta1$backTransform &lt;- NA_character_
+##         .theta1$condition &lt;- NA_character_
+##         .theta1$err &lt;- NA_character_
+##         .est &lt;- rep(0, length(.pre))
+##         if (data) {
+##             .dat &lt;- rxUdfUiData()
+##             .wdv &lt;- which(tolower(names(.dat)) == tolower(.dv))
+##             if (length(.wdv) == 0L) {
+##                 warning(.dv, &quot;not found in data, so no initial estimates will be set to zero&quot;)
+##             }
+##             else {
+##                 names(.dat)[.wdv] &lt;- .dv
+##                 .model &lt;- stats::lm(stats::as.formula(paste0(.dv, 
+##                   &quot; ~ stats::poly(&quot;, .var, &quot;,&quot;, power, &quot;)&quot;, ifelse(intercept, 
+##                     &quot;&quot;, &quot;+0&quot;))), data = rxUdfUiData())
+##                 .est &lt;- coef(.model)
+##             }
+##         }
+##         .cur &lt;- c(list(.theta), lapply(seq_along(.pre), function(i) {
+##             .cur &lt;- .theta1
+##             .cur$name &lt;- .pre[i]
+##             .cur$est &lt;- .est[i]
+##             .cur$ntheta &lt;- .maxTheta + i
+##             .cur
+##         }))
+##         .theta &lt;- do.call(rbind, .cur)
+##         .eta &lt;- iniDf[is.na(iniDf$neta), , drop = FALSE]
+##         .iniDf &lt;- rbind(.theta, .eta)
+##     }
+##     else {
+##         .iniDf &lt;- NULL
+##     }
+##     .linMod &lt;- paste(vapply(seq_along(.pre), function(i) {
+##         if (intercept) {
+##             if (i == 1) 
+##                 return(.pre[i])
+##             if (i == 2) 
+##                 return(paste0(.pre[i], &quot;*&quot;, .var))
+##             paste0(.pre[i], &quot;*&quot;, paste0(.var, &quot;^&quot;, i - 1L))
+##         }
+##         else {
+##             if (i == 1) 
+##                 return(paste0(.pre[i], &quot;*&quot;, .var))
+##             paste0(.pre[i], &quot;*&quot;, paste0(.var, &quot;^&quot;, i))
+##         }
+##     }, character(1)), collapse = &quot;+&quot;)
+##     if (type == &quot;replace&quot;) {
+##         list(replace = .linMod, iniDf = .iniDf)
+##     }
+##     else if (type == &quot;before&quot;) {
+##         .replace &lt;- paste0(&quot;rx.linMod.&quot;, .var, &quot;.f&quot;, num)
+##         list(before = paste0(.replace, &quot; &lt;- &quot;, .linMod), replace = .replace, 
+##             iniDf = .iniDf)
+##     }
+##     else if (type == &quot;after&quot;) {
+##         .replace &lt;- paste0(&quot;rx.linMod.&quot;, .var, &quot;.f&quot;, num)
+##         list(after = paste0(.replace, &quot; &lt;- &quot;, .linMod), replace = &quot;0&quot;, 
+##             iniDf = .iniDf)
+##     }
+## }
+## &lt;bytecode: 0x634f6494f078&gt;
+## &lt;environment: namespace:rxode2&gt;</code></pre>
+<pre class="r"><code># You can also print the s3 method that is used for this method
+
+rxode2:::rxUdfUi.linMod</code></pre>
+<pre><code>## function (fun) 
+## {
+##     eval(fun)
+## }
+## &lt;bytecode: 0x634f649d0ab8&gt;
+## &lt;environment: namespace:rxode2&gt;
+## attr(,&quot;nargs&quot;)
+## [1] 2</code></pre>
+</div>
+</div>
