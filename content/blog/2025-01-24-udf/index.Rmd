@@ -45,8 +45,9 @@ register low level C functions from another package to extend
 `rxode2`/`nlmixr2` even further.
 
 The collection of these features and programming interface is unique
-to `nlmixr2` and `rxode2` (compared to say `Monolix` or `NONMEM`) that
-can allow expansion in so many interesting and unique ways.
+to `nlmixr2` and `rxode2` (compared to say `Monolix` or `NONMEM`).  As
+in `posologyr` and `pmxNODE`, this allows the language to be expanded
+in so many interesting and unique ways.
 
 Also, this is a bit more focused on how to add code expansion to a
 package, though it can work with your own code too; for many users

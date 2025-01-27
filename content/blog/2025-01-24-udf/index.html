@@ -35,8 +35,9 @@ optimization routines it is also what is used to generate code for
 register low level C functions from another package to extend
 <code>rxode2</code>/<code>nlmixr2</code> even further.</p>
 <p>The collection of these features and programming interface is unique
-to <code>nlmixr2</code> and <code>rxode2</code> (compared to say <code>Monolix</code> or <code>NONMEM</code>) that
-can allow expansion in so many interesting and unique ways.</p>
+to <code>nlmixr2</code> and <code>rxode2</code> (compared to say <code>Monolix</code> or <code>NONMEM</code>). As
+in <code>posologyr</code> and <code>pmxNODE</code>, this allows the language to be expanded
+in so many interesting and unique ways.</p>
 <p>Also, this is a bit more focused on how to add code expansion to a
 package, though it can work with your own code too; for many users
 this is simply a way to add Neural Network ODEs (after loading
@@ -494,7 +495,7 @@ linMod</code></pre>
 ##             iniDf = .iniDf)
 ##     }
 ## }
-## &lt;bytecode: 0x56dc9fd223d8&gt;
+## &lt;bytecode: 0x5d9f6048e878&gt;
 ## &lt;environment: namespace:rxode2&gt;</code></pre>
 <pre class="r"><code># You can also print the s3 method that is used for this method
 
@@ -503,7 +504,7 @@ rxode2:::rxUdfUi.linMod</code></pre>
 ## {
 ##     eval(fun)
 ## }
-## &lt;bytecode: 0x56dc9fda3e88&gt;
+## &lt;bytecode: 0x5d9f605102b8&gt;
 ## &lt;environment: namespace:rxode2&gt;
 ## attr(,&quot;nargs&quot;)
 ## [1] 2</code></pre>
