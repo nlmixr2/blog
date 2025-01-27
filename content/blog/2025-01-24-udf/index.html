@@ -41,7 +41,41 @@ in so many interesting and unique ways.</p>
 <p>Also, this is a bit more focused on how to add code expansion to a
 package, though it can work with your own code too; for many users
 this is simply a way to add Neural Network ODEs (after loading
-<code>pmxNODE</code>) to <code>rxode2</code>/<code>nlmixr2</code> or other similar sorts of functions.</p>
+<code>pmxNODE</code>) to <code>rxode2</code>/<code>nlmixr2</code>, linear model expansions or other
+similar sorts of functions.</p>
+<p>If are not interested in the details for using this directly in your
+code, but are interested in ramifications of generating code from the
+UI, checkout the following package websites (in order of UI integration):</p>
+<ul>
+<li><p><a href="https://nlmixr2.github.io/babelmixr2/"><code>babelmixr2</code></a> generates
+<code>PopED</code>, <code>NONMEM</code>, and <code>Monolix</code> code from a <code>nlmixr2</code>/<code>rxode2</code>
+model (as well as <code>NONMEM</code>/<code>Monolix</code> model imports)</p></li>
+<li><p><a href="https://levenc.github.io/posologyr/"><code>posologyr</code></a> generates lower
+level <code>rxode2</code> code and uses internal functions to personalize
+dosing regimens</p></li>
+<li><p><a href="https://github.com/braemd/pmxNODE"><code>pmxNODE</code></a> which allows nlmixr2
+to use neural network ODEs inside of <code>rxode2</code> and <code>nlmixr2</code> functions</p></li>
+</ul>
+<p><code>rxode2</code>/<code>nlmixr2</code> Extensions don’t need to use the ui features to be
+useful generally. Some good projects that extend <code>nlmixr2</code> are (also
+in order of appearance):</p>
+<ul>
+<li><p><a href="https://richardhooijmaijers.github.io/shinyMixR/articles/shinyMixR-vignette.html"><code>shinyMixR</code></a>
+for a shiny run manager for nlmixr2 models.</p></li>
+<li><p>[<code>PharmTeX</code>][<a href="https://pharmtex.org/" class="uri">https://pharmtex.org/</a>] for generating pdf reports from
+a nlmixr2 model.</p></li>
+<li><p><a href="https://nlmixr2.github.io/nlmixr2rpt/"><code>nlmixr2rpt</code></a> for generating
+Word/PowerPoint reports from a nlmixr2 model.</p></li>
+<li><p><a href="https://ruminate.ubiquity.tools/"><code>ruminate</code></a> which includes a
+shiny simulator for rxode2.</p></li>
+<li><p><a href="https://github.com/ucl-pharmacometrics/nlmixr2autoinit"><code>nlmixr2autoinit</code></a>
+automated initial estimates for Pop PK analyses using <code>nlmixr2</code></p></li>
+<li><p><a href="https://github.com/ucl-pharmacometrics/nlmixr2auto"><code>nlmixr2auto</code></a>
+automated model selection for Pop PK analyses using <code>nlmixr2</code></p></li>
+</ul>
+<p>There are other tools that also translate to nlmixr2 (which I am not
+including at this time).</p>
+<p>Now, back to adding new user functions that generate code in nlmixr2.</p>
 <div id="functions-to-insert-rxode2-code-into-the-current-model" class="section level2">
 <h2>Functions to insert <code>rxode2</code> code into the current model</h2>
 <p>The first example is allowing named arguments in a function that
@@ -238,7 +272,7 @@ f &lt;- function() {
 f &lt;- f()
 
 print(f)</code></pre>
-<pre><code>##  ── rxode2-based Pred model ───────────────────────────────────────────────────────────────────── 
+<pre><code>##  ── rxode2-based Pred model ───────────────────────────────────────────────────── 
 ##  ── Model (Normalized Syntax): ── 
 ## function() {
 ##     model({
@@ -254,7 +288,7 @@ print(f)</code></pre>
 f &lt;- f()
 
 print(f)</code></pre>
-<pre><code>##  ── rxode2-based Pred model ───────────────────────────────────────────────────────────────────── 
+<pre><code>##  ── rxode2-based Pred model ───────────────────────────────────────────────────── 
 ##  ── Model (Normalized Syntax): ── 
 ## function() {
 ##     model({
@@ -270,7 +304,7 @@ print(f)</code></pre>
 f &lt;- f()
 
 print(f)</code></pre>
-<pre><code>##  ── rxode2-based Pred model ───────────────────────────────────────────────────────────────────── 
+<pre><code>##  ── rxode2-based Pred model ───────────────────────────────────────────────────── 
 ##  ── Model (Normalized Syntax): ── 
 ## function() {
 ##     model({
@@ -495,7 +529,7 @@ linMod</code></pre>
 ##             iniDf = .iniDf)
 ##     }
 ## }
-## &lt;bytecode: 0x5d9f6048e878&gt;
+## &lt;bytecode: 0x5cf3f55e0ba8&gt;
 ## &lt;environment: namespace:rxode2&gt;</code></pre>
 <pre class="r"><code># You can also print the s3 method that is used for this method
 
@@ -504,7 +538,7 @@ rxode2:::rxUdfUi.linMod</code></pre>
 ## {
 ##     eval(fun)
 ## }
-## &lt;bytecode: 0x5d9f605102b8&gt;
+## &lt;bytecode: 0x5cf3f5664578&gt;
 ## &lt;environment: namespace:rxode2&gt;
 ## attr(,&quot;nargs&quot;)
 ## [1] 2</code></pre>

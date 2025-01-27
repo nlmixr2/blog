@@ -52,8 +52,50 @@ in so many interesting and unique ways.
 Also, this is a bit more focused on how to add code expansion to a
 package, though it can work with your own code too; for many users
 this is simply a way to add Neural Network ODEs (after loading
-`pmxNODE`) to `rxode2`/`nlmixr2` or other similar sorts of functions.
+`pmxNODE`) to `rxode2`/`nlmixr2`, linear model expansions or other
+similar sorts of functions.
 
+If are not interested in the details for using this directly in your
+code, but are interested in ramifications of generating code from the
+UI, checkout the following package websites (in order of UI integration):
+
+- [`babelmixr2`](https://nlmixr2.github.io/babelmixr2/) generates
+  `PopED`, `NONMEM`, and `Monolix` code from a `nlmixr2`/`rxode2`
+  model (as well as `NONMEM`/`Monolix` model imports)
+
+- [`posologyr`](https://levenc.github.io/posologyr/) generates lower
+  level `rxode2` code and uses internal functions to personalize
+  dosing regimens
+
+- [`pmxNODE`](https://github.com/braemd/pmxNODE) which allows nlmixr2
+  to use neural network ODEs inside of `rxode2` and `nlmixr2` functions
+
+`rxode2`/`nlmixr2` Extensions don't need to use the ui features to be
+useful generally. Some good projects that extend `nlmixr2` are (also
+in order of appearance):
+
+- [`shinyMixR`](https://richardhooijmaijers.github.io/shinyMixR/articles/shinyMixR-vignette.html)
+  for a shiny run manager for nlmixr2 models.
+
+- [`PharmTeX`][https://pharmtex.org/] for generating pdf reports from
+  a nlmixr2 model.
+
+- [`nlmixr2rpt`](https://nlmixr2.github.io/nlmixr2rpt/) for generating
+  Word/PowerPoint reports from a nlmixr2 model.
+
+- [`ruminate`](https://ruminate.ubiquity.tools/) which includes a
+  shiny simulator for rxode2.
+
+- [`nlmixr2autoinit`](https://github.com/ucl-pharmacometrics/nlmixr2autoinit)
+  automated initial estimates for Pop PK analyses using `nlmixr2`
+
+- [`nlmixr2auto`](https://github.com/ucl-pharmacometrics/nlmixr2auto)
+  automated model selection for Pop PK analyses using `nlmixr2`
+
+There are other tools that also translate to nlmixr2 (which I am not
+including at this time).
+
+Now, back to adding new user functions that generate code in nlmixr2.
 
 ## Functions to insert `rxode2` code into the current model
 
