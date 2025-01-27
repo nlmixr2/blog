@@ -1,7 +1,7 @@
 ---
-title: nlmixr2/rxode2 more user functions
+title: nlmixr2/rxode2 user functions to modify code
 author: Matthew Fidler
-date: '2022-01-27'
+date: '2025-01-24'
 slug: []
 categories: [rxode2, nlmixr2]
 tags: []
@@ -19,13 +19,12 @@ functions](https://blog.nlmixr2.org/blog/2024-05-08-user-functions/)
 that you can use in your code to extend the functionality of `rxode2`
 and `nlmixr2`.
 
-This month, I will talk about a new type of user function that extends
-`nlmixr2`/`rxode2` by allowing certain functions to generate code.
+Recently we released the ability for certain functions to generate code.
 
 I will go over examples that could be helpful to extend `rxode2` ui models:
 
 - An example that allows arguments to be named inside of the `rxode2` ui
-  models (though classic models still do not allow this)
+  models (though classic models still do not allow this).
 
 - An example that allows linear models to be expanded and possibly
   even automatically initialized.
@@ -44,8 +43,16 @@ This is a feature that I think is unique to `nlmixr2` and `rxode2`
 (compared to say `Monolix` or `NONMEM`) that allows expansion in so
 many interesting and unique ways.
 
+This is a bit more focused on how to add this to a package, though it
+can work with your own code too; for many users this is simply a way
+to add Neural Network ODEs (after loading `pmxNODE`) to
+`rxode2`/`nlmixr2` or other similar sorts of functions.
+
 
 ## Functions to insert `rxode2` code into the current model
+
+The first example is allowing named arguments in a function that
+translates itself into a non-named form:
 
 ```r
 f <- function() {

@@ -1,7 +1,7 @@
 ---
-title: nlmixr2/rxode2 more user functions
+title: nlmixr2/rxode2 user functions to modify code
 author: Matthew Fidler
-date: '2022-01-27'
+date: '2025-01-24'
 slug: []
 categories: [rxode2, nlmixr2]
 tags: []
@@ -14,12 +14,11 @@ I spoke of <a href="https://blog.nlmixr2.org/blog/2024-05-08-user-functions/">us
 functions</a>
 that you can use in your code to extend the functionality of <code>rxode2</code>
 and <code>nlmixr2</code>.</p>
-<p>This month, I will talk about a new type of user function that extends
-<code>nlmixr2</code>/<code>rxode2</code> by allowing certain functions to generate code.</p>
+<p>Recently we released the ability for certain functions to generate code.</p>
 <p>I will go over examples that could be helpful to extend <code>rxode2</code> ui models:</p>
 <ul>
 <li><p>An example that allows arguments to be named inside of the <code>rxode2</code> ui
-models (though classic models still do not allow this)</p></li>
+models (though classic models still do not allow this).</p></li>
 <li><p>An example that allows linear models to be expanded and possibly
 even automatically initialized.</p></li>
 </ul>
@@ -34,8 +33,14 @@ another package to extend <code>rxode2</code>/<code>nlmixr2</code> even further.
 <p>This is a feature that I think is unique to <code>nlmixr2</code> and <code>rxode2</code>
 (compared to say <code>Monolix</code> or <code>NONMEM</code>) that allows expansion in so
 many interesting and unique ways.</p>
+<p>This is a bit more focused on how to add this to a package, though it
+can work with your own code too; for many users this is simply a way
+to add Neural Network ODEs (after loading <code>pmxNODE</code>) to
+<code>rxode2</code>/<code>nlmixr2</code> or other similar sorts of functions.</p>
 <div id="functions-to-insert-rxode2-code-into-the-current-model" class="section level2">
 <h2>Functions to insert <code>rxode2</code> code into the current model</h2>
+<p>The first example is allowing named arguments in a function that
+translates itself into a non-named form:</p>
 <pre class="r"><code>f &lt;- function() {
   model({
     a &lt;- rxpois(lambda=lam)
@@ -485,7 +490,7 @@ linMod</code></pre>
 ##             iniDf = .iniDf)
 ##     }
 ## }
-## &lt;bytecode: 0x634f6494f078&gt;
+## &lt;bytecode: 0x5c7c77dbbe98&gt;
 ## &lt;environment: namespace:rxode2&gt;</code></pre>
 <pre class="r"><code># You can also print the s3 method that is used for this method
 
@@ -494,7 +499,7 @@ rxode2:::rxUdfUi.linMod</code></pre>
 ## {
 ##     eval(fun)
 ## }
-## &lt;bytecode: 0x634f649d0ab8&gt;
+## &lt;bytecode: 0x5c7c77e3d8d8&gt;
 ## &lt;environment: namespace:rxode2&gt;
 ## attr(,&quot;nargs&quot;)
 ## [1] 2</code></pre>
