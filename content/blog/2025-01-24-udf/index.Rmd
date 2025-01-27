@@ -35,18 +35,23 @@ directly in `rxode2`/`nlmixr2` using `pmxNODE`.
 
 As a note, the user interface is also flexible in generating specific
 code and is also used to allow `posologyr`
-([here](https://github.com/levenc/posologyr/pull/47)), and there is
-still one undocumented method to register low level C functions from
-another package to extend `rxode2`/`nlmixr2` even further.
+([here](https://github.com/levenc/posologyr/pull/47)) to use
+`nlmixr2`/`rxode2` models directly for all of its clinical
+optimization routines it is also what is used to generate code for
+`NONMEM`, `Monolix` and `PopED` in `babelmixr2`.
 
-This is a feature that I think is unique to `nlmixr2` and `rxode2`
-(compared to say `Monolix` or `NONMEM`) that allows expansion in so
-many interesting and unique ways.
+In addition to this flexibility there is still one undocumented method to
+register low level C functions from another package to extend
+`rxode2`/`nlmixr2` even further.
 
-This is a bit more focused on how to add this to a package, though it
-can work with your own code too; for many users this is simply a way
-to add Neural Network ODEs (after loading `pmxNODE`) to
-`rxode2`/`nlmixr2` or other similar sorts of functions.
+The collection of these features and programming interface is unique
+to `nlmixr2` and `rxode2` (compared to say `Monolix` or `NONMEM`) that
+can allow expansion in so many interesting and unique ways.
+
+Also, this is a bit more focused on how to add code expansion to a
+package, though it can work with your own code too; for many users
+this is simply a way to add Neural Network ODEs (after loading
+`pmxNODE`) to `rxode2`/`nlmixr2` or other similar sorts of functions.
 
 
 ## Functions to insert `rxode2` code into the current model

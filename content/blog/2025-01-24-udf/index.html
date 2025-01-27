@@ -27,16 +27,20 @@ ODE</a> to be integrated
 directly in <code>rxode2</code>/<code>nlmixr2</code> using <code>pmxNODE</code>.</p>
 <p>As a note, the user interface is also flexible in generating specific
 code and is also used to allow <code>posologyr</code>
-(<a href="https://github.com/levenc/posologyr/pull/47">here</a>), and there is
-still one undocumented method to register low level C functions from
-another package to extend <code>rxode2</code>/<code>nlmixr2</code> even further.</p>
-<p>This is a feature that I think is unique to <code>nlmixr2</code> and <code>rxode2</code>
-(compared to say <code>Monolix</code> or <code>NONMEM</code>) that allows expansion in so
-many interesting and unique ways.</p>
-<p>This is a bit more focused on how to add this to a package, though it
-can work with your own code too; for many users this is simply a way
-to add Neural Network ODEs (after loading <code>pmxNODE</code>) to
-<code>rxode2</code>/<code>nlmixr2</code> or other similar sorts of functions.</p>
+(<a href="https://github.com/levenc/posologyr/pull/47">here</a>) to use
+<code>nlmixr2</code>/<code>rxode2</code> models directly for all of its clinical
+optimization routines it is also what is used to generate code for
+<code>NONMEM</code>, <code>Monolix</code> and <code>PopED</code> in <code>babelmixr2</code>.</p>
+<p>In addition to this flexibility there is still one undocumented method to
+register low level C functions from another package to extend
+<code>rxode2</code>/<code>nlmixr2</code> even further.</p>
+<p>The collection of these features and programming interface is unique
+to <code>nlmixr2</code> and <code>rxode2</code> (compared to say <code>Monolix</code> or <code>NONMEM</code>) that
+can allow expansion in so many interesting and unique ways.</p>
+<p>Also, this is a bit more focused on how to add code expansion to a
+package, though it can work with your own code too; for many users
+this is simply a way to add Neural Network ODEs (after loading
+<code>pmxNODE</code>) to <code>rxode2</code>/<code>nlmixr2</code> or other similar sorts of functions.</p>
 <div id="functions-to-insert-rxode2-code-into-the-current-model" class="section level2">
 <h2>Functions to insert <code>rxode2</code> code into the current model</h2>
 <p>The first example is allowing named arguments in a function that
@@ -490,7 +494,7 @@ linMod</code></pre>
 ##             iniDf = .iniDf)
 ##     }
 ## }
-## &lt;bytecode: 0x5c7c77dbbe98&gt;
+## &lt;bytecode: 0x56dc9fd223d8&gt;
 ## &lt;environment: namespace:rxode2&gt;</code></pre>
 <pre class="r"><code># You can also print the s3 method that is used for this method
 
@@ -499,7 +503,7 @@ rxode2:::rxUdfUi.linMod</code></pre>
 ## {
 ##     eval(fun)
 ## }
-## &lt;bytecode: 0x5c7c77e3d8d8&gt;
+## &lt;bytecode: 0x56dc9fda3e88&gt;
 ## &lt;environment: namespace:rxode2&gt;
 ## attr(,&quot;nargs&quot;)
 ## [1] 2</code></pre>
