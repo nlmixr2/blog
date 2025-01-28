@@ -78,7 +78,7 @@ expanded a bit more.</p>
 one &lt;- one.compartment()
 
 print(one)</code></pre>
-<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────── 
+<pre><code>##  ── rxode2-based free-form 2-cmt ODE model ────────────────────────────────────────────────────── 
 ##  ── Initalization: ──  
 ## Fixed Effects ($theta): 
 ##       tka       tcl        tv     wt.cl    add.sd 
@@ -135,10 +135,18 @@ print(one)</code></pre>
 <p>Here it shows the transformation that is used when creating the transformed data used for mu-based covariate modeling. In this case, we have <code>log(0.0142857142857143 * WT)</code>. It is a bit different than what is written because it is prepossessed by <code>symengine</code> and looks at the derivative with respect to the covariate parameter <code>wt.cl</code>.</p>
 <p>In general, I am excited by this new feature in nlmixr2 because it adds a new level of simplicity to user-based models and more often detects mu-referenced code when it may not have been detected in the past.</p>
 </div>
-<div id="what-is-new-with-mu-referencing-3.0" class="section level2">
-<h2>What is new with mu referencing 3.0</h2>
-<p>The mu referencing 3.0 allows you to specify the mu referencing
-anywhere that makes sense in the model. For example:</p>
+<div id="what-is-new-with-mu-referencing-3.0-and-4.0" class="section level2">
+<h2>What is new with mu referencing 3.0 and 4.0</h2>
+<p>The new mu3-referencing allows variables to be specified outside of the
+mu-referenced expression (though not estimating values).</p>
+<p>Another new feature in nlmixr2 is assigning string variables.
+Internally, rxode2 converts this to a numeric and the converts to a
+factor in the output.</p>
+<p>For nlmixr2, this means string expressions can be converted to mu
+referenced expressions too (which is mu4-referencing).</p>
+<div id="mu-3.0-example" class="section level3">
+<h3>mu 3.0 example</h3>
+<p>An example of the mu 3.0 referencing:</p>
 <pre class="r"><code>one.compartment &lt;- function() {
   ini({
     tka &lt;- log(1.57); label(&quot;Ka&quot;)
@@ -213,7 +221,7 @@ f &lt;- nlmixr2(one, theo_sd, &quot;saem&quot;, control=saemControl(print=0))</c
 ## ── Time (sec $time): ──
 ## 
 ##            setup covariance  saem table compress    other
-## elapsed 0.001598   0.011004 5.108 0.057    0.021 2.379398
+## elapsed 0.001817   0.011005 5.179 0.062    0.024 2.466178
 ## 
 ## ── Population Parameters ($parFixed or $parFixedDf): ──
 ## 
@@ -247,10 +255,9 @@ f &lt;- nlmixr2(one, theo_sd, &quot;saem&quot;, control=saemControl(print=0))</c
 <pre><code>## [1] &quot;μ₃ item: wt70&quot;</code></pre>
 <p>This is only calculated when running <code>nlmixr2</code></p>
 </div>
-<div id="what-is-new-with-mu-referencing-4.0" class="section level2">
-<h2>What is new with mu referencing 4.0</h2>
-<p>Another new feature in nlmixr2 is assigning string variables. Internally, rxode2 converts this to a numeric and the converts to a factor in the output.</p>
-<p>For nlmixr2, this means string expressions can be converted to mu referenced expressions too. Here is an example:</p>
+<div id="mu-4.0-example" class="section level3">
+<h3>mu 4.0 example</h3>
+<p>Here is an example:</p>
 <pre class="r"><code>one.compartment &lt;- function() {
   ini({
     tka &lt;- log(1.57); label(&quot;Ka&quot;)
@@ -331,7 +338,7 @@ f &lt;- nlmixr2(one, theo_sd, &quot;saem&quot;, control=saemControl(print=0))</c
 ## ── Time (sec $time): ──
 ## 
 ##            setup covariance  saem table compress    other
-## elapsed 0.001763   0.008005 5.204 0.058    0.019 1.907232
+## elapsed 0.001702   0.009004 4.939 0.057    0.018 1.909294
 ## 
 ## ── Population Parameters ($parFixed or $parFixedDf): ──
 ## 
@@ -369,9 +376,16 @@ f &lt;- nlmixr2(one, theo_sd, &quot;saem&quot;, control=saemControl(print=0))</c
 <p>As above, you can see this mu-referenced expression by the <code>$runInfo</code>:</p>
 <pre class="r"><code>f$runInfo</code></pre>
 <pre><code>## [1] &quot;μ₄ item: (wt70 == \&quot;Less than 70\&quot;)&quot;</code></pre>
+</div>
+</div>
+<div id="conclusion" class="section level2">
+<h2>Conclusion</h2>
+<p>This new method of mu referencing allows more flexibility in model
+specification and more cases where the models will be stable (without
+the user having to make as many model changes)</p>
 <div id="why-the-pokemon-icon" class="section level3">
 <h3>Why the Pokemon icon?</h3>
-<p>Why the icon for mu2 referencing? Every time I hear mu2 I think of the ultimate genetically modified Pokemon <a href="https://goofy-legends-gl.fandom.com/wiki/Mewtwo">mewtwo</a> (which is a link to where the image comes from).</p>
+<p>Originally with the mu2 referencing? Every time I hear mu2 I think of the ultimate genetically modified Pokemon <a href="https://goofy-legends-gl.fandom.com/wiki/Mewtwo">mewtwo</a> (which is a link to where the image comes from).</p>
 <p>Since this was expanded from the original article I used it as the
 base, even though now we are at mu3 and mu4 referencing.</p>
 <p>Sicne this article came out in December, the image was expanded with <a href="https://freepik.com/free-vector/christmas-background-with-circular-border-glowing-lights_386293523.htm#fromView=search&amp;page=1&amp;position=9&amp;uuid=f840e1ac-cd53-4aa1-8f69-c6d9e5d12d21">holiday lights</a>.</p>
