@@ -50,7 +50,9 @@ UI, checkout the following package websites (in order of UI integration):</p>
 <ul>
 <li><p><a href="https://nlmixr2.github.io/babelmixr2/"><code>babelmixr2</code></a> generates
 <code>PopED</code>, <code>NONMEM</code>, and <code>Monolix</code> code from a <code>nlmixr2</code>/<code>rxode2</code>
-model (as well as <code>NONMEM</code>/<code>Monolix</code> model imports)</p></li>
+model (as well as <code>NONMEM</code>/<code>Monolix</code> model imports). It also uses
+the interface to automatically start population models using PK
+estimates generated from PKNCA.</p></li>
 <li><p><a href="https://levenc.github.io/posologyr/"><code>posologyr</code></a> generates lower
 level <code>rxode2</code> code and uses internal functions to personalize
 dosing regimens</p></li>
@@ -534,7 +536,7 @@ linMod</code></pre>
 ##             iniDf = .iniDf)
 ##     }
 ## }
-## &lt;bytecode: 0x576e37047418&gt;
+## &lt;bytecode: 0x650dd9f133f8&gt;
 ## &lt;environment: namespace:rxode2&gt;</code></pre>
 <pre class="r"><code># You can also print the s3 method that is used for this method
 
@@ -543,7 +545,7 @@ rxode2:::rxUdfUi.linMod</code></pre>
 ## {
 ##     eval(fun)
 ## }
-## &lt;bytecode: 0x576e370cad78&gt;
+## &lt;bytecode: 0x650dd9f96dc8&gt;
 ## &lt;environment: namespace:rxode2&gt;
 ## attr(,&quot;nargs&quot;)
 ## [1] 2</code></pre>

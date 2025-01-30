@@ -62,7 +62,9 @@ UI, checkout the following package websites (in order of UI integration):
 
 - [`babelmixr2`](https://nlmixr2.github.io/babelmixr2/) generates
   `PopED`, `NONMEM`, and `Monolix` code from a `nlmixr2`/`rxode2`
-  model (as well as `NONMEM`/`Monolix` model imports)
+  model (as well as `NONMEM`/`Monolix` model imports). It also uses
+  the interface to automatically start population models using PK
+  estimates generated from PKNCA.
 
 - [`posologyr`](https://levenc.github.io/posologyr/) generates lower
   level `rxode2` code and uses internal functions to personalize
