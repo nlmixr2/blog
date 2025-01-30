@@ -81,6 +81,9 @@ in order of appearance):
 - [`PharmTeX`](https://pharmtex.org/) for generating pdf reports from
   a nlmixr2 model.
 
+- [`PharmPy`](https://pharmpy.github.io/latest/index.html) for
+  generating (some) models with nlmixr2.
+
 - [`nlmixr2rpt`](https://nlmixr2.github.io/nlmixr2rpt/) for generating
   Word/PowerPoint reports from a nlmixr2 model.
 
