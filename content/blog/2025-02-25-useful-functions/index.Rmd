@@ -1,0 +1,205 @@
+---
+title: nlmixr2/rxode2 useful functions for new-comers
+author: Matthew Fidler
+date: '2025-02-25'
+slug: []
+categories: [rxode2, nlmixr2]
+tags: []
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(nlmixr2)
+library(rxode2)
+```
+
+This month I will talk about some of the less-known, but quite useful
+functions.
+
+In general, R documentation is very good at documentation of novel
+functions, but not so good at documentation of new ways of handling
+old functions (like `plot`, `confint`, `augPred`, etc), and sometimes
+fails to document everything that is in a extensible specialized
+object, like the nlmixr2 fit object.
+
+This is why I think that some very useful options and functions inside
+of `nlmixr2`/`rxode2` may not as well known as others.
+
+Based on helping others a few have come to the top of my list.
+
+## Plot functions
+
+### `rxode2` plotting
+
+Of course discussion of plotting require a model and simulation, so we
+will use the model from the original tutorial:
+
+```{r rxModel}
+
+library(rxode2)
+
+## Model from rxode2 tutorial
+m1 <- rxode2({
+  KA <- 2.94E-01
+  CL <- 1.86E+01
+  V2 <- 4.02E+01
+  Q <- 1.05E+01
+  V3 <- 2.97E+02
+  Kin <- 1
+  Kout <- 1
+  EC50 <- 200
+  ## Added modeled bioavaiblity, duration and rate
+  fdepot <- 1
+  durDepot <- 8
+  rateDepot <- 1250
+  C2 <- centr / V2
+  C3 <- peri / V3
+  d / dt(depot) <- -KA * depot
+  f(depot) <- fdepot
+  dur(depot) <- durDepot
+  rate(depot) <- rateDepot
+  d / dt(centr) <- KA * depot - CL * C2 - Q * C2 + Q * C3
+  d / dt(peri) <- Q * C2 - Q * C3
+  d / dt(eff) <- Kin - Kout * (1 - C2 / (EC50 + C2)) * eff
+  eff(0) <- 1
+})
+```
+
+#### rxode2 plotting of single subject solved objects
+
+The first part is plotting a simulation based on a single subject event
+table:
+
+```{r plot1}
+ev <- et(timeUnits = "hr") %>%
+  et(amt = 10000, ii = 12, until = 24) %>%
+  et(seq(0, 24, length.out = 100))
+
+s <- rxSolve(m1, ev)
+
+
+plot(s)
+```
+
+One thing that is very easy to see is that the default plots all the
+calculated states and parameters in the model.
+
+Often you may not want to see all the plots.  For example, if you are
+more interested in the `C2` concentration, you can subset to `C2` by
+simply specifying the compartment after the solved object:
+
+```{r plotC2}
+plot(s, C2)
+```
+
+You can specify as many compartments or calculated values as you wish
+with this method, for example if you are interested in both `C2` and
+`eff` we would have:
+
+```{r plotC2Eff}
+plot(s, C2, eff)
+```
+
+
+This is one of the most basic types of things that plotting does for
+you.  As a note, the type of units affects the x-label axis if you
+have `xgxr` installed (for best plotting results this extra tool is
+helpful).
+
+```{r plotC2EffNoXgx}
+withr::with_options(list(rxode2.xgxr = FALSE), {
+  plot(s, C2, eff)
+})
+```
+
+Now the unit ticks are in terms of 5 instead of 3 (which means 24
+hours is not even displayed on the plot) by using
+[`xgxr::xgx_scale_x_time_units()`](https://rdrr.io/cran/xgxr/man/xgx_scale_x_time_units.html).
+
+You can also change the axes to be semi-logarithmic with the
+`log="x"`, `log="y"` or `log="xy"`, as documented in the `plot()`
+funtion:
+
+```{r plotLog}
+plot(s, C2,  log = "x")
+
+plot(s, C2,  log = "y")
+
+plot(s, C2,  log = "xy")
+```
+
+This is done with [`xgxr::xgx_scale_x_log10()`](https://www.rdocumentation.org/packages/xgxr/versions/1.1.2/topics/xgx_scale_x_log10) and [`xgxr::xgx_scale_y_log10()`](https://www.rdocumentation.org/packages/xgxr/versions/1.1.2/topics/xgx_scale_y_log10)
+
+Currently, the other documented features of `plot()` are unimplemented
+(but may be implemented in the future).
+
+One point is that the return of `plot` is a `ggplot2` object, that
+means you can also use `ggplot2` types of operations on the object:
+
+```{r plotGg}
+library(ggplot2)
+plot(s, C2) + xlim(6, 12)
+```
+
+#### rxode2 plotting of single multiple subject
+
+The first step is to simulate multiple subject data.
+
+
+```{r multiSubjects}
+m2 <- rxode2({
+  KA <- 2.94E-01
+  CL <- 1.86E+01 * exp(eta.Cl)
+  V2 <- 4.02E+01
+  Q <- 1.05E+01
+  V3 <- 2.97E+02
+  Kin <- 1
+  Kout <- 1
+  EC50 <- 200
+  ## Added modeled bioavaiblity, duration and rate
+  fdepot <- 1
+  durDepot <- 8
+  rateDepot <- 1250
+  C2 <- centr / V2
+  C3 <- peri / V3
+  d / dt(depot) <- -KA * depot
+  f(depot) <- fdepot
+  dur(depot) <- durDepot
+  rate(depot) <- rateDepot
+  d / dt(centr) <- KA * depot - CL * C2 - Q * C2 + Q * C3
+  d / dt(peri) <- Q * C2 - Q * C3
+  d / dt(eff) <- Kin - Kout * (1 - C2 / (EC50 + C2)) * eff
+  eff(0) <- 1
+})
+
+omega <- lotri(eta.Cl ~ 0.4^2)
+
+ev <- et(amount.units = "mg", time.units = "hours") %>%
+  et(amt = 10000, cmt = "centr", until = 48, ii = 8) %>%
+  et(0, 36, length.out = 100)
+
+s <- rxSolve(m2, ev, omega = omega, nSub = 3)
+
+```
+
+With only 3 subjects, the subject id is labeled with
+`ggrepel::geom_label_repel()` if present:
+
+```{r plot3}
+plot(s, C2, log="y")
+```
+
+If you get a large number of subjects they become gray spaghetti lines instead:
+
+```{r}
+s <- rxSolve(m2, ev, omega = omega, nSub = 100)
+
+plot(s, C2, log="y")
+```
+
+
+
+### `nlmixr2` plotting
+
+#### `augPred()`

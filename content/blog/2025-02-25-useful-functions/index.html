@@ -1,0 +1,168 @@
+---
+title: nlmixr2/rxode2 useful functions for new-comers
+author: Matthew Fidler
+date: '2025-02-25'
+slug: []
+categories: [rxode2, nlmixr2]
+tags: []
+---
+
+
+
+<p>This month I will talk about some of the less-known, but quite useful
+functions.</p>
+<p>In general, R documentation is very good at documentation of novel
+functions, but not so good at documentation of new ways of handling
+old functions (like <code>plot</code>, <code>confint</code>, <code>augPred</code>, etc), and sometimes
+fails to document everything that is in a extensible specialized
+object, like the nlmixr2 fit object.</p>
+<p>This is why I think that some very useful options and functions inside
+of <code>nlmixr2</code>/<code>rxode2</code> may not as well known as others.</p>
+<p>Based on helping others a few have come to the top of my list.</p>
+<div id="plot-functions" class="section level2">
+<h2>Plot functions</h2>
+<div id="rxode2-plotting" class="section level3">
+<h3><code>rxode2</code> plotting</h3>
+<p>Of course discussion of plotting require a model and simulation, so we
+will use the model from the original tutorial:</p>
+<pre class="r"><code>library(rxode2)
+
+## Model from rxode2 tutorial
+m1 &lt;- rxode2({
+  KA &lt;- 2.94E-01
+  CL &lt;- 1.86E+01
+  V2 &lt;- 4.02E+01
+  Q &lt;- 1.05E+01
+  V3 &lt;- 2.97E+02
+  Kin &lt;- 1
+  Kout &lt;- 1
+  EC50 &lt;- 200
+  ## Added modeled bioavaiblity, duration and rate
+  fdepot &lt;- 1
+  durDepot &lt;- 8
+  rateDepot &lt;- 1250
+  C2 &lt;- centr / V2
+  C3 &lt;- peri / V3
+  d / dt(depot) &lt;- -KA * depot
+  f(depot) &lt;- fdepot
+  dur(depot) &lt;- durDepot
+  rate(depot) &lt;- rateDepot
+  d / dt(centr) &lt;- KA * depot - CL * C2 - Q * C2 + Q * C3
+  d / dt(peri) &lt;- Q * C2 - Q * C3
+  d / dt(eff) &lt;- Kin - Kout * (1 - C2 / (EC50 + C2)) * eff
+  eff(0) &lt;- 1
+})</code></pre>
+<pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’</code></pre>
+<div id="rxode2-plotting-of-single-subject-solved-objects" class="section level4">
+<h4>rxode2 plotting of single subject solved objects</h4>
+<p>The first part is plotting a simulation based on a single subject event
+table:</p>
+<pre class="r"><code>ev &lt;- et(timeUnits = &quot;hr&quot;) %&gt;%
+  et(amt = 10000, ii = 12, until = 24) %&gt;%
+  et(seq(0, 24, length.out = 100))
+
+s &lt;- rxSolve(m1, ev)
+
+
+plot(s)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/plot1-1.png" width="672" /></p>
+<p>One thing that is very easy to see is that the default plots all the
+calculated states and parameters in the model.</p>
+<p>Often you may not want to see all the plots. For example, if you are
+more interested in the <code>C2</code> concentration, you can subset to <code>C2</code> by
+simply specifying the compartment after the solved object:</p>
+<pre class="r"><code>plot(s, C2)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/plotC2-1.png" width="672" /></p>
+<p>You can specify as many compartments or calculated values as you wish
+with this method, for example if you are interested in both <code>C2</code> and
+<code>eff</code> we would have:</p>
+<pre class="r"><code>plot(s, C2, eff)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/plotC2Eff-1.png" width="672" /></p>
+<p>This is one of the most basic types of things that plotting does for
+you. As a note, the type of units affects the x-label axis if you
+have <code>xgxr</code> installed (for best plotting results this extra tool is
+helpful).</p>
+<pre class="r"><code>withr::with_options(list(rxode2.xgxr = FALSE), {
+  plot(s, C2, eff)
+})</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/plotC2EffNoXgx-1.png" width="672" /></p>
+<p>Now the unit ticks are in terms of 5 instead of 3 (which means 24
+hours is not even displayed on the plot) by using
+<a href="https://rdrr.io/cran/xgxr/man/xgx_scale_x_time_units.html"><code>xgxr::xgx_scale_x_time_units()</code></a>.</p>
+<p>You can also change the axes to be semi-logarithmic with the
+<code>log="x"</code>, <code>log="y"</code> or <code>log="xy"</code>, as documented in the <code>plot()</code>
+funtion:</p>
+<pre class="r"><code>plot(s, C2,  log = &quot;x&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/plotLog-1.png" width="672" /></p>
+<pre class="r"><code>plot(s, C2,  log = &quot;y&quot;)</code></pre>
+<pre><code>## Warning in ggplot2::scale_y_log10(..., breaks = breaks, minor_breaks =
+## minor_breaks, : log-10 transformation introduced infinite values.</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/plotLog-2.png" width="672" /></p>
+<pre class="r"><code>plot(s, C2,  log = &quot;xy&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/plotLog-3.png" width="672" /></p>
+<p>This is done with <a href="https://www.rdocumentation.org/packages/xgxr/versions/1.1.2/topics/xgx_scale_x_log10"><code>xgxr::xgx_scale_x_log10()</code></a> and <a href="https://www.rdocumentation.org/packages/xgxr/versions/1.1.2/topics/xgx_scale_y_log10"><code>xgxr::xgx_scale_y_log10()</code></a></p>
+<p>Currently, the other documented features of <code>plot()</code> are unimplemented
+(but may be implemented in the future).</p>
+<p>One point is that the return of <code>plot</code> is a <code>ggplot2</code> object, that
+means you can also use <code>ggplot2</code> types of operations on the object:</p>
+<pre class="r"><code>library(ggplot2)
+plot(s, C2) + xlim(6, 12)</code></pre>
+<pre><code>## Scale for x is already present.
+## Adding another scale for x, which will replace the existing scale.</code></pre>
+<pre><code>## Warning: Removed 75 rows containing missing values or values outside the scale
+## range (`geom_line()`).</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/plotGg-1.png" width="672" /></p>
+</div>
+<div id="rxode2-plotting-of-single-multiple-subject" class="section level4">
+<h4>rxode2 plotting of single multiple subject</h4>
+<p>The first step is to simulate multiple subject data.</p>
+<pre class="r"><code>m2 &lt;- rxode2({
+  KA &lt;- 2.94E-01
+  CL &lt;- 1.86E+01 * exp(eta.Cl)
+  V2 &lt;- 4.02E+01
+  Q &lt;- 1.05E+01
+  V3 &lt;- 2.97E+02
+  Kin &lt;- 1
+  Kout &lt;- 1
+  EC50 &lt;- 200
+  ## Added modeled bioavaiblity, duration and rate
+  fdepot &lt;- 1
+  durDepot &lt;- 8
+  rateDepot &lt;- 1250
+  C2 &lt;- centr / V2
+  C3 &lt;- peri / V3
+  d / dt(depot) &lt;- -KA * depot
+  f(depot) &lt;- fdepot
+  dur(depot) &lt;- durDepot
+  rate(depot) &lt;- rateDepot
+  d / dt(centr) &lt;- KA * depot - CL * C2 - Q * C2 + Q * C3
+  d / dt(peri) &lt;- Q * C2 - Q * C3
+  d / dt(eff) &lt;- Kin - Kout * (1 - C2 / (EC50 + C2)) * eff
+  eff(0) &lt;- 1
+})</code></pre>
+<pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’</code></pre>
+<pre class="r"><code>omega &lt;- lotri(eta.Cl ~ 0.4^2)
+
+ev &lt;- et(amount.units = &quot;mg&quot;, time.units = &quot;hours&quot;) %&gt;%
+  et(amt = 10000, cmt = &quot;centr&quot;, until = 48, ii = 8) %&gt;%
+  et(0, 36, length.out = 100)
+
+s &lt;- rxSolve(m2, ev, omega = omega, nSub = 3)</code></pre>
+<p>With only 3 subjects, the subject id is labeled with
+<code>ggrepel::geom_label_repel()</code> if present:</p>
+<pre class="r"><code>plot(s, C2, log=&quot;y&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/plot3-1.png" width="672" /></p>
+<p>If you get a large number of subjects they become gray spaghetti lines instead:</p>
+<pre class="r"><code>s &lt;- rxSolve(m2, ev, omega = omega, nSub = 100)
+
+plot(s, C2, log=&quot;y&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
+</div>
+</div>
+<div id="nlmixr2-plotting" class="section level3">
+<h3><code>nlmixr2</code> plotting</h3>
+<div id="augpred" class="section level4">
+<h4><code>augPred()</code></h4>
+</div>
+</div>
+</div>
