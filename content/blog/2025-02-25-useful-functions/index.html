@@ -1,24 +1,18 @@
 ---
-title: nlmixr2/rxode2 useful functions for new-comers
+title: rxode2 plotting
 author: Matthew Fidler
 date: '2025-02-25'
 slug: []
-categories: [rxode2, nlmixr2]
+categories: [rxode2]
 tags: []
 ---
 
 
 
-<p>This month I will talk about some of the less-known, but quite useful
-functions.</p>
-<p>In general, R documentation is very good at documentation of novel
-functions, but not so good at documentation of new ways of handling
-old functions (like <code>plot</code>, <code>confint</code>, <code>augPred</code>, etc), and sometimes
-fails to document everything that is in a extensible specialized
-object, like the nlmixr2 fit object.</p>
-<p>This is why I think that some very useful options and functions inside
-of <code>nlmixr2</code>/<code>rxode2</code> may not as well known as others.</p>
-<p>Based on helping others a few have come to the top of my list.</p>
+<p>This month I will focus on <code>rxode2</code>’s plotting functions. I think these
+are very useful but not very well known. In general I will focus on
+three things: plotting single subjects, plotting multiple subjects and
+plotting confidence bands.</p>
 <div id="plot-functions" class="section level2">
 <h2>Plot functions</h2>
 <div id="rxode2-plotting" class="section level3">
@@ -43,16 +37,15 @@ m1 &lt;- rxode2({
   rateDepot &lt;- 1250
   C2 &lt;- centr / V2
   C3 &lt;- peri / V3
-  d / dt(depot) &lt;- -KA * depot
+  d/dt(depot) &lt;- -KA * depot
   f(depot) &lt;- fdepot
   dur(depot) &lt;- durDepot
   rate(depot) &lt;- rateDepot
-  d / dt(centr) &lt;- KA * depot - CL * C2 - Q * C2 + Q * C3
-  d / dt(peri) &lt;- Q * C2 - Q * C3
-  d / dt(eff) &lt;- Kin - Kout * (1 - C2 / (EC50 + C2)) * eff
+  d/dt(centr) &lt;- KA * depot - CL * C2 - Q * C2 + Q * C3
+  d/dt(peri) &lt;- Q * C2 - Q * C3
+  d/dt(eff) &lt;- Kin - Kout * (1 - C2 / (EC50 + C2)) * eff
   eff(0) &lt;- 1
 })</code></pre>
-<pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’</code></pre>
 <div id="rxode2-plotting-of-single-subject-solved-objects" class="section level4">
 <h4>rxode2 plotting of single subject solved objects</h4>
 <p>The first part is plotting a simulation based on a single subject event
@@ -62,7 +55,6 @@ table:</p>
   et(seq(0, 24, length.out = 100))
 
 s &lt;- rxSolve(m1, ev)
-
 
 plot(s)</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/plot1-1.png" width="672" /></p>
@@ -88,10 +80,10 @@ helpful).</p>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/plotC2EffNoXgx-1.png" width="672" /></p>
 <p>Now the unit ticks are in terms of 5 instead of 3 (which means 24
 hours is not even displayed on the plot) by using
-<a href="https://rdrr.io/cran/xgxr/man/xgx_scale_x_time_units.html"><code>xgxr::xgx_scale_x_time_units()</code></a>.</p>
+<a href="https://opensource.nibr.com/xgxr/reference/xgx_scale_x_time_units.html"><code>xgxr::xgx_scale_x_time_units()</code></a>.</p>
 <p>You can also change the axes to be semi-logarithmic with the
 <code>log="x"</code>, <code>log="y"</code> or <code>log="xy"</code>, as documented in the <code>plot()</code>
-funtion:</p>
+function:</p>
 <pre class="r"><code>plot(s, C2,  log = &quot;x&quot;)</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/plotLog-1.png" width="672" /></p>
 <pre class="r"><code>plot(s, C2,  log = &quot;y&quot;)</code></pre>
@@ -100,69 +92,236 @@ funtion:</p>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/plotLog-2.png" width="672" /></p>
 <pre class="r"><code>plot(s, C2,  log = &quot;xy&quot;)</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/plotLog-3.png" width="672" /></p>
-<p>This is done with <a href="https://www.rdocumentation.org/packages/xgxr/versions/1.1.2/topics/xgx_scale_x_log10"><code>xgxr::xgx_scale_x_log10()</code></a> and <a href="https://www.rdocumentation.org/packages/xgxr/versions/1.1.2/topics/xgx_scale_y_log10"><code>xgxr::xgx_scale_y_log10()</code></a></p>
+<p>This is done with <a href="https://opensource.nibr.com/xgxr/reference/xgx_scale_x_log10.html"><code>xgxr::xgx_scale_x_log10()</code></a> and <a href="https://opensource.nibr.com/xgxr/reference/xgx_scale_y_log10.html"><code>xgxr::xgx_scale_y_log10()</code></a></p>
 <p>Currently, the other documented features of <code>plot()</code> are unimplemented
 (but may be implemented in the future).</p>
 <p>One point is that the return of <code>plot</code> is a <code>ggplot2</code> object, that
 means you can also use <code>ggplot2</code> types of operations on the object:</p>
 <pre class="r"><code>library(ggplot2)
-plot(s, C2) + xlim(6, 12)</code></pre>
+plot(s, C2) + xlim(6, 12) + theme_bw()</code></pre>
 <pre><code>## Scale for x is already present.
 ## Adding another scale for x, which will replace the existing scale.</code></pre>
 <pre><code>## Warning: Removed 75 rows containing missing values or values outside the scale
 ## range (`geom_line()`).</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/plotGg-1.png" width="672" /></p>
 </div>
-<div id="rxode2-plotting-of-single-multiple-subject" class="section level4">
-<h4>rxode2 plotting of single multiple subject</h4>
-<p>The first step is to simulate multiple subject data.</p>
-<pre class="r"><code>m2 &lt;- rxode2({
-  KA &lt;- 2.94E-01
-  CL &lt;- 1.86E+01 * exp(eta.Cl)
-  V2 &lt;- 4.02E+01
-  Q &lt;- 1.05E+01
-  V3 &lt;- 2.97E+02
-  Kin &lt;- 1
-  Kout &lt;- 1
-  EC50 &lt;- 200
-  ## Added modeled bioavaiblity, duration and rate
-  fdepot &lt;- 1
-  durDepot &lt;- 8
-  rateDepot &lt;- 1250
-  C2 &lt;- centr / V2
-  C3 &lt;- peri / V3
-  d / dt(depot) &lt;- -KA * depot
-  f(depot) &lt;- fdepot
-  dur(depot) &lt;- durDepot
-  rate(depot) &lt;- rateDepot
-  d / dt(centr) &lt;- KA * depot - CL * C2 - Q * C2 + Q * C3
-  d / dt(peri) &lt;- Q * C2 - Q * C3
-  d / dt(eff) &lt;- Kin - Kout * (1 - C2 / (EC50 + C2)) * eff
-  eff(0) &lt;- 1
-})</code></pre>
-<pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’</code></pre>
-<pre class="r"><code>omega &lt;- lotri(eta.Cl ~ 0.4^2)
-
-ev &lt;- et(amount.units = &quot;mg&quot;, time.units = &quot;hours&quot;) %&gt;%
+<div id="rxode2-plotting-of-multiple-subjects" class="section level4">
+<h4><code>rxode2</code> plotting of multiple subjects</h4>
+<p><code>rxode2</code> plots multiple subject simulations a bit differently. I will
+use model piping to add a log-normal between subject variability on
+clearance, and then plot with a few subjects</p>
+<pre class="r"><code>m2 &lt;- m1 %&gt;%
+  model( CL &lt;- 1.86E+01 * exp(eta.Cl)) %&gt;%
+  ini(eta.Cl ~ 0.4^2)</code></pre>
+<pre><code>## ℹ add between subject variability `eta.Cl` and set estimate to 1</code></pre>
+<pre><code>## ℹ change initial estimate of `eta.Cl` to `0.16`</code></pre>
+<pre class="r"><code>ev &lt;- et(amount.units = &quot;mg&quot;, time.units = &quot;hours&quot;) %&gt;%
   et(amt = 10000, cmt = &quot;centr&quot;, until = 48, ii = 8) %&gt;%
   et(0, 36, length.out = 100)
 
-s &lt;- rxSolve(m2, ev, omega = omega, nSub = 3)</code></pre>
+s &lt;- rxSolve(m2, ev,  nSub = 3)</code></pre>
 <p>With only 3 subjects, the subject id is labeled with
-<code>ggrepel::geom_label_repel()</code> if present:</p>
+<a href="https://ggrepel.slowkow.com/reference/geom_text_repel"><code>ggrepel::geom_label_repel()</code></a> if <code>ggreple</code> is installed in your system:</p>
 <pre class="r"><code>plot(s, C2, log=&quot;y&quot;)</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/plot3-1.png" width="672" /></p>
 <p>If you get a large number of subjects they become gray spaghetti lines instead:</p>
-<pre class="r"><code>s &lt;- rxSolve(m2, ev, omega = omega, nSub = 100)
+<pre class="r"><code>s &lt;- rxSolve(m2, ev, nSub = 10)
 
 plot(s, C2, log=&quot;y&quot;)</code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/plot10-1.png" width="672" /></p>
+<p>The break-point can be changed with the option <code>rxode2.spaghetti</code>
+which defaults to 7 subjects.</p>
+<pre class="r"><code>options(rxode2.spaghetti=12)
+plot(s, C2, log=&quot;y&quot;)</code></pre>
+<pre><code>## Warning: ggrepel: 4 unlabeled data points (too many overlaps). Consider
+## increasing max.overlaps</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/plot10.2-1.png" width="672" /></p>
+</div>
+<div id="rxode2-summarizing-and-plotting-of-multiple-subjects-confidence-intervals" class="section level4">
+<h4><code>rxode2</code> summarizing and plotting of multiple subjects confidence intervals</h4>
+<p>One of the things I do often is to create quantile bands from my
+simulation.</p>
+<p>Continuing from a simple simulation, we have:</p>
+<pre class="r"><code>s &lt;- rxSolve(m2, ev, nSub=500)
+
+ci &lt;- confint(s, parm=c(&quot;eff&quot;, &quot;C2&quot;), 0.95)</code></pre>
+<pre><code>## ! in order to put confidence bands around the intervals, you need at least 2500 simulations</code></pre>
+<pre><code>## summarizing data...done</code></pre>
+<pre class="r"><code># The numeric quantiles from `confint()`
+print(ci)</code></pre>
+<pre><code>## # A tibble: 600 × 5
+##     time trt       p1   eff Percentile
+##      [h] &lt;fct&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;     
+##  1 0     eff   0.0250  1    2.5%      
+##  2 0     eff   0.5     1    50%       
+##  3 0     eff   0.975   1    97.5%     
+##  4 0.364 eff   0.0250  1.16 2.5%      
+##  5 0.364 eff   0.5     1.17 50%       
+##  6 0.364 eff   0.975   1.18 97.5%     
+##  7 0.727 eff   0.0250  1.26 2.5%      
+##  8 0.727 eff   0.5     1.29 50%       
+##  9 0.727 eff   0.975   1.31 97.5%     
+## 10 1.09  eff   0.0250  1.29 2.5%      
+## # ℹ 590 more rows</code></pre>
+<pre class="r"><code>plot(ci)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/ci500-1.png" width="672" /></p>
+<pre class="r"><code>ci &lt;- confint(s, parm=c(&quot;eff&quot;, &quot;C2&quot;), 0.95)</code></pre>
+<pre><code>## ! in order to put confidence bands around the intervals, you need at least 2500 simulations
+## summarizing data...done</code></pre>
+<p>As mentioned in the notes, with enough simulations you can get a
+confidence band around the interval.</p>
+<pre class="r"><code>s &lt;- rxSolve(m2, ev, nSub=2500)
+
+ci &lt;- confint(s, parm=c(&quot;eff&quot;, &quot;C2&quot;), 0.95)</code></pre>
+<pre><code>## summarizing data...done</code></pre>
+<pre class="r"><code># The numeric confidence intervals:
+print(ci)</code></pre>
+<pre><code>## # A tibble: 600 × 7
+##        p1  time trt    p2.5   p50 p97.5 Percentile
+##     &lt;dbl&gt;   [h] &lt;fct&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     
+##  1 0.0250 0     eff    1     1     1    2.5%      
+##  2 0.5    0     eff    1     1     1    50%       
+##  3 0.975  0     eff    1     1     1    97.5%     
+##  4 0.0250 0.364 eff    1.16  1.17  1.17 2.5%      
+##  5 0.5    0.364 eff    1.17  1.17  1.17 50%       
+##  6 0.975  0.364 eff    1.18  1.18  1.18 97.5%     
+##  7 0.0250 0.727 eff    1.25  1.26  1.27 2.5%      
+##  8 0.5    0.727 eff    1.29  1.29  1.30 50%       
+##  9 0.975  0.727 eff    1.31  1.31  1.31 97.5%     
+## 10 0.0250 1.09  eff    1.27  1.30  1.32 2.5%      
+## # ℹ 590 more rows</code></pre>
+<pre class="r"><code>plot(ci, log=&quot;y&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/ci2-1.png" width="672" /></p>
+</div>
+<div id="rxode2-stratified-quantile-intervals" class="section level4">
+<h4><code>rxode2</code> stratified quantile intervals</h4>
+<p>One of the most common tasks that I perform is stratify my simulation by certain sub-groups.</p>
+<p>This can be done easily by a <code>rxode2</code> extension of <code>confint</code> to
+stratify with the <code>by</code> argument. An example of this is:</p>
+<pre class="r"><code>m2 &lt;- m1 %&gt;%
+  model( CL &lt;- 1.86E+01 * exp(eta.Cl) + 3*(sex==&quot;Female&quot;)) %&gt;%
+  ini(eta.Cl ~ 0.4^2)</code></pre>
+<pre><code>## ℹ add between subject variability `eta.Cl` and set estimate to 1</code></pre>
+<pre><code>## ℹ add covariate `sex`</code></pre>
+<pre><code>## ℹ change initial estimate of `eta.Cl` to `0.16`</code></pre>
+<pre class="r"><code>ev2 &lt;- ev %&gt;% et(id=1:50) %&gt;%
+  as.data.frame(.) %&gt;%
+  dplyr::mutate(sex=&quot;Male&quot;)
+
+ev3 &lt;- ev %&gt;% et(id=51:100) %&gt;%
+  as.data.frame(.) %&gt;%
+  dplyr::mutate(sex=&quot;Female&quot;)
+
+evSex &lt;- rbind(ev2, ev3)
+
+s &lt;- rxSolve(m2, evSex, nStud=500)</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:05</code></pre>
+<pre class="r"><code># NOTE: by is not a documented in `confint` but can be used
+# by a rxode2 solved object
+ci &lt;- confint(s, parm=c(&quot;eff&quot;, &quot;C2&quot;), 0.95, by=&quot;sex&quot;)</code></pre>
+<pre><code>## summarizing data...</code></pre>
+<pre><code>## done</code></pre>
+<pre class="r"><code># The numeric confidence intervals:
+print(ci)</code></pre>
+<pre><code>## # A tibble: 1,200 × 8
+##        p1  time trt   sex    p2.5   p50 p97.5 Percentile
+##     &lt;dbl&gt;   [h] &lt;fct&gt; &lt;fct&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     
+##  1 0.0250 0     eff   Male   1     1     1    2.5%      
+##  2 0.5    0     eff   Male   1     1     1    50%       
+##  3 0.975  0     eff   Male   1     1     1    97.5%     
+##  4 0.0250 0.364 eff   Male   1.16  1.16  1.17 2.5%      
+##  5 0.5    0.364 eff   Male   1.17  1.17  1.17 50%       
+##  6 0.975  0.364 eff   Male   1.18  1.18  1.18 97.5%     
+##  7 0.0250 0.727 eff   Male   1.24  1.26  1.27 2.5%      
+##  8 0.5    0.727 eff   Male   1.29  1.29  1.30 50%       
+##  9 0.975  0.727 eff   Male   1.30  1.31  1.31 97.5%     
+## 10 0.0250 1.09  eff   Male   1.26  1.29  1.32 2.5%      
+## # ℹ 1,190 more rows</code></pre>
+<pre class="r"><code>plot(ci)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/ci2by-1.png" width="672" /></p>
+<p>This brings up a couple of points for discussion/understanding.</p>
+<p>First, the defaults for <code>confint</code> are a bit different for <code>rxode2</code>
+solved objects, this is clearly seen by using the <code>by</code> variable.</p>
+<p>Other options other than <code>by</code> are:</p>
+<ul>
+<li><code>ci</code>, in conjunction with <code>level</code>, controls
+levels of the uncertainty in the quantiles or confidence intervals calculated</li>
+<li><code>mean</code> – should the mean values be calculated instead of the
+quantiles. When this is true instead of the <code>base::quantile()</code>
+function, summaries are done with
+<a href="https://nlmixr2.github.io/rxode2/reference/meanProbs.html"><code>rxode2::meanProbs()</code></a>,
+and all the options there are accepted (<code>useT</code>, <code>pred</code>, and <code>n</code>).</li>
+<li><code>binom</code> – should binomial values be calculated instead of the binom
+values. When this is true, instead of using the <code>base::quantile()</code>
+function, summaries are done with
+<a href="https://nlmixr2.github.io/rxode2/reference/binomProbs.html"><code>rxode2::binomProbs()</code></a>
+and all the relevant options there are accepted (<code>n</code>, <code>m</code>,
+<code>ciMethod</code>, <code>pred</code>, etc)</li>
+</ul>
+<p>For this blog post I am only focusing on quantiles (perhaps in a later
+blog post I will cover mean/binom summaries).</p>
 </div>
 </div>
-<div id="nlmixr2-plotting" class="section level3">
-<h3><code>nlmixr2</code> plotting</h3>
-<div id="augpred" class="section level4">
-<h4><code>augPred()</code></h4>
+<div id="ci-in-confint" class="section level3">
+<h3><code>ci</code> in <code>confint</code></h3>
+<p>By default, the <code>confint</code> is actually the quantiles controlled by
+<code>level</code> and <code>ci</code> options, I show extreme options of low and high
+<code>ci</code>/<code>levels</code> as well as <code>ci=FALSE</code> to show what each option does.</p>
+<p>First we setup the model and the data:</p>
+<pre class="r"><code>m2 &lt;- m1 %&gt;%
+  model( CL &lt;- 1.86E+01 * exp(eta.Cl)) %&gt;%
+  ini(eta.Cl ~ 0.4^2)</code></pre>
+<pre><code>## ℹ add between subject variability `eta.Cl` and set estimate to 1</code></pre>
+<pre><code>## ℹ change initial estimate of `eta.Cl` to `0.16`</code></pre>
+<pre class="r"><code>s &lt;- rxSolve(m2, ev, nSub=2500)</code></pre>
+<p>You can see wider confidence bands in the next plot because the overall levels
+is <code>0.995</code>, but very little variability in the uncertainty of these
+bands (since the <code>ci=0.25</code>):</p>
+<pre class="r"><code>c &lt;- confint(s, parm=c(&quot;C2&quot;, &quot;eff&quot;), level=.995, ci=.25)</code></pre>
+<pre><code>## summarizing data...done</code></pre>
+<pre class="r"><code>plot(c)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/ci995-1.png" width="672" /></p>
+<p>On the other hand, with a <code>level=0.25</code> the overall confidence bands
+are smaller while the confidence around the lines are larger (<code>ci=0.995</code>)</p>
+<pre class="r"><code>c &lt;- confint(s, parm=c(&quot;C2&quot;, &quot;eff&quot;), level=.25, ci=.995)</code></pre>
+<pre><code>## summarizing data...done</code></pre>
+<pre class="r"><code>plot(c)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/ciLevel-1.png" width="672" /></p>
+<p>Note that if you specify only <code>level</code>, the <code>ci</code> matches the <code>level</code>
+argument:</p>
+<pre class="r"><code>c &lt;- confint(s, parm=c(&quot;C2&quot;, &quot;eff&quot;), level=.995)</code></pre>
+<pre><code>## summarizing data...done</code></pre>
+<pre class="r"><code>plot(c)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/oneLevel-1.png" width="672" /></p>
+<p>You can also force the simualtion only one quantile calculation by
+turning off <code>ci</code>:</p>
+<pre class="r"><code>c &lt;- confint(s, parm=c(&quot;C2&quot;, &quot;eff&quot;), level=.995, ci=FALSE)</code></pre>
+<pre><code>## summarizing data...done</code></pre>
+<pre class="r"><code>plot(c)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/noCi-1.png" width="672" /></p>
+<p>For these confidence bands you can see that the overall <code>level</code>
+represents the overall percentiles, while <code>ci</code> represents the
+smaller percentiles (which should be illustrated by the above plots).</p>
+<p>The for each theoretical study, the quantiles are taken according to
+the <code>level</code>. Then these quantiles get confidence around them with
+quantiles taken by the values in <code>ci</code>.</p>
+<p>For single subject simulations, the number of subjects are split
+approximately evenly. For example with <code>2500</code> simulations, you would
+split the number of studies (<code>nStud</code>) to be <code>round(sqrt(2500))</code>, or
+<code>50</code> with <code>50</code> subjects apiece. The first 50 subjects are in
+<code>nStud=1</code>, second 50 subjects are in <code>nStud=2</code>, etc.</p>
 </div>
+<div id="other-plotting-functions" class="section level3">
+<h3>Other plotting functions</h3>
+<p>Note there are some other plotting functions in <code>rxode2</code> like:</p>
+<ul>
+<li><p><a href="https://nlmixr2.github.io/rxode2/reference/stat_amt.html"><code>rxode2::geom_amt()</code></a>
+for showing dosing in <code>rxode2</code>/<code>NONMEM</code> types of datasets.</p></li>
+<li><p><a href="https://nlmixr2.github.io/rxode2/reference/stat_cens.html"><code>rxode2::geom_cens()</code></a>
+allows exploration of the censoring data style that is supported by
+<code>nlmixr2</code>/<code>Monolix</code>.</p></li>
+</ul>
+<p>These may be covered in the future blog and plots from <code>nlmixr2</code> would
+likely be covered later.</p>
 </div>
 </div>

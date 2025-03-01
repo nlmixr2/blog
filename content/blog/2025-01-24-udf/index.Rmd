@@ -3,7 +3,7 @@ title: nlmixr2/rxode2 user functions to modify code
 author: Matthew Fidler
 date: '2025-01-24'
 slug: []
-categories: [rxode2, nlmixr2]
+categories: [rxode2]
 tags: []
 ---
 
