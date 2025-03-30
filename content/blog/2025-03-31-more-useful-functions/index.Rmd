@@ -1,0 +1,155 @@
+---
+title: nlmixr2 augmented plot
+author: Matthew Fidler
+date: '2025-03-31'
+slug: []
+categories: [nlmixr2]
+tags: []
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(nlmixr2)
+library(rxode2)
+```
+
+This month I will on a single `nlmixr2`'s plot function that is shared
+with `nlme`, `augPred()`.  I think this is useful but also harder to
+find like the `rxode2` plots discussed last month.
+
+The example of this feature is the phenobarbitol data:
+
+```{r}
+library(nlmixr2)
+pheno <- function() {
+  ini({
+    tcl <- log(0.008) # typical value of clearance
+    tv <-  log(0.6)   # typical value of volume
+    ## var(eta.cl)
+    eta.cl + eta.v ~ c(1,
+                       0.01, 1) ## cov(eta.cl, eta.v), var(eta.v)
+                      # interindividual variability on clearance and volume
+    add.err <- 0.1    # residual variability
+  })
+  model({
+    cl <- exp(tcl + eta.cl) # individual value of clearance
+    v <- exp(tv + eta.v)    # individual value of volume
+    ke <- cl / v            # elimination rate constant
+    d/dt(A1) = - ke * A1    # model differential equation
+    cp = A1 / v             # concentration in plasma
+    cp ~ add(add.err)       # define error model
+  })
+}
+
+fit <- nlmixr(pheno, pheno_sd, "saem",
+              control=list(print=0),
+              table=list(cwres=TRUE, npde=TRUE))
+
+```
+
+You can see the basic plots including the individual plots:
+
+```{r plot}
+plot(fit)
+```
+
+In particular the individual plots does not show the complete prediction.
+
+One way to get the complete prediction is to add more points to the
+`rxode2` prediction than what is in the original dataset.
+
+In `NONMEM` (and in `nlmixr2`) you **can** add `EVID=2` predictions
+into your input dataset, though the ODE solving mesh may change your
+nlme solution.
+
+Another method is to add the observations after the nlme fit is complete by using `augPred()`
+
+This is simple
+
+```{r augPred0}
+ap <- augPred(fit)
+
+head(ap)
+```
+
+You can see this is a dataset that you can plot yourself with any
+package you would like.  Like `rxode2` there is a `ggplot2` method
+attached to `plot` for `augPred()` datasets from `nlmixr2`:
+
+```{r augPredP0}
+plot(ap)
+```
+
+Here you see the affect of dosing on the outcome more clearly than the
+traditional individual predictions.
+
+This also works with multiple endpoint models:
+
+```{r nlmeME}
+
+pk.turnover.emax3 <- function() {
+  ini({
+    tktr <- log(1)
+    tka <- log(1)
+    tcl <- log(0.1)
+    tv <- log(10)
+    ##
+    eta.ktr ~ 1
+    eta.ka ~ 1
+    eta.cl ~ 2
+    eta.v ~ 1
+    prop.err <- 0.1
+    pkadd.err <- 0.1
+    ##
+    temax <- logit(0.8)
+    tec50 <- log(0.5)
+    tkout <- log(0.05)
+    te0 <- log(100)
+    ##
+    eta.emax ~ .5
+    eta.ec50  ~ .5
+    eta.kout ~ .5
+    eta.e0 ~ .5
+    ##
+    pdadd.err <- 10
+  })
+  model({
+    ktr <- exp(tktr + eta.ktr)
+    ka <- exp(tka + eta.ka)
+    cl <- exp(tcl + eta.cl)
+    v <- exp(tv + eta.v)
+    emax = expit(temax+eta.emax)
+    ec50 =  exp(tec50 + eta.ec50)
+    kout = exp(tkout + eta.kout)
+    e0 = exp(te0 + eta.e0)
+    ##
+    DCP = center/v
+    PD=1-emax*DCP/(ec50+DCP)
+    ##
+    effect(0) = e0
+    kin = e0*kout
+    ##
+    d/dt(depot) = -ktr * depot
+    d/dt(gut) =  ktr * depot -ka * gut
+    d/dt(center) =  ka * gut - cl / v * center
+    d/dt(effect) = kin*PD -kout*effect
+    ##
+    cp = center / v
+    cp ~ prop(prop.err) + add(pkadd.err)
+    effect ~ add(pdadd.err) | pca
+  })
+}
+
+fit.TOS <- nlmixr(pk.turnover.emax3, warfarin, "saem", control=list(print=0),
+                  table=list(cwres=TRUE, npde=TRUE))
+
+```
+
+Now you see the augmented predictions separated by endpoint:
+
+```{r augPredME}
+plot(augPred(fit.TOS))
+```
+
+This is an easy and useful way to add more complete predictions to any model.

@@ -1,0 +1,290 @@
+---
+title: nlmixr2 augmented plot
+author: Matthew Fidler
+date: '2025-03-31'
+slug: []
+categories: [nlmixr2]
+tags: []
+---
+
+
+
+<p>This month I will on a single <code>nlmixr2</code>’s plot function that is shared
+with <code>nlme</code>, <code>augPred()</code>. I think this is useful but also harder to
+find like the <code>rxode2</code> plots discussed last month.</p>
+<p>The example of this feature is the phenobarbitol data:</p>
+<pre class="r"><code>library(nlmixr2)
+pheno &lt;- function() {
+  ini({
+    tcl &lt;- log(0.008) # typical value of clearance
+    tv &lt;-  log(0.6)   # typical value of volume
+    ## var(eta.cl)
+    eta.cl + eta.v ~ c(1,
+                       0.01, 1) ## cov(eta.cl, eta.v), var(eta.v)
+                      # interindividual variability on clearance and volume
+    add.err &lt;- 0.1    # residual variability
+  })
+  model({
+    cl &lt;- exp(tcl + eta.cl) # individual value of clearance
+    v &lt;- exp(tv + eta.v)    # individual value of volume
+    ke &lt;- cl / v            # elimination rate constant
+    d/dt(A1) = - ke * A1    # model differential equation
+    cp = A1 / v             # concentration in plasma
+    cp ~ add(add.err)       # define error model
+  })
+}
+
+fit &lt;- nlmixr(pheno, pheno_sd, &quot;saem&quot;,
+              control=list(print=0),
+              table=list(cwres=TRUE, npde=TRUE))</code></pre>
+<pre><code>## ℹ parameter labels from comments are typically ignored in non-interactive mode</code></pre>
+<pre><code>## ℹ Need to run with the source intact to parse comments</code></pre>
+<pre><code>## → loading into symengine environment...</code></pre>
+<pre><code>## → pruning branches (`if`/`else`) of saem model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → finding duplicate expressions in saem model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’</code></pre>
+<pre><code>## ℹ calculate uninformed etas</code></pre>
+<pre><code>## ℹ done</code></pre>
+<pre><code>## Calculating covariance matrix</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → loading into symengine environment...</code></pre>
+<pre><code>## → pruning branches (`if`/`else`) of saem model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → finding duplicate expressions in saem predOnly model 0...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → finding duplicate expressions in saem predOnly model 1...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → finding duplicate expressions in saem predOnly model 2...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → Calculating residuals/tables</code></pre>
+<pre><code>## → loading into symengine environment...</code></pre>
+<pre><code>## → pruning branches (`if`/`else`) of full model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → calculate jacobian</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → calculate sensitivities</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → calculate ∂(f)/∂(η)</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → calculate ∂(R²)/∂(η)</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → finding duplicate expressions in inner model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in inner model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → finding duplicate expressions in EBE model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in EBE model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → compiling inner model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → finding duplicate expressions in FD model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in FD model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → compiling EBE model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → compiling events FD model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → compress origData in nlmixr2 object, save 33192</code></pre>
+<pre><code>## → compress phiM in nlmixr2 object, save 229976</code></pre>
+<pre><code>## → compress parHistData in nlmixr2 object, save 12000</code></pre>
+<pre><code>## → compress saem0 in nlmixr2 object, save 1216</code></pre>
+<p>You can see the basic plots including the individual plots:</p>
+<pre class="r"><code>plot(fit)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/plot-1.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-2.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-3.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-4.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-5.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-6.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-7.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-8.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-9.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-10.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-11.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-12.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-13.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-14.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-15.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-16.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-17.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-18.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-19.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-20.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-21.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-22.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-23.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-24.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-25.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-26.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-27.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-28.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-29.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-30.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-31.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-32.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-33.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-34.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-35.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-36.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-37.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-38.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-39.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-40.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-41.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-42.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-43.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-44.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-45.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-46.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-47.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-48.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-49.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-50.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-51.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-52.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-53.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-54.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-55.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-56.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-57.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-58.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-59.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-60.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-61.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-62.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-63.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-64.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-65.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-66.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plot-67.png" width="672" /></p>
+<pre><code>## `geom_line()`: Each group consists of only one observation.
+## ℹ Do you need to adjust the group aesthetic?
+## `geom_line()`: Each group consists of only one observation.
+## ℹ Do you need to adjust the group aesthetic?</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/plot-68.png" width="672" /></p>
+<pre><code>## `geom_line()`: Each group consists of only one observation.
+## ℹ Do you need to adjust the group aesthetic?
+## `geom_line()`: Each group consists of only one observation.
+## ℹ Do you need to adjust the group aesthetic?
+## `geom_line()`: Each group consists of only one observation.
+## ℹ Do you need to adjust the group aesthetic?
+## `geom_line()`: Each group consists of only one observation.
+## ℹ Do you need to adjust the group aesthetic?
+## `geom_line()`: Each group consists of only one observation.
+## ℹ Do you need to adjust the group aesthetic?
+## `geom_line()`: Each group consists of only one observation.
+## ℹ Do you need to adjust the group aesthetic?</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/plot-69.png" width="672" /></p>
+<pre><code>## `geom_line()`: Each group consists of only one observation.
+## ℹ Do you need to adjust the group aesthetic?
+## `geom_line()`: Each group consists of only one observation.
+## ℹ Do you need to adjust the group aesthetic?
+## `geom_line()`: Each group consists of only one observation.
+## ℹ Do you need to adjust the group aesthetic?
+## `geom_line()`: Each group consists of only one observation.
+## ℹ Do you need to adjust the group aesthetic?
+## `geom_line()`: Each group consists of only one observation.
+## ℹ Do you need to adjust the group aesthetic?
+## `geom_line()`: Each group consists of only one observation.
+## ℹ Do you need to adjust the group aesthetic?</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/plot-70.png" width="672" /></p>
+<pre><code>## `geom_line()`: Each group consists of only one observation.
+## ℹ Do you need to adjust the group aesthetic?
+## `geom_line()`: Each group consists of only one observation.
+## ℹ Do you need to adjust the group aesthetic?
+## `geom_line()`: Each group consists of only one observation.
+## ℹ Do you need to adjust the group aesthetic?
+## `geom_line()`: Each group consists of only one observation.
+## ℹ Do you need to adjust the group aesthetic?</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/plot-71.png" width="672" /></p>
+<p>In particular the individual plots does not show the complete prediction.</p>
+<p>One way to get the complete prediction is to add more points to the
+<code>rxode2</code> prediction than what is in the original dataset.</p>
+<p>In <code>NONMEM</code> (and in <code>nlmixr2</code>) you <strong>can</strong> add <code>EVID=2</code> predictions
+into your input dataset, though the ODE solving mesh may change your
+nlme solution.</p>
+<p>Another method is to add the observations after the nlme fit is complete by using <code>augPred()</code></p>
+<p>This is simple</p>
+<pre class="r"><code>ap &lt;- augPred(fit)
+
+head(ap)</code></pre>
+<pre><code>##     values        ind id   time Endpoint
+## 1 18.71656 Individual  1  0.000       A1
+## 2 18.54663 Individual  1  2.000       A1
+## 3 18.06285 Individual  1  7.796       A1
+## 4 20.01561 Individual  1 15.592       A1
+## 5 19.31653 Individual  1 23.388       A1
+## 6 21.18352 Individual  1 31.184       A1</code></pre>
+<p>You can see this is a dataset that you can plot yourself with any
+package you would like. Like <code>rxode2</code> there is a <code>ggplot2</code> method
+attached to <code>plot</code> for <code>augPred()</code> datasets from <code>nlmixr2</code>:</p>
+<pre class="r"><code>plot(ap)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/augPredP0-1.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/augPredP0-2.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/augPredP0-3.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/augPredP0-4.png" width="672" /></p>
+<p>Here you see the affect of dosing on the outcome more clearly than the
+traditional individual predictions.</p>
+<p>This also works with multiple endpoint models:</p>
+<pre class="r"><code>pk.turnover.emax3 &lt;- function() {
+  ini({
+    tktr &lt;- log(1)
+    tka &lt;- log(1)
+    tcl &lt;- log(0.1)
+    tv &lt;- log(10)
+    ##
+    eta.ktr ~ 1
+    eta.ka ~ 1
+    eta.cl ~ 2
+    eta.v ~ 1
+    prop.err &lt;- 0.1
+    pkadd.err &lt;- 0.1
+    ##
+    temax &lt;- logit(0.8)
+    tec50 &lt;- log(0.5)
+    tkout &lt;- log(0.05)
+    te0 &lt;- log(100)
+    ##
+    eta.emax ~ .5
+    eta.ec50  ~ .5
+    eta.kout ~ .5
+    eta.e0 ~ .5
+    ##
+    pdadd.err &lt;- 10
+  })
+  model({
+    ktr &lt;- exp(tktr + eta.ktr)
+    ka &lt;- exp(tka + eta.ka)
+    cl &lt;- exp(tcl + eta.cl)
+    v &lt;- exp(tv + eta.v)
+    emax = expit(temax+eta.emax)
+    ec50 =  exp(tec50 + eta.ec50)
+    kout = exp(tkout + eta.kout)
+    e0 = exp(te0 + eta.e0)
+    ##
+    DCP = center/v
+    PD=1-emax*DCP/(ec50+DCP)
+    ##
+    effect(0) = e0
+    kin = e0*kout
+    ##
+    d/dt(depot) = -ktr * depot
+    d/dt(gut) =  ktr * depot -ka * gut
+    d/dt(center) =  ka * gut - cl / v * center
+    d/dt(effect) = kin*PD -kout*effect
+    ##
+    cp = center / v
+    cp ~ prop(prop.err) + add(pkadd.err)
+    effect ~ add(pdadd.err) | pca
+  })
+}
+
+fit.TOS &lt;- nlmixr(pk.turnover.emax3, warfarin, &quot;saem&quot;, control=list(print=0),
+                  table=list(cwres=TRUE, npde=TRUE))</code></pre>
+<pre><code>## ℹ parameter labels from comments are typically ignored in non-interactive mode</code></pre>
+<pre><code>## ℹ Need to run with the source intact to parse comments</code></pre>
+<pre><code>## → loading into symengine environment...</code></pre>
+<pre><code>## → pruning branches (`if`/`else`) of saem model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → finding duplicate expressions in saem model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in saem model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## ℹ calculate uninformed etas</code></pre>
+<pre><code>## ℹ done</code></pre>
+<pre><code>## Calculating covariance matrix</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → loading into symengine environment...</code></pre>
+<pre><code>## → pruning branches (`if`/`else`) of saem model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → finding duplicate expressions in saem predOnly model 0...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in saem predOnly model 0...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → finding duplicate expressions in saem predOnly model 1...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in saem predOnly model 1...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → finding duplicate expressions in saem predOnly model 2...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in saem predOnly model 2...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → Calculating residuals/tables</code></pre>
+<pre><code>## → loading into symengine environment...</code></pre>
+<pre><code>## → pruning branches (`if`/`else`) of full model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → calculate jacobian</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → calculate sensitivities</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → calculate ∂(f)/∂(η)</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → calculate ∂(R²)/∂(η)</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → finding duplicate expressions in inner model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in inner model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → finding duplicate expressions in EBE model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in EBE model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → compiling inner model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → finding duplicate expressions in FD model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in FD model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → compiling EBE model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → compiling events FD model...</code></pre>
+<pre><code>## ✔ done
+## ✔ done</code></pre>
+<pre><code>## → compress origData in nlmixr2 object, save 27560</code></pre>
+<pre><code>## → compress phiM in nlmixr2 object, save 501408</code></pre>
+<pre><code>## → compress parHistData in nlmixr2 object, save 29032</code></pre>
+<p>Now you see the augmented predictions separated by endpoint:</p>
+<pre class="r"><code>plot(augPred(fit.TOS))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/augPredME-1.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/augPredME-2.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/augPredME-3.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/augPredME-4.png" width="672" /></p>
+<p>This is an easy and useful way to add more complete predictions to any model.</p>
