@@ -133,7 +133,7 @@ plot(s, C2, log=&quot;y&quot;)</code></pre>
 which defaults to 7 subjects.</p>
 <pre class="r"><code>options(rxode2.spaghetti=12)
 plot(s, C2, log=&quot;y&quot;)</code></pre>
-<pre><code>## Warning: ggrepel: 4 unlabeled data points (too many overlaps). Consider
+<pre><code>## Warning: ggrepel: 1 unlabeled data points (too many overlaps). Consider
 ## increasing max.overlaps</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/plot10.2-1.png" width="672" /></p>
 </div>
@@ -182,13 +182,13 @@ print(ci)</code></pre>
 ##  1 0.0250 0     eff    1     1     1    2.5%      
 ##  2 0.5    0     eff    1     1     1    50%       
 ##  3 0.975  0     eff    1     1     1    97.5%     
-##  4 0.0250 0.364 eff    1.16  1.17  1.17 2.5%      
+##  4 0.0250 0.364 eff    1.16  1.16  1.17 2.5%      
 ##  5 0.5    0.364 eff    1.17  1.17  1.17 50%       
 ##  6 0.975  0.364 eff    1.18  1.18  1.18 97.5%     
-##  7 0.0250 0.727 eff    1.25  1.26  1.27 2.5%      
+##  7 0.0250 0.727 eff    1.24  1.26  1.27 2.5%      
 ##  8 0.5    0.727 eff    1.29  1.29  1.30 50%       
-##  9 0.975  0.727 eff    1.31  1.31  1.31 97.5%     
-## 10 0.0250 1.09  eff    1.27  1.30  1.32 2.5%      
+##  9 0.975  0.727 eff    1.30  1.31  1.31 97.5%     
+## 10 0.0250 1.09  eff    1.26  1.29  1.32 2.5%      
 ## # ℹ 590 more rows</code></pre>
 <pre class="r"><code>plot(ci, log=&quot;y&quot;)</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/ci2-1.png" width="672" /></p>
@@ -215,7 +215,7 @@ ev3 &lt;- ev %&gt;% et(id=51:100) %&gt;%
 evSex &lt;- rbind(ev2, ev3)
 
 s &lt;- rxSolve(m2, evSex, nStud=500)</code></pre>
-<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:05</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:07</code></pre>
 <pre class="r"><code># NOTE: by is not a documented in `confint` but can be used
 # by a rxode2 solved object
 ci &lt;- confint(s, parm=c(&quot;eff&quot;, &quot;C2&quot;), 0.95, by=&quot;sex&quot;)</code></pre>
@@ -229,13 +229,13 @@ print(ci)</code></pre>
 ##  1 0.0250 0     eff   Male   1     1     1    2.5%      
 ##  2 0.5    0     eff   Male   1     1     1    50%       
 ##  3 0.975  0     eff   Male   1     1     1    97.5%     
-##  4 0.0250 0.364 eff   Male   1.16  1.16  1.17 2.5%      
+##  4 0.0250 0.364 eff   Male   1.16  1.17  1.17 2.5%      
 ##  5 0.5    0.364 eff   Male   1.17  1.17  1.17 50%       
 ##  6 0.975  0.364 eff   Male   1.18  1.18  1.18 97.5%     
 ##  7 0.0250 0.727 eff   Male   1.24  1.26  1.27 2.5%      
 ##  8 0.5    0.727 eff   Male   1.29  1.29  1.30 50%       
 ##  9 0.975  0.727 eff   Male   1.30  1.31  1.31 97.5%     
-## 10 0.0250 1.09  eff   Male   1.26  1.29  1.32 2.5%      
+## 10 0.0250 1.09  eff   Male   1.26  1.30  1.32 2.5%      
 ## # ℹ 1,190 more rows</code></pre>
 <pre class="r"><code>plot(ci)</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/ci2by-1.png" width="672" /></p>

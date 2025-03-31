@@ -12,6 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(nlmixr2)
 library(rxode2)
+# suppress messages
+rxode2:::rxSetSilentErr(1L)
 ```
 
 This month I will on a single `nlmixr2`'s plot function that is shared
@@ -42,16 +44,33 @@ pheno <- function() {
   })
 }
 
-fit <- nlmixr(pheno, pheno_sd, "saem",
-              control=list(print=0),
-              table=list(cwres=TRUE, npde=TRUE))
+# Note the suppress messages simply removes the output from the
+# fit so it is easier to read in the blog.
+fit <- suppressMessages(nlmixr(pheno, pheno_sd, "saem",
+                               control=list(print=0),
+                               table=list(cwres=TRUE, npde=TRUE)))
 
 ```
 
 You can see the basic plots including the individual plots:
 
 ```{r plot}
-plot(fit)
+p <- plot(fit)
+
+# Here I am subsetting the plots to show only individual plots
+p <- p[["All Data"]]
+
+# In this case the list of plots is named starting with "individual"
+w <- which(vapply(names(p), function(x) grepl("individual", x), logical(1)))
+
+# This creates a new list of plots, and changes it to the same class
+# as output by nlmixr2
+p <- lapply(w,function(x) p[[x]])
+class(p) <- "nlmixr2PlotList"
+
+
+#This is a hack to suppress the warnings & messages from the plot function
+suppressMessages(suppressWarnings(print(p)))
 ```
 
 In particular the individual plots does not show the complete prediction.
@@ -63,9 +82,10 @@ In `NONMEM` (and in `nlmixr2`) you **can** add `EVID=2` predictions
 into your input dataset, though the ODE solving mesh may change your
 nlme solution.
 
-Another method is to add the observations after the nlme fit is complete by using `augPred()`
+Another method is to add the observations after the nlme fit is
+complete by using `augPred()`
 
-This is simple
+This is simple:
 
 ```{r augPred0}
 ap <- augPred(fit)
@@ -78,7 +98,9 @@ package you would like.  Like `rxode2` there is a `ggplot2` method
 attached to `plot` for `augPred()` datasets from `nlmixr2`:
 
 ```{r augPredP0}
-plot(ap)
+# The suppressWarnings, supress messages and print is made
+# to abbreviate the output, you can also simply use plot(ap)
+suppressWarnings(suppressMessages(print(plot(ap))))
 ```
 
 Here you see the affect of dosing on the outcome more clearly than the
@@ -87,7 +109,6 @@ traditional individual predictions.
 This also works with multiple endpoint models:
 
 ```{r nlmeME}
-
 pk.turnover.emax3 <- function() {
   ini({
     tktr <- log(1)
@@ -141,15 +162,59 @@ pk.turnover.emax3 <- function() {
   })
 }
 
-fit.TOS <- nlmixr(pk.turnover.emax3, warfarin, "saem", control=list(print=0),
-                  table=list(cwres=TRUE, npde=TRUE))
+# Like the prior model, we wish to suppress messages too:
+fit.TOS <- suppressMessages(nlmixr(pk.turnover.emax3, warfarin, "saem", control=list(print=0),
+                                   table=list(cwres=TRUE, npde=TRUE)))
 
+```
+
+Just like you can see the individuals from the standard plot:
+
+```{r plotME}
+p <- plot(fit.TOS)
+
+# Here I am subsetting the plots to show only individual plots
+cp <- p[["Endpoint:  cp"]]
+pca <- p[["Endpoint:  pca"]]
+
+# In this case the list of plots is named starting with "individual"
+w <- which(vapply(names(cp), function(x) grepl("individual", x), logical(1)))
+
+# This creates a new list of plots, and changes it to the same class
+# as output by nlmixr2
+cp <- lapply(w,function(x) cp[[x]])
+class(cp) <- "nlmixr2PlotList"
+
+
+# In this case the list of plots is named starting with "individual"
+w <- which(vapply(names(pca), function(x) grepl("individual", x), logical(1)))
+
+# This creates a new list of plots, and changes it to the same class
+# as output by nlmixr2
+pca <- lapply(w, function(x) pca[[x]])
+class(pca) <- "nlmixr2PlotList"
+
+
+
+#This is a hack to suppress the warnings & messages from the plot function
+suppressMessages(suppressWarnings(print(cp)))
+suppressMessages(suppressWarnings(print(pca)))
 ```
 
 Now you see the augmented predictions separated by endpoint:
 
 ```{r augPredME}
-plot(augPred(fit.TOS))
+suppressWarnings(suppressMessages(plot(augPred(fit.TOS))))
 ```
 
-This is an easy and useful way to add more complete predictions to any model.
+In this case, where there is more rich data, the differences are a bit
+less drastic than the phenobarbitol example, but still more full
+profiles are present for patients who discontinued when using `augPred()`
+
+Also, as a note, the plots made inside `nlmixr2` are subset by
+endpoints and can be subset to which-ever plot that you wish to have.
+Perhaps someday easier method (with say `filter()`) can be used to
+select the correct plots.
+
+Overall, `augPred()` is an easy and useful way to add more complete predictions to any
+model.
