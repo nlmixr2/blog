@@ -1,0 +1,268 @@
+---
+title: nlmixr2 Neural Network ODEs with pmxNODE
+author: Matthew Fidler
+date: '2025-04-30'
+slug: []
+categories: [nlmixr2, pmxNODE]
+tags: []
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(nlmixr2)
+library(rxode2)
+library(pmxNODE)
+
+# suppress messages
+rxode2:::rxSetSilentErr(1L)
+```
+
+## Neural Network ODEs and nlmixr2
+
+I have had some requests to talk about `nlmixr2` using neural network
+ODEs, since neural networks are something that more people are
+exploring with the explosion of artificial intelligence LLMs.
+
+There is a package, `pmxNODE`, by Dominic Bräm that adds neural network
+ODEs to pharmacometric modeling tools like NONMEM, Monolix and
+nlmixr2.
+
+In addition to the code that Dominic has added, I extended this
+package to allow Neural Networks directly in a `rxode2` or `nlmixr2`
+model.  I will go through an annotated example to show how these can
+be used directly in the `nlmixr2` model.  Currently the `pmxNODE` does
+not have any `nlmixr2` examples in their inst directory, so I will
+adapt their NONMEM example to use in `nlmixr2`:
+
+
+```{r ex1}
+library(nlmixr2)
+library(pmxNODE)
+
+d <- read.csv(system.file("data_example1_nm.csv", package="pmxNODE"),
+              na.strings=".")
+
+ex1 <- function()  {
+  ini({
+    lV <- 2
+    add.sd <- .1
+    prop.sd <- .1
+  })
+  model({
+    V <- lV
+    d/dt(central) <- NN(c, state=central, min_init=0.5, max_init=5) +
+      DOSE * NN(t, state=t, min_init=1, max_init=5, time_nn=TRUE)
+    Cc <- central/V
+    Cc ~ prop(prop.sd) + add(add.sd)
+  })
+}
+```
+
+This example has 2 neural networks, one related to the `central` state
+(labeled `c`) with a minimum activation point of 0.5 and maximum
+activation point of 5.  The second is a time-based neural network that
+moderates the dose. This has a minimum activation point of 1 and a
+maximum activation of 5 (and is called out as a time neural network by
+`time_nn=TRUE`, and labeled with `t`).  While these neural networks
+may take care of both elimination and absorption independently (with
+elimination in the central neural network and dosing in the
+time-neural network), they may not be completely independent since
+they are neural networks.
+
+In general, the `NN` function is implemented by the `rxode2` language
+extension described
+[here](https://nlmixr2.github.io/rxode2/articles/Integrating-User-Defined-Functions-into-rxode2.html#functions-to-insert-rxode2-code-into-the-current-model),
+but done in the `pmxNODE` package.  This means that the `NN()`
+function will only be available if you load the `pmxNODE` package.
+
+The `NN()` function has the form:
+
+- Neural Network identifier, required can be a name or a number;
+
+- `state=` defines the state to be used in the `NN()`. For time, use
+  `t`.
+
+- `min_init=` defines the minimal activation point for the `NN()`,
+  i.e., minimal expected state.
+
+- `max_init=` defines the maximal activation point for the `NN()`, i.e.,
+  maximal expected state.
+
+- `n_hidden=` (optional) defines the number of neurons in the hidden
+  layer, default is `5`.
+
+- `act=` (optional) defines activation function in the hidden layer,
+  `ReLU` and `Softplus` implemented, default is `ReLU()`.
+
+- `time_nn=` (optional) defines whether the `NN()` should be assumed to be
+  a time-dependent `NN()` and consequently all weights from input to
+  hidden layer should be strictly negative.
+
+For more information about how to use these functions, I suggest
+reading the articles related to `pmxNODE`:
+
+- https://doi.org/10.1002/psp4.13265
+
+- https://doi.org/10.1007/s10928-023-09886-4
+
+Since this extra neural network function is a special user function in
+the `pmxNODE`, not only does it mean that you need to load the package
+to use it with `nlmixr2`, it also means that the full function is
+evaluated when evaluating the UI:
+
+```{r uiEval}
+m1 <- ex1()
+m2 <- ex1()
+# You can see the full code by printing the function:
+print(m1)
+```
+
+Note that the initial estimates are chosen at random for the neural
+network ODE function, you can see that the initial estimates of the
+functions `m1` and `m2`:
+
+```{r uiDiff}
+m1$theta
+
+m2$theta
+```
+
+To make sure your analyses are reproducible with the Neural Network
+models, you need to then set the seed.
+
+```{r uiSeedEval}
+set.seed(42)
+ex1 <- ex1()
+```
+
+It may be more helpful to have a population-only model with a neural
+network and then add between subject variability to the model.
+
+```{r uiRun}
+fit <- suppressMessages(nlmixr(ex1, d, "bobyqa", control=list(print=0)))
+
+p <- plot(fit)
+
+# Here I am subsetting the plots to show only individual plots
+p <- p[["All Data"]]
+
+# In this case the list of plots is named starting with "individual"
+w <- which(vapply(names(p), function(x) grepl("individual", x), logical(1)))
+
+# This creates a new list of plots, and changes it to the same class
+# as output by nlmixr2
+p <- lapply(w,function(x) p[[x]])
+class(p) <- "nlmixr2PlotList"
+
+p
+```
+
+You can see there is no between subject variability on the Neural
+Network, you can add it (with the best estimates) with the function
+`NNbsv()`.  **Note this function is not yet part of the `pmxNODE`
+package, details are below.**
+
+```{r uiRunBsv}
+newModel <- fit %>%
+  model(V <- lV*exp(eta.V)) %>%
+  ini(eta.V ~ .1) %>%
+  NNbsv()
+
+fit2 <- suppressMessages(nlmixr2(newModel, d, "focei", control=foceiControl(print=0)))
+
+```
+
+Note the `NNbsv()` is a recent addition to `pmxNODE` and needs to be
+reviewed to added to the package. The [pull request](https://github.com/braemd/pmxNODE/pull/7) adds this
+function to the package.
+
+You can see the differences here:
+
+```{r uiPlotBsv}
+p <- plot(fit2)
+
+# Here I am subsetting the plots to show only individual plots
+p <- p[["All Data"]]
+
+# In this case the list of plots is named starting with "individual"
+w <- which(vapply(names(p), function(x) grepl("individual", x), logical(1)))
+
+# This creates a new list of plots, and changes it to the same class
+# as output by nlmixr2
+p <- lapply(w, function(x) p[[x]])
+class(p) <- "nlmixr2PlotList"
+
+p
+```
+
+## Other activation and NN functions in rxode2/nlmixr2 in the future.
+
+`rxode2` has implemented many neural-network activation functions
+built-in.  In the future packages like `pmxNODE` may use these
+directly and even extend to use some of the other neural network
+functions there.  Since they are built-into rxode2, the models may be
+a bit faster if this integration occurs.
+
+## NNbsv() function
+
+Since the pull request hasn't been accepted at this point, I am
+providing the code below in case you want to use it yourself:
+
+```{r nnbsv}
+NNbsv <- function(ui, val=0.1, str="%s <- l%s*exp(eta.%s)") {
+  .ui <- rxode2::assertRxUi(ui)
+  .n <- names(.ui$theta)
+  .etaNames <- dimnames(.ui$omega)[[1]]
+  .nn <- vapply(seq_along(.n), function(i){
+    grepl("^[l][Wb].*_[1-9]?[0-9]*", .n[i]) &&
+      !any(paste0("eta.", .n[i]) %in% .etaNames)
+  }, logical(1))
+  .n <- .n[which(.nn)]
+  if (length(.n) == 0) return(ui)
+  .v <- gsub("^[l]", "", .n)
+  .s1 <- paste0(.v, " <- l", .v)
+  .s2 <- sprintf(str, .v, .v, .v)
+  # Change the model expression first.
+  .model <- vapply(.ui$lstChr,
+                   function(l) {
+                     .w <- which(.s1 == l)
+                     if (length(.w) != 1) {
+                       return(l)
+                     }
+                     .s2[.w]
+                   }, character(1),
+                   USE.NAMES=FALSE)
+  rxode2::model(.ui) <- .model
+  # Now add eta estimates
+  .iniDf <- .ui$iniDf
+  .w <- which(!is.na(.iniDf$neta1))
+  if (length(.w) == 0L) {
+    .maxEta <- 0
+  } else {
+    .maxEta <- max(.iniDf$neta1[.w])
+  }
+  .i1 <- .iniDf[1,]
+  .i1$ntheta <- NA_integer_
+  .i1$lower <- -Inf
+  .i1$upper <- Inf
+  .i1$est <- val
+  .i1$label <- NA_character_
+  .i1$backTransform <- NA_character_
+  .i1$condition <- "id"
+  .i1$err <- NA_character_
+  .etas <- do.call(`rbind`,
+                   lapply(seq_along(.v), function(i) {
+                     .cur <- .i1
+                     .cur$neta1 <- .maxEta+i
+                     .cur$neta2 <- .maxEta+i
+                     .cur$name <- paste0("eta.", .v[i])
+                     .cur
+                   }))
+  .iniDf <- rbind(.iniDf, .etas)
+
+  rxode2::ini(.ui) <- .iniDf
+  .ui
+}
+
+```
