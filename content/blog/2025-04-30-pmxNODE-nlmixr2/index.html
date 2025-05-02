@@ -1,0 +1,370 @@
+---
+title: nlmixr2 Neural Network ODEs with pmxNODE
+author: Matthew Fidler
+date: '2025-04-30'
+slug: []
+categories: [nlmixr2, pmxNODE]
+tags: []
+---
+
+
+
+<div id="neural-network-odes-and-nlmixr2" class="section level2">
+<h2>Neural Network ODEs and nlmixr2</h2>
+<p>I have had some requests to talk about <code>nlmixr2</code> using neural network
+ODEs, since neural networks are something that more people are
+exploring with the explosion of artificial intelligence LLMs.</p>
+<p>There is a package, <code>pmxNODE</code>, by Dominic Bräm that adds neural network
+ODEs to pharmacometric modeling tools like NONMEM, Monolix and
+nlmixr2.</p>
+<p>In addition to the code that Dominic has added, I extended this
+package to allow Neural Networks directly in a <code>rxode2</code> or <code>nlmixr2</code>
+model. I will go through an annotated example to show how these can
+be used directly in the <code>nlmixr2</code> model. Currently the <code>pmxNODE</code> does
+not have any <code>nlmixr2</code> examples in their inst directory, so I will
+adapt their NONMEM example to use in <code>nlmixr2</code>:</p>
+<pre class="r"><code>library(nlmixr2)
+library(pmxNODE)
+
+d &lt;- read.csv(system.file(&quot;data_example1_nm.csv&quot;, package=&quot;pmxNODE&quot;),
+              na.strings=&quot;.&quot;)
+
+ex1 &lt;- function()  {
+  ini({
+    lV &lt;- 2
+    add.sd &lt;- .1
+    prop.sd &lt;- .1
+  })
+  model({
+    V &lt;- lV
+    d/dt(central) &lt;- NN(c, state=central, min_init=0.5, max_init=5) +
+      DOSE * NN(t, state=t, min_init=1, max_init=5, time_nn=TRUE)
+    Cc &lt;- central/V
+    Cc ~ prop(prop.sd) + add(add.sd)
+  })
+}</code></pre>
+<p>This example has 2 neural networks, one related to the <code>central</code> state
+(labeled <code>c</code>) with a minimum activation point of 0.5 and maximum
+activation point of 5. The second is a time-based neural network that
+moderates the dose. This has a minimum activation point of 1 and a
+maximum activation of 5 (and is called out as a time neural network by
+<code>time_nn=TRUE</code>, and labeled with <code>t</code>). While these neural networks
+may take care of both elimination and absorption independently (with
+elimination in the central neural network and dosing in the
+time-neural network), they may not be completely independent since
+they are neural networks.</p>
+<p>In general, the <code>NN</code> function is implemented by the <code>rxode2</code> language
+extension described
+<a href="https://nlmixr2.github.io/rxode2/articles/Integrating-User-Defined-Functions-into-rxode2.html#functions-to-insert-rxode2-code-into-the-current-model">here</a>,
+but done in the <code>pmxNODE</code> package. This means that the <code>NN()</code>
+function will only be available if you load the <code>pmxNODE</code> package.</p>
+<p>The <code>NN()</code> function has the form:</p>
+<ul>
+<li><p>Neural Network identifier, required can be a name or a number;</p></li>
+<li><p><code>state=</code> defines the state to be used in the <code>NN()</code>. For time, use
+<code>t</code>.</p></li>
+<li><p><code>min_init=</code> defines the minimal activation point for the <code>NN()</code>,
+i.e., minimal expected state.</p></li>
+<li><p><code>max_init=</code> defines the maximal activation point for the <code>NN()</code>, i.e.,
+maximal expected state.</p></li>
+<li><p><code>n_hidden=</code> (optional) defines the number of neurons in the hidden
+layer, default is <code>5</code>.</p></li>
+<li><p><code>act=</code> (optional) defines activation function in the hidden layer,
+<code>ReLU</code> and <code>Softplus</code> implemented, default is <code>ReLU()</code>.</p></li>
+<li><p><code>time_nn=</code> (optional) defines whether the <code>NN()</code> should be assumed to be
+a time-dependent <code>NN()</code> and consequently all weights from input to
+hidden layer should be strictly negative.</p></li>
+</ul>
+<p>For more information about how to use these functions, I suggest
+reading the articles related to <code>pmxNODE</code>:</p>
+<ul>
+<li><p><a href="https://doi.org/10.1002/psp4.13265" class="uri">https://doi.org/10.1002/psp4.13265</a></p></li>
+<li><p><a href="https://doi.org/10.1007/s10928-023-09886-4" class="uri">https://doi.org/10.1007/s10928-023-09886-4</a></p></li>
+</ul>
+<p>Since this extra neural network function is a special user function in
+the <code>pmxNODE</code>, not only does it mean that you need to load the package
+to use it with <code>nlmixr2</code>, it also means that the full function is
+evaluated when evaluating the UI:</p>
+<pre class="r"><code>m1 &lt;- ex1()
+m2 &lt;- ex1()
+# You can see the full code by printing the function:
+print(m1)</code></pre>
+<pre><code>##  ── rxode2-based free-form 1-cmt ODE model ────────────────────────────────────────────────────── 
+##  ── Initalization: ──  
+## Fixed Effects ($theta): 
+##      lV  add.sd prop.sd  lWc_11  lWc_12  lWc_13  lWc_14  lWc_15  lbc_11  lbc_12 
+##   2.000   0.100   0.100   0.100   0.100   0.200  -0.100   0.100  -0.145  -0.482 
+##  lbc_13  lbc_14  lbc_15  lWc_21  lWc_22  lWc_23  lWc_24  lWc_25  lbc_21  lWt_11 
+##  -0.646   0.464  -0.292  -0.100   0.100   0.100   0.100  -0.200   0.100   0.100 
+##  lWt_12  lWt_13  lWt_14  lWt_15  lbt_11  lbt_12  lbt_13  lbt_14  lbt_15  lWt_21 
+##  -0.200  -0.100  -0.100   0.200   0.026   0.143   0.038   0.016   0.195   0.200 
+##  lWt_22  lWt_23  lWt_24  lWt_25 
+##   0.100  -0.300   0.300  -0.100 
+## 
+## States ($state or $stateDf): 
+##   Compartment Number Compartment Name
+## 1                  1          central
+##  ── Model (Normalized Syntax): ── 
+## function() {
+##     ini({
+##         lV &lt;- 2
+##         add.sd &lt;- c(0, 0.1)
+##         prop.sd &lt;- c(0, 0.1)
+##         lWc_11 &lt;- 0.1
+##         lWc_12 &lt;- 0.1
+##         lWc_13 &lt;- 0.2
+##         lWc_14 &lt;- -0.1
+##         lWc_15 &lt;- 0.1
+##         lbc_11 &lt;- -0.145
+##         lbc_12 &lt;- -0.482
+##         lbc_13 &lt;- -0.646
+##         lbc_14 &lt;- 0.464
+##         lbc_15 &lt;- -0.292
+##         lWc_21 &lt;- -0.1
+##         lWc_22 &lt;- 0.1
+##         lWc_23 &lt;- 0.1
+##         lWc_24 &lt;- 0.1
+##         lWc_25 &lt;- -0.2
+##         lbc_21 &lt;- 0.1
+##         lWt_11 &lt;- 0.1
+##         lWt_12 &lt;- -0.2
+##         lWt_13 &lt;- -0.1
+##         lWt_14 &lt;- -0.1
+##         lWt_15 &lt;- 0.2
+##         lbt_11 &lt;- 0.026
+##         lbt_12 &lt;- 0.143
+##         lbt_13 &lt;- 0.038
+##         lbt_14 &lt;- 0.016
+##         lbt_15 &lt;- 0.195
+##         lWt_21 &lt;- 0.2
+##         lWt_22 &lt;- 0.1
+##         lWt_23 &lt;- -0.3
+##         lWt_24 &lt;- 0.3
+##         lWt_25 &lt;- -0.1
+##     })
+##     model({
+##         V &lt;- lV
+##         Wc_11 &lt;- lWc_11
+##         Wc_12 &lt;- lWc_12
+##         Wc_13 &lt;- lWc_13
+##         Wc_14 &lt;- lWc_14
+##         Wc_15 &lt;- lWc_15
+##         bc_11 &lt;- lbc_11
+##         bc_12 &lt;- lbc_12
+##         bc_13 &lt;- lbc_13
+##         bc_14 &lt;- lbc_14
+##         bc_15 &lt;- lbc_15
+##         Wc_21 &lt;- lWc_21
+##         Wc_22 &lt;- lWc_22
+##         Wc_23 &lt;- lWc_23
+##         Wc_24 &lt;- lWc_24
+##         Wc_25 &lt;- lWc_25
+##         bc_21 &lt;- lbc_21
+##         hc_1 = Wc_11 * central + bc_11
+##         hc_2 = Wc_12 * central + bc_12
+##         hc_3 = Wc_13 * central + bc_13
+##         hc_4 = Wc_14 * central + bc_14
+##         hc_5 = Wc_15 * central + bc_15
+##         if (hc_1 &lt; 0) {
+##             hc_1 &lt;- 0
+##         }
+##         if (hc_2 &lt; 0) {
+##             hc_2 &lt;- 0
+##         }
+##         if (hc_3 &lt; 0) {
+##             hc_3 &lt;- 0
+##         }
+##         if (hc_4 &lt; 0) {
+##             hc_4 &lt;- 0
+##         }
+##         if (hc_5 &lt; 0) {
+##             hc_5 &lt;- 0
+##         }
+##         NNc = Wc_21 * hc_1 + Wc_22 * hc_2 + Wc_23 * hc_3 + Wc_24 * 
+##             hc_4 + Wc_25 * hc_5 + bc_21
+##         Wt_11 &lt;- lWt_11
+##         Wt_12 &lt;- lWt_12
+##         Wt_13 &lt;- lWt_13
+##         Wt_14 &lt;- lWt_14
+##         Wt_15 &lt;- lWt_15
+##         bt_11 &lt;- lbt_11
+##         bt_12 &lt;- lbt_12
+##         bt_13 &lt;- lbt_13
+##         bt_14 &lt;- lbt_14
+##         bt_15 &lt;- lbt_15
+##         Wt_21 &lt;- lWt_21
+##         Wt_22 &lt;- lWt_22
+##         Wt_23 &lt;- lWt_23
+##         Wt_24 &lt;- lWt_24
+##         Wt_25 &lt;- lWt_25
+##         ht_1 = -Wt_11^2 * t + bt_11
+##         ht_2 = -Wt_12^2 * t + bt_12
+##         ht_3 = -Wt_13^2 * t + bt_13
+##         ht_4 = -Wt_14^2 * t + bt_14
+##         ht_5 = -Wt_15^2 * t + bt_15
+##         if (ht_1 &lt; 0) {
+##             ht_1 &lt;- 0
+##         }
+##         if (ht_2 &lt; 0) {
+##             ht_2 &lt;- 0
+##         }
+##         if (ht_3 &lt; 0) {
+##             ht_3 &lt;- 0
+##         }
+##         if (ht_4 &lt; 0) {
+##             ht_4 &lt;- 0
+##         }
+##         if (ht_5 &lt; 0) {
+##             ht_5 &lt;- 0
+##         }
+##         NNt = Wt_21 * ht_1 + Wt_22 * ht_2 + Wt_23 * ht_3 + Wt_24 * 
+##             ht_4 + Wt_25 * ht_5
+##         d/dt(central) &lt;- NNc + DOSE * NNt
+##         Cc &lt;- central/V
+##         Cc ~ prop(prop.sd) + add(add.sd)
+##     })
+## }</code></pre>
+<p>Note that the initial estimates are chosen at random for the neural
+network ODE function, you can see that the initial estimates of the
+functions <code>m1</code> and <code>m2</code>:</p>
+<pre class="r"><code>m1$theta</code></pre>
+<pre><code>##      lV  add.sd prop.sd  lWc_11  lWc_12  lWc_13  lWc_14  lWc_15  lbc_11  lbc_12 
+##   2.000   0.100   0.100   0.100   0.100   0.200  -0.100   0.100  -0.145  -0.482 
+##  lbc_13  lbc_14  lbc_15  lWc_21  lWc_22  lWc_23  lWc_24  lWc_25  lbc_21  lWt_11 
+##  -0.646   0.464  -0.292  -0.100   0.100   0.100   0.100  -0.200   0.100   0.100 
+##  lWt_12  lWt_13  lWt_14  lWt_15  lbt_11  lbt_12  lbt_13  lbt_14  lbt_15  lWt_21 
+##  -0.200  -0.100  -0.100   0.200   0.026   0.143   0.038   0.016   0.195   0.200 
+##  lWt_22  lWt_23  lWt_24  lWt_25 
+##   0.100  -0.300   0.300  -0.100</code></pre>
+<pre class="r"><code>m2$theta</code></pre>
+<pre><code>##      lV  add.sd prop.sd  lWc_11  lWc_12  lWc_13  lWc_14  lWc_15  lbc_11  lbc_12 
+##   2.000   0.100   0.100   0.100  -0.100  -0.200  -0.200   0.100  -0.381   0.153 
+##  lbc_13  lbc_14  lbc_15  lWc_21  lWc_22  lWc_23  lWc_24  lWc_25  lbc_21  lWt_11 
+##   0.881   0.129  -0.279   0.200   0.300  -0.200   0.100  -0.200   0.200   0.200 
+##  lWt_12  lWt_13  lWt_14  lWt_15  lbt_11  lbt_12  lbt_13  lbt_14  lbt_15  lWt_21 
+##  -0.200   0.200   0.200  -0.200   0.158   0.138   0.097   0.115   0.103   0.200 
+##  lWt_22  lWt_23  lWt_24  lWt_25 
+##   0.200  -0.200  -0.200  -0.300</code></pre>
+<p>To make sure your analyses are reproducible with the Neural Network
+models, you need to then set the seed.</p>
+<pre class="r"><code>set.seed(42)
+ex1 &lt;- ex1()</code></pre>
+<p>It may be more helpful to have a population-only model with a neural
+network and then add between subject variability to the model.</p>
+<pre class="r"><code>fit &lt;- suppressMessages(nlmixr(ex1, d, &quot;bobyqa&quot;, control=list(print=0)))</code></pre>
+<pre><code>## |-----+---------------+-----------+-----------+-----------+-----------|</code></pre>
+<pre class="r"><code>p &lt;- plot(fit)
+
+# Here I am subsetting the plots to show only individual plots
+p &lt;- p[[&quot;All Data&quot;]]
+
+# In this case the list of plots is named starting with &quot;individual&quot;
+w &lt;- which(vapply(names(p), function(x) grepl(&quot;individual&quot;, x), logical(1)))
+
+# This creates a new list of plots, and changes it to the same class
+# as output by nlmixr2
+p &lt;- lapply(w,function(x) p[[x]])
+class(p) &lt;- &quot;nlmixr2PlotList&quot;
+
+p</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/uiRun-1.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/uiRun-2.png" width="672" /></p>
+<p>You can see there is no between subject variability on the Neural
+Network, you can add it (with the best estimates) with the function
+<code>NNbsv()</code>. <strong>Note this function is not yet part of the <code>pmxNODE</code>
+package, details are below.</strong></p>
+<pre class="r"><code>newModel &lt;- fit %&gt;%
+  model(V &lt;- lV*exp(eta.V)) %&gt;%
+  ini(eta.V ~ .1) %&gt;%
+  NNbsv()</code></pre>
+<pre><code>## ℹ add between subject variability `eta.V` and set estimate to 1</code></pre>
+<pre><code>## ℹ change initial estimate of `eta.V` to `0.1`</code></pre>
+<pre class="r"><code>fit2 &lt;- suppressMessages(nlmixr2(newModel, d, &quot;focei&quot;, control=foceiControl(print=0)))</code></pre>
+<pre><code>## calculating covariance matrix
+## done</code></pre>
+<p>Note the <code>NNbsv()</code> is a recent addition to <code>pmxNODE</code> and needs to be
+reviewed to added to the package. The <a href="https://github.com/braemd/pmxNODE/pull/7">pull request</a> adds this
+function to the package.</p>
+<p>You can see the differences here:</p>
+<pre class="r"><code>p &lt;- plot(fit2)
+
+# Here I am subsetting the plots to show only individual plots
+p &lt;- p[[&quot;All Data&quot;]]
+
+# In this case the list of plots is named starting with &quot;individual&quot;
+w &lt;- which(vapply(names(p), function(x) grepl(&quot;individual&quot;, x), logical(1)))
+
+# This creates a new list of plots, and changes it to the same class
+# as output by nlmixr2
+p &lt;- lapply(w, function(x) p[[x]])
+class(p) &lt;- &quot;nlmixr2PlotList&quot;
+
+p</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/uiPlotBsv-1.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/uiPlotBsv-2.png" width="672" /></p>
+</div>
+<div id="other-activation-and-nn-functions-in-rxode2nlmixr2-in-the-future." class="section level2">
+<h2>Other activation and NN functions in rxode2/nlmixr2 in the future.</h2>
+<p><code>rxode2</code> has implemented many neural-network activation functions
+built-in. In the future packages like <code>pmxNODE</code> may use these
+directly and even extend to use some of the other neural network
+functions there. Since they are built-into rxode2, the models may be
+a bit faster if this integration occurs.</p>
+</div>
+<div id="nnbsv-function" class="section level2">
+<h2>NNbsv() function</h2>
+<p>Since the pull request hasn’t been accepted at this point, I am
+providing the code below in case you want to use it yourself:</p>
+<pre class="r"><code>NNbsv &lt;- function(ui, val=0.1, str=&quot;%s &lt;- l%s*exp(eta.%s)&quot;) {
+  .ui &lt;- rxode2::assertRxUi(ui)
+  .n &lt;- names(.ui$theta)
+  .etaNames &lt;- dimnames(.ui$omega)[[1]]
+  .nn &lt;- vapply(seq_along(.n), function(i){
+    grepl(&quot;^[l][Wb].*_[1-9]?[0-9]*&quot;, .n[i]) &amp;&amp;
+      !any(paste0(&quot;eta.&quot;, .n[i]) %in% .etaNames)
+  }, logical(1))
+  .n &lt;- .n[which(.nn)]
+  if (length(.n) == 0) return(ui)
+  .v &lt;- gsub(&quot;^[l]&quot;, &quot;&quot;, .n)
+  .s1 &lt;- paste0(.v, &quot; &lt;- l&quot;, .v)
+  .s2 &lt;- sprintf(str, .v, .v, .v)
+  # Change the model expression first.
+  .model &lt;- vapply(.ui$lstChr,
+                   function(l) {
+                     .w &lt;- which(.s1 == l)
+                     if (length(.w) != 1) {
+                       return(l)
+                     }
+                     .s2[.w]
+                   }, character(1),
+                   USE.NAMES=FALSE)
+  rxode2::model(.ui) &lt;- .model
+  # Now add eta estimates
+  .iniDf &lt;- .ui$iniDf
+  .w &lt;- which(!is.na(.iniDf$neta1))
+  if (length(.w) == 0L) {
+    .maxEta &lt;- 0
+  } else {
+    .maxEta &lt;- max(.iniDf$neta1[.w])
+  }
+  .i1 &lt;- .iniDf[1,]
+  .i1$ntheta &lt;- NA_integer_
+  .i1$lower &lt;- -Inf
+  .i1$upper &lt;- Inf
+  .i1$est &lt;- val
+  .i1$label &lt;- NA_character_
+  .i1$backTransform &lt;- NA_character_
+  .i1$condition &lt;- &quot;id&quot;
+  .i1$err &lt;- NA_character_
+  .etas &lt;- do.call(`rbind`,
+                   lapply(seq_along(.v), function(i) {
+                     .cur &lt;- .i1
+                     .cur$neta1 &lt;- .maxEta+i
+                     .cur$neta2 &lt;- .maxEta+i
+                     .cur$name &lt;- paste0(&quot;eta.&quot;, .v[i])
+                     .cur
+                   }))
+  .iniDf &lt;- rbind(.iniDf, .etas)
+
+  rxode2::ini(.ui) &lt;- .iniDf
+  .ui
+}</code></pre>
+</div>
