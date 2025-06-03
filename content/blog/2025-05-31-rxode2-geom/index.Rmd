@@ -129,6 +129,8 @@ ggplot(data = pk_data_cycle1, aes(x = TIME, y = LIDV)) +
 
 ```
 
+Whenever a point is censored, it shows the censoring assumptions by
+drawing a small box where the censoring occurs.
 
 This is adapted from the nlmixr2 [xgxr and ggPMX vignette](https://nlmixr2.org/articles/xgxr-nlmixr-ggpmx.html).
 
