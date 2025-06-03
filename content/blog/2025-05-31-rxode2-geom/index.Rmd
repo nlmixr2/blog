@@ -135,11 +135,13 @@ This is adapted from the nlmixr2 [xgxr and ggPMX vignette](https://nlmixr2.org/a
 
 ## Other notes
 
-While this showed 2 different extra geoms you can use with your own
-analysis, you can also use the `rxTheme()` ggplot theme with other
+This showed 2 different extra geoms you can use with your own
+analysis!
+
+You can also use the `rxTheme()` ggplot theme with other
 ggplot objects (or apply your own theme to the ggplot objects
 generated from `rxode2`).
 
-I chose to highlight this because I don't believe that these are
-currently very well known and can both be useful depending on your
-analysis.
+I chose to highlight these extra `geom`s from `rxode2` because I don't
+believe that these are currently very well known and can be
+useful depending on your analysis.
