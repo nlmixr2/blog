@@ -1,0 +1,139 @@
+---
+title: nlmixr2/rxode2 exploring data with rxode2 geoms
+author: Matthew Fidler
+date: '2025-05-31'
+slug: []
+categories: [rxode2]
+tags: []
+---
+
+
+
+<div id="rxode2-and-ggplot" class="section level2">
+<h2><code>rxode2</code> and <code>ggplot</code></h2>
+<p><code>rxode2</code> (and <code>nlmixr2</code>) uses ggplot internally. This means most
+things are compatible with <code>ggplot2</code>.</p>
+<p>One thing that is not quite as widely known that <code>rxode2</code> has some
+custom <code>geom</code> functions that are useful for exploring pharmacometrics
+data.</p>
+<div id="geom_amt-exploring-when-dosing-occurs" class="section level3">
+<h3><code>geom_amt()</code> – exploring <strong>when</strong> dosing occurs</h3>
+<p><code>rxode2</code> will allow exploring time of dosing with the <code>geom_amt()</code>.
+From the <code>geom_amt()</code> documentation we can see how this is applied:</p>
+<pre class="r"><code>library(rxode2)
+library(units)</code></pre>
+<pre><code>## udunits database from /usr/share/xml/udunits/udunits2.xml</code></pre>
+<pre class="r"><code>library(ggplot2)
+
+mod1 &lt;- function() {
+  ini({
+    KA &lt;- 2.94E-01
+    CL &lt;- 1.86E+01
+    V2 &lt;- 4.02E+01
+    Q  &lt;- 1.05E+01
+    V3 &lt;- 2.97E+02
+    Kin &lt;- 1
+    Kout &lt;- 1
+    EC50 &lt;- 200
+  })
+  model({
+    C2 &lt;- centr/V2
+    C3 &lt;- peri/V3
+    d/dt(depot) &lt;- -KA*depot
+    d/dt(centr) &lt;-  KA*depot - CL*C2 - Q*C2 + Q*C3
+    d/dt(peri)  &lt;-                    Q*C2 - Q*C3
+    d/dt(eff)   &lt;- Kin - Kout*(1-C2/(EC50+C2))*eff
+  })
+}
+
+## These are making the more complex regimens of the rxode2 tutorial
+
+## bid for 5 days
+bid &lt;- et(timeUnits=&quot;hr&quot;) %&gt;%
+  et(amt=10000,ii=12,until=set_units(5, &quot;days&quot;))
+
+## qd for 5 days
+qd &lt;- et(timeUnits=&quot;hr&quot;) %&gt;%
+  et(amt=20000,ii=24,until=set_units(5, &quot;days&quot;))
+
+## bid for 5 days followed by qd for 5 days
+
+et &lt;- seq(bid,qd) %&gt;% et(seq(0,11*24,length.out=100))
+
+bidQd &lt;- rxSolve(mod1, et, addDosing=TRUE)</code></pre>
+<pre><code>## ℹ parameter labels from comments are typically ignored in non-interactive mode</code></pre>
+<pre><code>## ℹ Need to run with the source intact to parse comments</code></pre>
+<pre><code>## using C compiler: ‘gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0’</code></pre>
+<pre class="r"><code># by default dotted and under-stated
+plot(bidQd, C2) + geom_amt(aes(amt=amt))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/geom_amt-1.png" width="672" /></p>
+<pre class="r"><code># of course you can make it a bit more visible
+
+plot(bidQd, C2) + geom_amt(aes(amt=amt), col=&quot;red&quot;, lty=1, linewidth=1.2)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/geom_amt-2.png" width="672" /></p>
+<p>While not terribly complicated it is a convenient way to add dosing to
+your <code>ggplot2</code> object.</p>
+</div>
+<div id="geom_cens-exploring-what-the-censoring-means" class="section level3">
+<h3><code>geom_cens()</code> – exploring <strong>what</strong> the censoring means</h3>
+<p>Another useful way to see how your data is censored (according to
+<code>nlmixr2</code> and Monolix) is to use the <code>geom_cens()</code> function:</p>
+<pre class="r"><code>library(rxode2)
+library(ggplot2)
+library(tidyverse)</code></pre>
+<pre><code>## ── Attaching core tidyverse packages ──────────────────────────────────────── tidyverse 2.0.0 ──
+## ✔ dplyr     1.1.4     ✔ readr     2.1.5
+## ✔ forcats   1.0.0     ✔ stringr   1.5.1
+## ✔ lubridate 1.9.4     ✔ tibble    3.2.1
+## ✔ purrr     1.0.4     ✔ tidyr     1.3.1
+## ── Conflicts ────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()
+## ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+<pre class="r"><code>library(xgxr)
+
+# Get the data from xgxr
+pkpd_data &lt;-
+  case1_pkpd %&gt;%
+  arrange(DOSE) %&gt;%
+  select(-IPRED) %&gt;%
+  mutate(TRTACT_low2high = factor(TRTACT, levels = unique(TRTACT)),
+         TRTACT_high2low = factor(TRTACT, levels = rev(unique(TRTACT))),
+         DAY_label = paste(&quot;Day&quot;, PROFDAY),
+         DAY_label = ifelse(DAY_label == &quot;Day 0&quot;,&quot;Baseline&quot;,DAY_label))
+
+pk_data &lt;- pkpd_data %&gt;%
+  filter(CMT == 2)
+
+pk_data_cycle1 &lt;- pk_data %&gt;%
+  filter(CYCLE == 1)
+
+
+ggplot(data = pk_data_cycle1, aes(x = TIME, y = LIDV)) +
+  geom_line(aes(group = ID), color = &quot;grey50&quot;, linewidth = 1, alpha = 0.3) +
+  geom_cens(aes(cens=CENS)) +
+  xgx_geom_ci(aes(x = NOMTIME, color = NULL, group = NULL, shape = NULL), conf_level = 0.95) +
+  xgx_scale_y_log10() +
+  xgx_scale_x_time_units(units_dataset = &quot;hours&quot;, units_plot = &quot;days&quot;) +
+  labs(y = &quot;Concentration (ng/ml)&quot;, color = &quot;Dose&quot;) +
+  theme(legend.position = &quot;none&quot;) +
+  facet_grid(.~TRTACT_low2high)</code></pre>
+<pre><code>## Warning in geom_cens(aes(cens = CENS)): Ignoring unknown aesthetics: cens</code></pre>
+<pre><code>## Warning: Using the `size` aesthetic in this geom was deprecated in ggplot2 3.4.0.
+## ℹ Please use `linewidth` in the `default_aes` field and elsewhere instead.
+## This warning is displayed once every 8 hours.
+## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was generated.</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/geom_cens-1.png" width="672" /></p>
+<p>This is adapted from the nlmixr2 <a href="https://nlmixr2.org/articles/xgxr-nlmixr-ggpmx.html">xgxr and ggPMX vignette</a>.</p>
+</div>
+</div>
+<div id="other-notes" class="section level2">
+<h2>Other notes</h2>
+<p>While this showed 2 different extra geoms you can use with your own
+analysis, you can also use the <code>rxTheme()</code> ggplot theme with other
+ggplot objects (or apply your own theme to the ggplot objects
+generated from <code>rxode2</code>).</p>
+<p>I chose to highlight this because I don’t believe that these are
+currently very well known and can both be useful depending on your
+analysis.</p>
+</div>

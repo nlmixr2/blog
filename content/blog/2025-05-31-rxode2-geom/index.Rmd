@@ -1,0 +1,145 @@
+---
+title: nlmixr2/rxode2 exploring data with rxode2 geoms
+author: Matthew Fidler
+date: '2025-05-31'
+slug: []
+categories: [rxode2]
+tags: []
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(nlmixr2)
+library(rxode2)
+# suppress messages
+rxode2:::rxSetSilentErr(1L)
+```
+
+## `rxode2` and `ggplot`
+
+`rxode2` (and `nlmixr2`) uses ggplot internally.  This means most
+things are compatible with `ggplot2`.
+
+One thing that is not quite as widely known that `rxode2` has some
+custom `geom` functions that are useful for exploring pharmacometrics
+data.
+
+### `geom_amt()` -- exploring **when** dosing occurs
+
+`rxode2` will allow exploring time of dosing with the `geom_amt()`.
+From the `geom_amt()` documentation we can see how this is applied:
+
+
+```{r geom_amt}
+
+library(rxode2)
+library(units)
+library(ggplot2)
+
+mod1 <- function() {
+  ini({
+    KA <- 2.94E-01
+    CL <- 1.86E+01
+    V2 <- 4.02E+01
+    Q  <- 1.05E+01
+    V3 <- 2.97E+02
+    Kin <- 1
+    Kout <- 1
+    EC50 <- 200
+  })
+  model({
+    C2 <- centr/V2
+    C3 <- peri/V3
+    d/dt(depot) <- -KA*depot
+    d/dt(centr) <-  KA*depot - CL*C2 - Q*C2 + Q*C3
+    d/dt(peri)  <-                    Q*C2 - Q*C3
+    d/dt(eff)   <- Kin - Kout*(1-C2/(EC50+C2))*eff
+  })
+}
+
+## These are making the more complex regimens of the rxode2 tutorial
+
+## bid for 5 days
+bid <- et(timeUnits="hr") %>%
+  et(amt=10000,ii=12,until=set_units(5, "days"))
+
+## qd for 5 days
+qd <- et(timeUnits="hr") %>%
+  et(amt=20000,ii=24,until=set_units(5, "days"))
+
+## bid for 5 days followed by qd for 5 days
+
+et <- seq(bid,qd) %>% et(seq(0,11*24,length.out=100))
+
+bidQd <- rxSolve(mod1, et, addDosing=TRUE)
+
+# by default dotted and under-stated
+plot(bidQd, C2) + geom_amt(aes(amt=amt))
+
+# of course you can make it a bit more visible
+
+plot(bidQd, C2) + geom_amt(aes(amt=amt), col="red", lty=1, linewidth=1.2)
+```
+
+
+While not terribly complicated it is a convenient way to add dosing to
+your `ggplot2` object.
+
+
+### `geom_cens()` -- exploring **what** the censoring means
+
+
+Another useful way to see how your data is censored (according to
+`nlmixr2` and Monolix) is to use the `geom_cens()` function:
+
+```{r geom_cens}
+
+library(rxode2)
+library(ggplot2)
+library(tidyverse)
+library(xgxr)
+
+# Get the data from xgxr
+pkpd_data <-
+  case1_pkpd %>%
+  arrange(DOSE) %>%
+  select(-IPRED) %>%
+  mutate(TRTACT_low2high = factor(TRTACT, levels = unique(TRTACT)),
+         TRTACT_high2low = factor(TRTACT, levels = rev(unique(TRTACT))),
+         DAY_label = paste("Day", PROFDAY),
+         DAY_label = ifelse(DAY_label == "Day 0","Baseline",DAY_label))
+
+pk_data <- pkpd_data %>%
+  filter(CMT == 2)
+
+pk_data_cycle1 <- pk_data %>%
+  filter(CYCLE == 1)
+
+
+ggplot(data = pk_data_cycle1, aes(x = TIME, y = LIDV)) +
+  geom_line(aes(group = ID), color = "grey50", linewidth = 1, alpha = 0.3) +
+  geom_cens(aes(cens=CENS)) +
+  xgx_geom_ci(aes(x = NOMTIME, color = NULL, group = NULL, shape = NULL), conf_level = 0.95) +
+  xgx_scale_y_log10() +
+  xgx_scale_x_time_units(units_dataset = "hours", units_plot = "days") +
+  labs(y = "Concentration (ng/ml)", color = "Dose") +
+  theme(legend.position = "none") +
+  facet_grid(.~TRTACT_low2high)
+
+```
+
+
+This is adapted from the nlmixr2 [xgxr and ggPMX vignette](https://nlmixr2.org/articles/xgxr-nlmixr-ggpmx.html).
+
+
+## Other notes
+
+While this showed 2 different extra geoms you can use with your own
+analysis, you can also use the `rxTheme()` ggplot theme with other
+ggplot objects (or apply your own theme to the ggplot objects
+generated from `rxode2`).
+
+I chose to highlight this because I don't believe that these are
+currently very well known and can both be useful depending on your
+analysis.
