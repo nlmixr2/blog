@@ -1,0 +1,151 @@
+---
+title: nlmixr2 ecosystem
+author: Matthew Fidler
+date: '2025-06-30'
+slug: []
+categories: [nlmixr2]
+tags: []
+---
+
+
+
+<div id="nlmixr2-ecosystem" class="section level2">
+<h2>nlmixr2 ecosystem</h2>
+<p>I have seen a few new pharmacometrics tools integrated in the nlmixr2
+ecosystem recently. I thought I would point out the tools I know that
+integrate in the nlmixr2 ecosystem.</p>
+<p>Some are maintained by our nlmixr2 team, and many are not. For each
+category, these are ordered alphabetically.</p>
+<div id="tools-that-enhance-nlmixr2s-language" class="section level3">
+<h3>Tools that Enhance nlmixr2’s language</h3>
+<ul>
+<li><p><a href="https://github.com/nlmixr2/nlmixr2lib">nlmixr2lib</a> In addition to a
+model library, it has tools to change model components (like add
+Weibull absorption, add transit compartments, change standard
+elimination to Michaleis-Menton absorption; maintained by Bill
+Denney and developed by the nlmixr2 team).</p></li>
+<li><p><a href="https://github.com/braemd/pmxNODE">pmxNODE</a> The goal of pmxNODE is
+to facilitate the implementation of neural ordinary differential
+equations (NODEs) in pharmacometric software, i.e., Monolix, NONMEM,
+and nlmixr2 (by Dominic Bräm &amp; language integration by Matt Fidler).</p></li>
+</ul>
+</div>
+<div id="nlmixr2-run-management-tool" class="section level3">
+<h3>nlmixr2 run management tool</h3>
+<ul>
+<li><a href="https://richardhooijmaijers.github.io/shinyMixR/articles/shinyMixR-vignette.html">shinyMixR</a>
+Currently the only run managment tool for <code>nlmixr2</code> is <code>shinyMixR</code>
+(By Richard Hooijmaijers and colleagues at LAP&amp;P)</li>
+</ul>
+</div>
+<div id="tools-to-help-with-standard-non-linear-estimated-models" class="section level3">
+<h3>Tools to help with standard non-linear estimated models</h3>
+<ul>
+<li><p><a href="https://github.com/ggPMXdevelopment/ggPMX">ggPMX</a> This tool creates
+standardized diagnostic plots for tools like Monolix, nlmixr2 and
+NONMEM (By colleagues sponsored by Novartis).</p></li>
+<li><p><a href="https://github.com/ucl-pharmacometrics/nlmixr2autoinit">nlmixr2autoinit</a>
+Creates automatic parameter estimates for a nlmixr2 model. (By
+Zhonghui Huang and Joe Standing lab at UCL)</p></li>
+<li><p><a href="https://github.com/ucl-pharmacometrics/nlmixr2auto">nlmixr2auto</a>
+Automated Population Pharmacokinetic Modelling. This package offers
+serveral optimisation algorithms designed for automated population
+pharmacokinetic modeling, serving as a valuable tool for
+pharmacokinetic model selection. (By Zhonghui Huang and Joe Standing
+lab at UCL)</p></li>
+<li><p><a href="https://pharmpy.github.io/latest/index.html">pharmpy</a> Can create
+<code>nlmixr2</code> models (and convert between <code>NONMEM</code> and <code>nlmixr2</code> models)</p></li>
+<li><p><a href="https://humanpred.github.io/pknca/">PKNCA</a> With the help of
+<code>babelmixr2</code>, you can use <code>PKNCA</code> to calculate PK parameters that
+will be used as initial estimates for your population PK model (By
+Bill Denney and team at Human Predictions)</p></li>
+<li><p><a href="https://certara.github.io/tidyvpc/articles/tidyvpc_nlmixr2.html">tidyvpc</a>
+integrates and can create visual prediction plots from nlmixr2
+models (by James Craig and team at Cetara)</p></li>
+<li><p><a href="https://github.com/ronkeizer/vpc">vpc</a> Create visual predictive
+checks, a commonly used diagnostic plot in pharmacometrics, in R,
+and is used by the default VPCs from nlmixr2 (By Ron Keizer and Bill
+Denney)</p></li>
+<li><p><a href="https://github.com/nlmixr2/xpose.nlmixr2">xpose.nlmixr2</a> This
+integrates the ggplot2 <code>xpose</code> with <code>nlmixr2</code> outputs allowing
+standardized graphs (By Justin Wilkins and collegues)</p></li>
+</ul>
+</div>
+<div id="tools-to-help-simulation-of-non-linear-models-excluding-rxode2" class="section level3">
+<h3>Tools to help simulation of non-linear models (excluding rxode2)</h3>
+<ul>
+<li><p><a href="https://calvagone.github.io/">Campsis</a> can use the Campsis models
+to perform a shiny model simulation using rxode2 or mrgsolve. With
+the professional subscription, you can also convert nlmixr2, Monolix
+and NONMEM models to campsis format (by Nicolas Luyckx and
+colleagues at Campsis)</p></li>
+<li><p><a href="https://ruminate.ubiquity.tools/">ruminate</a> Shiny tool for
+simulation of complex regimens and designs</p></li>
+</ul>
+</div>
+<div id="expanding-nlmixr2-beyond-estimation-and-simulation" class="section level3">
+<h3>Expanding nlmixr2 beyond estimation and simulation</h3>
+<ul>
+<li><p><a href="https://github.com/braemd/optiDoseR">OptiDoseR</a> optiDoseR is a
+package to facilitate the application of the optiDose approach in
+Monolix, NONMEM, and nlmixr2 (by Dominic Bräm)</p></li>
+<li><p><a href="https://andrewhooker.github.io/PopED/">PopED</a> this allows optimal
+design methodologies to be applied to a <code>nlmixr2</code> model using the
+<a href="https://nlmixr2.github.io/babelmixr2/articles/PopED.html">babelmixr2</a>
+package. (Translation written by Matt Fidler; PopED written by
+Andrew Hooker and colleagues)</p></li>
+<li><p><a href="https://levenc.github.io/posologyr/">posologyr</a> Personalize drug
+regimens using individual pharmacokinetic (PK) and
+pharmacokinetic-pharmacodynamic (PK-PD) profiles. By combining
+therapeutic drug monitoring (TDM) data with a population model,
+posologyr offers accurate posterior estimates and helps compute
+optimal individualized dosing regimens (by Cyril Leven)</p></li>
+</ul>
+</div>
+</div>
+<div id="reporting-tools" class="section level2">
+<h2>Reporting tools</h2>
+<ul>
+<li><p><a href="https://github.com/nlmixr2/nlmixr2rpt">nlmixr2rpt</a> Converts nlmixr2
+runs to Word and PowerPoint reports (by John Harrold).</p></li>
+<li><p><a href="https://pharmtex.org/">PharmTeX</a> Can be used to create <code>LaTeX</code>
+reports for nlmixr2 (by Christian Hove Claussen)</p></li>
+</ul>
+<div id="conversion-tools" class="section level3">
+<h3>Conversion tools</h3>
+<ul>
+<li><p><a href="https://www.simulations-plus.com/software/monolix/monolix/">Monolix</a>
+These models can be imported using <code>monolix2rx()</code> and exported/run
+using <code>monolix</code>’s <code>"monolix"</code> method. Both are available in <a href="https://nlmixr2.github.io/babelmixr2">babelmixr2</a>. (Conversion routines written
+by Matt Fidler, Monolix is currently maintained by Simulations Plus).</p></li>
+<li><p><a href="https://www.iconplc.com/solutions/technologies/nonmem">NONMEM</a>
+These models can be imported using <code>nonmem2rx()</code> and exported/run
+using <code>babelmixr2</code>’s <code>"nonmem"</code> method. Both are available in <a href="https://nlmixr2.github.io/babelmixr2">babelmixr2</a>. (Conversion routines are
+written by Matt Fidler, NONMEM currently maintained by Bob Bauer and
+other colleagues at Icon).</p></li>
+<li><p><a href="https://pharmpy.github.io/latest/index.html">pharmpy</a> Can create
+<code>nlmixr2</code> models (and convert between <code>NONMEM</code> and <code>nlmixr2</code> models)</p></li>
+<li><p><a href="https://insightrx.github.io/PKPDsim/reference/pkpdsim_to_nlmixr.html">PKPDsim</a>
+Can convert PKPDsim models to <code>nlmixr2</code> models (by Ron Keizer and
+team at InsightRX)</p></li>
+</ul>
+</div>
+</div>
+<div id="modeling-platform-tools" class="section level2">
+<h2>Modeling platform tools</h2>
+<ul>
+<li><p><a href="https://calvagone.github.io/">Campsis</a> can use the Campsis models
+to perform a shiny model simulation using rxode2 or mrgsolve. With
+the professional subscription, you can also convert nlmixr2, Monolix
+and NONMEM models to campsis format (by Nicolas Luyckx and
+colleagues at Campsis)</p></li>
+<li><p><a href="https://www.intiquan.com/iqr-tools/">IQRtools</a> Allows use of
+nlmixr2 in an integrated environment using a shared language that is
+translated to nlmixr2 tools.</p></li>
+<li><p><a href="https://pharmpy.github.io/latest/index.html">pharmpy</a> Can create
+<code>nlmixr2</code> models (and convert between <code>NONMEM</code> and <code>nlmixr2</code> models)</p></li>
+<li><p><a href="https://r.ubiquity.tools/">ubiquity</a> Converts ubiquity language
+into rxode2/nlmixr2 syntax and can use this same interface to
+convert to NONMEM and Monolix (By John Harrold)</p></li>
+</ul>
+</div>
