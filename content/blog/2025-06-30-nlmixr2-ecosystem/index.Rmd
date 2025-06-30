@@ -1,9 +1,9 @@
 ---
 title: nlmixr2 ecosystem
 author: Matthew Fidler
-date: '2025-06-29'
+date: '2025-06-30'
 slug: []
-categories: [rxode2, nlmixr2, babelmixr2]
+categories: [nlmixr2]
 tags: []
 ---
 
@@ -124,12 +124,12 @@ category, these are ordered alphabetically.
 
 - [Monolix](https://www.simulations-plus.com/software/monolix/monolix/)
   These models can be imported using `monolix2rx()` and exported/run
-  using `monolix`'s `"monolix"` method. (Conversion routines written
+  using `monolix`'s `"monolix"` method. Both are available in [babelmixr2](https://nlmixr2.github.io/babelmixr2). (Conversion routines written
   by Matt Fidler, Monolix is currently maintained by Simulations Plus).
 
 - [NONMEM](https://www.iconplc.com/solutions/technologies/nonmem)
   These models can be imported using `nonmem2rx()` and exported/run
-  using `babelmixr2`'s `"nonmem"` method.  (Conversion routines are
+  using `babelmixr2`'s `"nonmem"` method.  Both are available in [babelmixr2](https://nlmixr2.github.io/babelmixr2). (Conversion routines are
   written by Matt Fidler, NONMEM currently maintained by Bob Bauer and
   other colleagues at Icon).
 
