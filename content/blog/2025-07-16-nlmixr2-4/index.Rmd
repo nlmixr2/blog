@@ -26,25 +26,29 @@ seen in line with our vision:
 > submissions.
 
 This release furthers the quality by changing linear compartment
-models the `ADVAN` solutions to the `wnl` solutions.  We also added a
-few new features to the linear compartment solutions too.
+models the [ADVAN](https://doi.org/10.1016/j.vascn.2015.03.004)
+solutions to the [WNL](https://doi.org/10.12793/tcp.2019.27.2.43)
+solutions.  We also added a few new features to the linear compartment
+solutions too.
 
 However, since this is a change to the type of linear compartment
-solutions, this is a breaking change so it is a new release.
+solutions, this is a breaking change so it is a new major release.
 
 There are other features that may be of interest, but we will cover
 them at a later time.
 
 ## Why a new set of linear compartment solutions
 
-The ADVAN compartment solutions we were using are an excellent linear
-compartment solution that takes the last value of all the compartments
-solved to determine the next value of each compartment (i.e. not the
-super-positioning solutions I learned in graduate school).  This
-should allow time-varying covariates to be used correctly in linear
-compartment solutions. We had 5,662 tests related to the linear
-compartment solutions to make sure they were solving correctly in
-`rxode2`.
+The [WNL](https://doi.org/10.12793/tcp.2019.27.2.43) compartment
+solutions we were using are an excellent linear compartment solution
+that takes the last value of all the compartments solved to determine
+the next value of each compartment (i.e. not the super-positioning
+solutions I learned in graduate school).  This should allow
+time-varying covariates to be used correctly in linear compartment
+solutions.
+
+To ensure the accuracy of these results we had 5,662 tests related to
+the linear compartment solutions in `rxode2`.
 
 Even with these results, there were cases where the linear compartment
 solution did not seem to be performing well for optimization.  Of
@@ -76,14 +80,18 @@ solution for inclusion in `rxode2` and `nlmixr2est`.
 
 ## WNL linear compartment solution in rxode2
 
-After some searching, I found the WNL linear compartment solutions,
-which also took the last solution of the compartments to solve the
-current concentrations.  In addition to what was described in the
-paper, we modified this to allow:
+After some searching, we found the
+[WNL](https://doi.org/10.12793/tcp.2019.27.2.43) linear compartment
+solutions, which also took the last solution of the compartments to
+solve the current concentrations (also allowing time-varying
+covariates). In addition to what was described in the paper, we
+modified this to allow:
 
-- Infusions into the depot compartment (as well as the central)
+- Infusions into the depot compartment (as well as the central). The math derivation is [included in the code](https://github.com/nlmixr2/rxode2/blob/90cae4aa72b725c27ee85c6b2c71d4e92662af91/src/linCmt.h#L44-L71)
 
-- Exact steady state solutions (as derived by the `ADVAN` solutions)
+- Exact steady state solutions (as derived by the
+  [ADVAN](https://doi.org/10.1016/j.vascn.2015.03.004) solutions, not
+  included in their paper)
 
 There are also other changes that you may observe:
 
@@ -107,7 +115,6 @@ There are also other changes that you may observe:
   parameter will be calculated).  This actually saves a little time if
   you are not using a model with multiple `eta`s.
 
-
 Changes you may not see, but should help in stability
 
 - The linear compartment solutions are no longer separated into `AD`
@@ -116,7 +123,7 @@ Changes you may not see, but should help in stability
   with C++'s templates.
 
 - The event handling for `rxode2` is no longer any different between
-  linear compartment solutions and
+  linear compartment solutions and ODEs.
 
 - More tests for the accuracy of the linear compartment solutions were
   added (from 5,662 to 15,850 tests).
