@@ -187,6 +187,6 @@ solutions are almost identical.
 Also the speed of linear compartment solutions in `saem` is faster
 than the ode solution:
 
-![saem solved is faster](saemSolveTime.png)
+![](saemSolveTime.png)
 
 Unlike `focei`, I didn't explore anything else since this is what I expected.
