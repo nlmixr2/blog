@@ -34,12 +34,13 @@ solutions too.
 However, since this is a change to the type of linear compartment
 solutions, this is a breaking change so it is a new major release.
 
-There are other features that may be of interest, but we will cover
-them at a later time.
+There are other features that may be of interest (you will see a
+different loading with `nlmixr2`), but we will cover them at a later
+time.
 
 ## Why a new set of linear compartment solutions
 
-The [WNL](https://doi.org/10.12793/tcp.2019.27.2.43) compartment
+The [ADVAN](https://doi.org/10.1016/j.vascn.2015.03.004) compartment
 solutions we were using are an excellent linear compartment solution
 that takes the last value of all the compartments solved to determine
 the next value of each compartment (i.e. not the super-positioning
@@ -50,10 +51,11 @@ solutions.
 To ensure the accuracy of these results we had 5,662 tests related to
 the linear compartment solutions in `rxode2`.
 
-Even with these results, there were cases where the linear compartment
-solution did not seem to be performing well for optimization.  Of
-course, this is concerning to us as a team and we set to fix this issue
-as soon as we found out.
+Even with these results, there were
+[cases](https://github.com/nlmixr2/nlmixr2/discussions/293) where the
+linear compartment solution did not seem to be performing well for
+optimization.  Of course, this is concerning to us as a team and we
+set to fix this issue as soon as we found out.
 
 Our hypothesis was that the strange results were due one of the
 following possibilities:
@@ -65,7 +67,8 @@ following possibilities:
 - Some strange difference in event handling (since linear compartment
   events were handled differently than ODE events)
 
-At the same time CRAN brought the following problems with the linear
+At the same time CRAN brought the following problems with the
+[ADVAN](https://doi.org/10.1016/j.vascn.2015.03.004) linear
 compartment solutions to our attention:
 
  - The linear compartment solutions caused the new Intel compilers to
@@ -98,7 +101,9 @@ There are also other changes that you may observe:
 - Whenever a linear compartment solution is used i.e. `cp <-
   linCmt()`, you may access any of the compartments that would be
   defined by the corresponding ODE by name, that is: `depot`,
-  `central`, `peripheral1` and `peripheral2` for use in your model
+  `central`, `peripheral1` and `peripheral2` for use in your
+  model. (This is a breaking change if you used these names in your
+  model)
 
 - You can also dose the `peripheral1` and `peripharal2` compartment
   (as long as those doses are not infusion doses).
@@ -127,3 +132,61 @@ Changes you may not see, but should help in stability
 
 - More tests for the accuracy of the linear compartment solutions were
   added (from 5,662 to 15,850 tests).
+
+# More robust validation and speed tests
+
+## `focei` tests
+
+The focei routine has to figure out the linear compartment solution
+gradients.  We tested the
+linear compartment solutions against the subset of linear comparment
+solutions found in [our comparison
+paper](https://doi.org/10.1002/psp4.12471).
+
+In this release the default gradient method is the automatic
+differentiation of the linear compartment solutions from stan:
+
+![](ad.png)
+
+These solutions matched, which is great.  However, they are slower
+than ODE solving with sensitivities.
+
+![](adTime.png)
+
+Because of this, we tried many different type of finite differences,
+which give inaccurate results (especially the central difference):
+
+![](finiteDiff.png)
+
+Even removing the central difference, there is inaccurate results with
+the various types of finite differences:
+
+![](finiteDiffNoCentral.png)
+
+While calculating one gradient is faster with numeric differentiation,
+the optimization is actually slower with this approach:
+
+![](finiteDiffTime.png)
+
+
+## `saem` tests
+
+The saem routine only uses the non-gradient solutions; We tested the
+linear compartment solutions against the subset of linear comparment
+solutions found in [our comparison
+paper](https://doi.org/10.1002/psp4.12471).
+
+We will focus on the volume compartment comparison since all models
+have this in common:
+
+![saem solved vs ode volumes](saemSolve.png)
+
+You can see the solutions between ODEs and linear compartment
+solutions are almost identical.
+
+Also the speed of linear compartment solutions in `saem` is faster
+than the ode solution:
+
+![saem solved is faster](saemSolveTime.png)
+
+Unlike `focei`, I didn't explore anything else since this is what I expected.

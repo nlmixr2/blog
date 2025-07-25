@@ -26,12 +26,13 @@ solutions. We also added a few new features to the linear compartment
 solutions too.</p>
 <p>However, since this is a change to the type of linear compartment
 solutions, this is a breaking change so it is a new major release.</p>
-<p>There are other features that may be of interest, but we will cover
-them at a later time.</p>
+<p>There are other features that may be of interest (you will see a
+different loading with <code>nlmixr2</code>), but we will cover them at a later
+time.</p>
 </div>
 <div id="why-a-new-set-of-linear-compartment-solutions" class="section level2">
 <h2>Why a new set of linear compartment solutions</h2>
-<p>The <a href="https://doi.org/10.12793/tcp.2019.27.2.43">WNL</a> compartment
+<p>The <a href="https://doi.org/10.1016/j.vascn.2015.03.004">ADVAN</a> compartment
 solutions we were using are an excellent linear compartment solution
 that takes the last value of all the compartments solved to determine
 the next value of each compartment (i.e. not the super-positioning
@@ -40,10 +41,11 @@ time-varying covariates to be used correctly in linear compartment
 solutions.</p>
 <p>To ensure the accuracy of these results we had 5,662 tests related to
 the linear compartment solutions in <code>rxode2</code>.</p>
-<p>Even with these results, there were cases where the linear compartment
-solution did not seem to be performing well for optimization. Of
-course, this is concerning to us as a team and we set to fix this issue
-as soon as we found out.</p>
+<p>Even with these results, there were
+<a href="https://github.com/nlmixr2/nlmixr2/discussions/293">cases</a> where the
+linear compartment solution did not seem to be performing well for
+optimization. Of course, this is concerning to us as a team and we
+set to fix this issue as soon as we found out.</p>
 <p>Our hypothesis was that the strange results were due one of the
 following possibilities:</p>
 <ul>
@@ -53,7 +55,8 @@ calculating the derivatives in automatic differentiation from STAN).</p></li>
 <li><p>Some strange difference in event handling (since linear compartment
 events were handled differently than ODE events)</p></li>
 </ul>
-<p>At the same time CRAN brought the following problems with the linear
+<p>At the same time CRAN brought the following problems with the
+<a href="https://doi.org/10.1016/j.vascn.2015.03.004">ADVAN</a> linear
 compartment solutions to our attention:</p>
 <ul>
 <li>The linear compartment solutions caused the new Intel compilers to
@@ -84,7 +87,9 @@ included in their paper)</p></li>
 <ul>
 <li><p>Whenever a linear compartment solution is used i.e. <code>cp &lt;-   linCmt()</code>, you may access any of the compartments that would be
 defined by the corresponding ODE by name, that is: <code>depot</code>,
-<code>central</code>, <code>peripheral1</code> and <code>peripheral2</code> for use in your model</p></li>
+<code>central</code>, <code>peripheral1</code> and <code>peripheral2</code> for use in your
+model. (This is a breaking change if you used these names in your
+model)</p></li>
 <li><p>You can also dose the <code>peripheral1</code> and <code>peripharal2</code> compartment
 (as long as those doses are not infusion doses).</p></li>
 <li><p>Solving <code>linCmt()</code> is now threaded when solving with <code>rxSolve()</code> or
@@ -109,4 +114,52 @@ linear compartment solutions and ODEs.</p></li>
 <li><p>More tests for the accuracy of the linear compartment solutions were
 added (from 5,662 to 15,850 tests).</p></li>
 </ul>
+</div>
+<div id="more-robust-validation-and-speed-tests" class="section level1">
+<h1>More robust validation and speed tests</h1>
+<div id="focei-tests" class="section level2">
+<h2><code>focei</code> tests</h2>
+<p>The focei routine has to figure out the linear compartment solution
+gradients. We tested the
+linear compartment solutions against the subset of linear comparment
+solutions found in <a href="https://doi.org/10.1002/psp4.12471">our comparison
+paper</a>.</p>
+<p>In this release the default gradient method is the automatic
+differentiation of the linear compartment solutions from stan:</p>
+<p><img src="ad.png" /></p>
+<p>These solutions matched, which is great. However, they are slower
+than ODE solving with sensitivities.</p>
+<p><img src="adTime.png" /></p>
+<p>Because of this, we tried many different type of finite differences,
+which give inaccurate results (especially the central difference):</p>
+<p><img src="finiteDiff.png" /></p>
+<p>Even removing the central difference, there is inaccurate results with
+the various types of finite differences:</p>
+<p><img src="finiteDiffNoCentral.png" /></p>
+<p>While calculating one gradient is faster with numeric differentiation,
+the optimization is actually slower with this approach:</p>
+<p><img src="finiteDiffTime.png" /></p>
+</div>
+<div id="saem-tests" class="section level2">
+<h2><code>saem</code> tests</h2>
+<p>The saem routine only uses the non-gradient solutions; We tested the
+linear compartment solutions against the subset of linear comparment
+solutions found in <a href="https://doi.org/10.1002/psp4.12471">our comparison
+paper</a>.</p>
+<p>We will focus on the volume compartment comparison since all models
+have this in common:</p>
+<div class="figure">
+<img src="saemSolve.png" alt="" />
+<p class="caption">saem solved vs ode volumes</p>
+</div>
+<p>You can see the solutions between ODEs and linear compartment
+solutions are almost identical.</p>
+<p>Also the speed of linear compartment solutions in <code>saem</code> is faster
+than the ode solution:</p>
+<div class="figure">
+<img src="saemSolveTime.png" alt="" />
+<p class="caption">saem solved is faster</p>
+</div>
+<p>Unlike <code>focei</code>, I didn’t explore anything else since this is what I expected.</p>
+</div>
 </div>
