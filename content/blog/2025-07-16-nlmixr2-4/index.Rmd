@@ -179,7 +179,7 @@ paper](https://doi.org/10.1002/psp4.12471).
 We will focus on the volume compartment comparison since all models
 have this in common:
 
-![saem solved vs ode volumes](saemSolve.png)
+![](saemSolve.png)
 
 You can see the solutions between ODEs and linear compartment
 solutions are almost identical.
