@@ -23,7 +23,8 @@ submissions.</p>
 models the <a href="https://doi.org/10.1016/j.vascn.2015.03.004">ADVAN</a>
 solutions to the <a href="https://doi.org/10.12793/tcp.2019.27.2.43">WNL</a>
 solutions. We also added a few new features to the linear compartment
-solutions too.</p>
+solutions too (both claim to be something that <code>NONMEM</code> is using for the
+linear solved systems).</p>
 <p>However, since this is a change to the type of linear compartment
 solutions, this is a breaking change so it is a new major release.</p>
 <p>There are other features that may be of interest (you will see a
@@ -53,7 +54,9 @@ following possibilities:</p>
 operations that were performed (especially when optimizing, when
 calculating the derivatives in automatic differentiation from STAN).</p></li>
 <li><p>Some strange difference in event handling (since linear compartment
-events were handled differently than ODE events)</p></li>
+events were handled differently than ODE events), that made these
+solutions inaccurate when fixes to the ode solving event handling
+was integrated (my guess is this is the culprit).</p></li>
 </ul>
 <p>At the same time CRAN brought the following problems with the
 <a href="https://doi.org/10.1016/j.vascn.2015.03.004">ADVAN</a> linear
@@ -64,7 +67,7 @@ crash, meaning those people using the new Intel C compilers for the
 R distribution would not be able to run the linear compartment
 solutions.</li>
 <li>The linear compartment solutions (with AD) took too much memory and
-CPU power for some of the CRAN maintainers.</li>
+CPU power for some of the CRAN maintainers to compile <code>rxode2</code></li>
 </ul>
 <p>With these issues, we decided to look for another linear compartment
 solution for inclusion in <code>rxode2</code> and <code>nlmixr2est</code>.</p>
@@ -103,7 +106,7 @@ an <code>eta</code> on <code>Cl</code> in “focei”, only derivatives related 
 parameter will be calculated). This actually saves a little time if
 you are not using a model with multiple <code>eta</code>s.</p></li>
 </ul>
-<p>Changes you may not see, but should help in stability</p>
+<p>Changes you may not see, but should help in stability:</p>
 <ul>
 <li><p>The linear compartment solutions are no longer separated into <code>AD</code>
 derivatives and linear compartment solutions without
@@ -139,6 +142,70 @@ the various types of finite differences:</p>
 <p>While calculating one gradient is faster with numeric differentiation,
 the optimization is actually slower with this approach:</p>
 <p><img src="finiteDiffTime.png" /></p>
+<p>Of course I attempted to see where the bottle-neck for the
+optimization speed is using a <a href="pprof.svg">code profiling tool</a>, and it turns the
+functions with the most time spent in them are:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Percent Time</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>14.0%</td>
+<td><code>dl_update_slotinfo</code> (update/manage storage)</td>
+</tr>
+<tr class="even">
+<td>8.8%</td>
+<td><code>tls_get_addr</code> <a href="https://www.ibm.com/docs/kk/aix/7.1.0?topic=program-using-thread-local-storage">thread local storage</a></td>
+</tr>
+<tr class="odd">
+<td>7.3%</td>
+<td><code>update_get_addr</code> (get memory address)</td>
+</tr>
+<tr class="even">
+<td>1.8%</td>
+<td><code>linCmtB</code> (from rxode2)</td>
+</tr>
+<tr class="odd">
+<td>1.8%</td>
+<td>AD multiplication <code>*</code> (from Stan)</td>
+</tr>
+<tr class="even">
+<td>1.7%</td>
+<td><code>vari_value</code> (from Stan)</td>
+</tr>
+<tr class="odd">
+<td>1.6%</td>
+<td><code>grad</code> (from Stan)</td>
+</tr>
+<tr class="even">
+<td>1.0%</td>
+<td><code>dense_assignment_loop</code> (from Eigen)</td>
+</tr>
+</tbody>
+</table>
+<p>So, most of the time in the AD linear compartment solutions are
+looking up the memory address of values! So, at this point, I don’t
+think there is much I can do to optimize the <code>WNL</code> linear-compartment
+AD solutions further.</p>
+<p>On the other hand, if, the <code>advan</code> solutions got corrupted due to
+differences in event handling, perhaps going back to these solutions
+(with the new event handling rewrite) will speed up the linear
+compartment solutions more.</p>
+<p>All these optimizations made me wonder how we compare to <code>NONMEM</code>; I
+took some time and ran <code>NONMEM</code> solved and ODE systems to compare to
+<code>nlmixr2</code> solved systems:</p>
+<p><img src="nonmem-nlmixr2.png" /></p>
+<p>This shows:</p>
+<ul>
+<li><code>nlmixr2</code>’s one compartment solutions are faster than <code>NONMEM</code>’s ODEs</li>
+<li><code>nlmixr2</code>’s two compartment solutions are similar speed as <code>NONMEM</code>’s ODEs</li>
+<li><code>nlmixr2</code>’s ODEs are faster than <code>NONMEM</code>’s ODEs (as previously reported)</li>
+<li><code>NONMEM</code>’s solved systems are faster than <code>nlmixr2</code></li>
+</ul>
 </div>
 <div id="saem-tests" class="section level2">
 <h2><code>saem</code> tests</h2>

@@ -29,7 +29,8 @@ This release furthers the quality by changing linear compartment
 models the [ADVAN](https://doi.org/10.1016/j.vascn.2015.03.004)
 solutions to the [WNL](https://doi.org/10.12793/tcp.2019.27.2.43)
 solutions.  We also added a few new features to the linear compartment
-solutions too.
+solutions too (both claim to be something that `NONMEM` is using for the
+linear solved systems).
 
 However, since this is a change to the type of linear compartment
 solutions, this is a breaking change so it is a new major release.
@@ -65,7 +66,9 @@ following possibilities:
   calculating the derivatives in automatic differentiation from STAN).
 
 - Some strange difference in event handling (since linear compartment
-  events were handled differently than ODE events)
+  events were handled differently than ODE events), that made these
+  solutions inaccurate when fixes to the ode solving event handling
+  was integrated (my guess is this is the culprit).
 
 At the same time CRAN brought the following problems with the
 [ADVAN](https://doi.org/10.1016/j.vascn.2015.03.004) linear
@@ -76,7 +79,7 @@ compartment solutions to our attention:
    R distribution would not be able to run the linear compartment
    solutions.
  - The linear compartment solutions (with AD) took too much memory and
-   CPU power for some of the CRAN maintainers.
+   CPU power for some of the CRAN maintainers to compile `rxode2`
 
 With these issues, we decided to look for another linear compartment
 solution for inclusion in `rxode2` and `nlmixr2est`.
@@ -120,7 +123,7 @@ There are also other changes that you may observe:
   parameter will be calculated).  This actually saves a little time if
   you are not using a model with multiple `eta`s.
 
-Changes you may not see, but should help in stability
+Changes you may not see, but should help in stability:
 
 - The linear compartment solutions are no longer separated into `AD`
   derivatives and linear compartment solutions without
@@ -167,6 +170,46 @@ While calculating one gradient is faster with numeric differentiation,
 the optimization is actually slower with this approach:
 
 ![](finiteDiffTime.png)
+
+Of course I attempted to see where the bottle-neck for the
+optimization speed is using a [code profiling tool](pprof.svg), and it turns the
+functions with the most time spent in them are:
+
+| Percent Time | Function |
+|---------|---------------|
+| 14.0%  | `dl_update_slotinfo` (update/manage storage) |
+| 8.8%  | `tls_get_addr`  [thread local storage](https://www.ibm.com/docs/kk/aix/7.1.0?topic=program-using-thread-local-storage) |
+| 7.3%   | `update_get_addr` (get memory address) |
+| 1.8%  | `linCmtB` (from rxode2) |
+| 1.8%  | AD multiplication `*` (from Stan) |
+| 1.7%  | `vari_value` (from Stan) |
+| 1.6%  | `grad` (from Stan) |
+| 1.0%  | `dense_assignment_loop` (from Eigen) |
+
+So, most of the time in the AD linear compartment solutions are
+looking up the memory address of values! So, at this point, I don't
+think there is much I can do to optimize the `WNL` linear-compartment
+AD solutions further.
+
+On the other hand, if, the `advan` solutions got corrupted due to
+differences in event handling, perhaps going back to these solutions
+(with the new event handling rewrite) will speed up the linear
+compartment solutions more.
+
+All these optimizations made me wonder how we compare to `NONMEM`; I
+took some time and ran `NONMEM` solved and ODE systems to compare to
+`nlmixr2` solved systems:
+
+![](nonmem-nlmixr2.png)
+
+This shows:
+
+- `nlmixr2`'s one compartment solutions are faster than `NONMEM`'s ODEs
+- `nlmixr2`'s two compartment solutions are similar speed as `NONMEM`'s ODEs
+- `nlmixr2`'s ODEs are faster than `NONMEM`'s ODEs (as previously reported)
+- `NONMEM`'s solved systems are faster than `nlmixr2`
+
+
 
 
 ## `saem` tests
