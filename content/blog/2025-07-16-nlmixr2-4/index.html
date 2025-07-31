@@ -1,0 +1,238 @@
+---
+title: nlmixr2 4.0
+author: Matthew Fidler
+date: '2025-07-16'
+slug: []
+categories: [nlmixr2]
+tags: []
+---
+
+
+
+<div id="nlmixr2-4.0" class="section level2">
+<h2>nlmixr2 4.0</h2>
+<p>We at the <code>nlmixr2</code> team are committed to quality results. This is
+seen in line with our vision:</p>
+<blockquote>
+<p>The vision of nlmixr2 is to develop a R-based open-source nonlinear
+mixed-effects modeling software package that can compete with
+commercial pharmacometric tools and is suitable for regulatory
+submissions.</p>
+</blockquote>
+<p>This release furthers the quality by changing linear compartment
+models the <a href="https://doi.org/10.1016/j.vascn.2015.03.004">ADVAN</a>
+solutions to the <a href="https://doi.org/10.12793/tcp.2019.27.2.43">WNL</a>
+solutions(both claim to be something that <code>NONMEM</code> is using for the
+linear solved systems).</p>
+<p>We also added a few new features to the linear compartment
+solutions too.</p>
+<p>However, since this is a change to the type of linear compartment
+solutions, this is a breaking change so it is a new major release.</p>
+<p>There are other features that may be of interest (you will see a
+different loading with <code>nlmixr2</code>), but we will cover them at a later
+time.</p>
+</div>
+<div id="why-a-new-set-of-linear-compartment-solutions" class="section level2">
+<h2>Why a new set of linear compartment solutions</h2>
+<p>The <a href="https://doi.org/10.1016/j.vascn.2015.03.004">ADVAN</a> compartment
+solutions we were using are an excellent linear compartment solution
+that takes the last value of all the compartments solved to determine
+the next value of each compartment (i.e. not the super-positioning
+solutions I learned in graduate school). This should allow
+time-varying covariates to be used correctly in linear compartment
+solutions.</p>
+<p>To ensure the accuracy of these results we had 5,662 tests related to
+the linear compartment solutions in <code>rxode2</code>.</p>
+<p>Even with these tests passing, there were
+<a href="https://github.com/nlmixr2/nlmixr2/discussions/293">cases</a> where the
+linear compartment solution did not seem to be performing well for
+optimization. Of course, this is concerning to us as a team and we
+set to fix this issue as soon as we found out.</p>
+<p>Our hypothesis was that the strange results were due one of the
+following possibilities:</p>
+<ul>
+<li><p>Floating point arithmetic error that added up over the many
+operations that were performed (especially when optimizing, when
+calculating the derivatives in automatic differentiation from STAN).</p></li>
+<li><p>Some strange difference in event handling (since linear compartment
+events were handled differently than ODE events), that made these
+solutions inaccurate when fixes to the ode solving event handling
+was integrated (my guess is this is the culprit).</p></li>
+</ul>
+<p>At the same time CRAN brought the following problems with the
+<a href="https://doi.org/10.1016/j.vascn.2015.03.004">ADVAN</a> linear
+compartment solutions to our attention:</p>
+<ul>
+<li>The linear compartment solutions caused the new Intel compilers to
+crash, meaning those people using the new Intel C compilers for the
+R distribution would not be able to run the linear compartment
+solutions.</li>
+<li>The linear compartment solutions (with AD) took too much memory and
+CPU power for some of the CRAN maintainers to compile <code>rxode2</code></li>
+</ul>
+<p>With these issues, we decided to look for another linear compartment
+solution for inclusion in <code>rxode2</code> and <code>nlmixr2est</code>.</p>
+</div>
+<div id="wnl-linear-compartment-solution-in-rxode2" class="section level2">
+<h2>WNL linear compartment solution in rxode2</h2>
+<p>After some searching, we found the
+<a href="https://doi.org/10.12793/tcp.2019.27.2.43">WNL</a> linear compartment
+solutions, which also took the last solution of the compartments to
+solve the current concentrations (also allowing time-varying
+covariates). In addition to what was described in the paper, we
+modified this to allow:</p>
+<ul>
+<li><p>Infusions into the depot compartment (as well as the central). The math derivation is <a href="https://github.com/nlmixr2/rxode2/blob/90cae4aa72b725c27ee85c6b2c71d4e92662af91/src/linCmt.h#L44-L71">included in the code</a></p></li>
+<li><p>Exact steady state solutions (as derived by the
+<a href="https://doi.org/10.1016/j.vascn.2015.03.004">ADVAN</a> solutions, not
+included in their paper)</p></li>
+</ul>
+<p>There are also other changes that you may observe:</p>
+<ul>
+<li><p>Whenever a linear compartment solution is used i.e. <code>cp &lt;-   linCmt()</code>, you may access any of the compartments that would be
+defined by the corresponding ODE by name, that is: <code>depot</code>,
+<code>central</code>, <code>peripheral1</code> and <code>peripheral2</code> for use in your
+model. (This is a breaking change if you used these names in your
+model)</p></li>
+<li><p>You can also dose the <code>peripheral1</code> and <code>peripharal2</code> compartment
+(as long as those doses are not infusion doses).</p></li>
+<li><p>Solving <code>linCmt()</code> is now threaded when solving with <code>rxSolve()</code> or
+optimizing with <code>"saem"</code>, meaning it may speed up your
+solutions. (We found the AD from <code>stan</code> to cause R crashes with
+threading, so <code>"focei"</code> and any other gradient methods will not be
+run in parallel)</p></li>
+<li><p>The <code>AD</code> gradients from Stan included in <code>linCmt()</code> will only
+calculate based on the derivatives you need (i.e. if you only have
+an <code>eta</code> on <code>Cl</code> in “focei”, only derivatives related to that
+parameter will be calculated). This actually saves a little time if
+you are not using a model with multiple <code>eta</code>s.</p></li>
+</ul>
+<p>Changes you may not see, but should help in stability:</p>
+<ul>
+<li><p>The linear compartment solutions are no longer separated into <code>AD</code>
+derivatives and linear compartment solutions without
+derivatives. They are defined by the exact same code and realized
+with C++’s templates.</p></li>
+<li><p>The event handling for <code>rxode2</code> is no longer any different between
+linear compartment solutions and ODEs.</p></li>
+<li><p>More tests for the accuracy of the linear compartment solutions were
+added (from 5,662 to 15,850 tests).</p></li>
+</ul>
+</div>
+<div id="more-robust-validation-and-speed-tests" class="section level1">
+<h1>More robust validation and speed tests</h1>
+<div id="focei-tests" class="section level2">
+<h2><code>focei</code> tests</h2>
+<p>The focei routine has to figure out the linear compartment solution
+gradients. We tested the
+linear compartment solutions against the subset of linear comparment
+solutions found in <a href="https://doi.org/10.1002/psp4.12471">our comparison
+paper</a>.</p>
+<p>In this release the default gradient method is the automatic
+differentiation of the linear compartment solutions from stan:</p>
+<p><img src="ad.png" /></p>
+<p>These solutions matched, which is great. However, they are slower
+than ODE solving with sensitivities.</p>
+<p><img src="adTime.png" /></p>
+<p>Because of this, we tried many different type of finite differences,
+which give inaccurate results (especially the central difference):</p>
+<p><img src="finiteDiff.png" /></p>
+<p>Even removing the central difference, there is inaccurate results with
+the various types of finite differences:</p>
+<p><img src="finiteDiffNoCentral.png" /></p>
+<p>While calculating one gradient is faster with numeric differentiation,
+the optimization is actually slower with this approach:</p>
+<p><img src="finiteDiffTime.png" /></p>
+<p>Of course I attempted to see where the bottle-neck for the
+optimization speed is using a <a href="pprof.svg">code profiling tool</a>, and it turns the
+functions with the most time spent in them are:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Percent Time</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>14.0%</td>
+<td><code>dl_update_slotinfo</code> (update/manage storage)</td>
+</tr>
+<tr class="even">
+<td>8.8%</td>
+<td><code>tls_get_addr</code> <a href="https://www.ibm.com/docs/kk/aix/7.1.0?topic=program-using-thread-local-storage">thread local storage</a></td>
+</tr>
+<tr class="odd">
+<td>7.3%</td>
+<td><code>update_get_addr</code> (get memory address)</td>
+</tr>
+<tr class="even">
+<td>1.8%</td>
+<td><code>linCmtB</code> (from rxode2)</td>
+</tr>
+<tr class="odd">
+<td>1.8%</td>
+<td>AD multiplication <code>*</code> (from Stan)</td>
+</tr>
+<tr class="even">
+<td>1.7%</td>
+<td><code>vari_value</code> (from Stan)</td>
+</tr>
+<tr class="odd">
+<td>1.6%</td>
+<td><code>grad</code> (from Stan)</td>
+</tr>
+<tr class="even">
+<td>1.0%</td>
+<td><code>dense_assignment_loop</code> (from Eigen)</td>
+</tr>
+</tbody>
+</table>
+<p>So, most of the time in the AD linear compartment solutions are
+looking up the memory address of values! So, at this point, I don’t
+think there is much I can do to optimize the <code>WNL</code> linear-compartment
+AD solutions further.</p>
+<p>On the other hand, if, the <code>advan</code> solutions got corrupted due to
+differences in event handling, perhaps going back to these solutions
+(with the new event handling rewrite) will speed up the linear
+compartment solutions more.</p>
+<p>All these optimizations made me wonder how we compare to <code>NONMEM</code>; I
+took some time and ran <code>NONMEM</code> solved and ODE systems to compare to
+<code>nlmixr2</code> solved systems:</p>
+<p><img src="nonmem-nlmixr2.png" /></p>
+<p>This shows for focei:</p>
+<ul>
+<li><code>nlmixr2</code>’s one compartment solutions are faster than <code>NONMEM</code>’s ODEs</li>
+<li><code>nlmixr2</code>’s two compartment solutions are similar speed as <code>NONMEM</code>’s ODEs</li>
+<li><code>nlmixr2</code>’s ODEs are faster than <code>NONMEM</code>’s ODEs (as previously reported)</li>
+<li><code>NONMEM</code>’s solved systems are faster than <code>nlmixr2</code></li>
+</ul>
+<p>Note these are timings are different when solving with <code>saem</code> or for
+solving in general.</p>
+<p>This means, the linear compartment solution we have for <code>focei</code> (and
+possibly <code>saem</code>) will likely be adjusted further in the future to give
+better speed.</p>
+<p>I decided to make this change now because it gives the correct
+solution in the cases where linear compartment solutions were not
+working. In the future, we hope to come back to the linear compartment
+solutions and provide a faster solution for the <code>focei</code> case. (At the
+very least maybe switch to the ODE solutions in 2+ compartments).</p>
+</div>
+<div id="saem-tests" class="section level2">
+<h2><code>saem</code> tests</h2>
+<p>The saem routine only uses the non-gradient solutions; We tested the
+linear compartment solutions against the subset of linear compartment
+solutions found in <a href="https://doi.org/10.1002/psp4.12471">our comparison
+paper</a>.</p>
+<p>We will focus on the volume compartment comparison since all models
+have this in common:</p>
+<p><img src="saemSolve.png" /></p>
+<p>You can see the solutions between ODEs and linear compartment
+solutions are almost identical.</p>
+<p>Also the speed of linear compartment solutions in <code>saem</code> is faster
+than the ode solution:</p>
+<p><img src="saemSolveTime.png" /></p>
+<p>Unlike <code>focei</code>, I didn’t explore anything else since this is what I
+expected.</p>
+</div>
+</div>
