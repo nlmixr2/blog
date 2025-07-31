@@ -210,7 +210,15 @@ This shows:
 - `NONMEM`'s solved systems are faster than `nlmixr2`
 
 
+This means, the linear compartment solution we have for `focei` (and
+possibly `saem`) will likely be adjusted further in the future to give
+better speed.
 
+I decided to make this change now because it gives the correct
+solution in the cases where linear compartment solutions were not
+working. In the future, we hope to come back to the linear compartment
+solutions and provide a faster solution for the `focei` case. (At the
+very least maybe switch to the ODE solutions in 2+ compartments).
 
 ## `saem` tests
 
@@ -232,4 +240,5 @@ than the ode solution:
 
 ![](saemSolveTime.png)
 
-Unlike `focei`, I didn't explore anything else since this is what I expected.
+Unlike `focei`, I didn't explore anything else since this is what I
+expected.
