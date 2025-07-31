@@ -52,7 +52,7 @@ solutions.
 To ensure the accuracy of these results we had 5,662 tests related to
 the linear compartment solutions in `rxode2`.
 
-Even with these results, there were
+Even with these tests passing, there were
 [cases](https://github.com/nlmixr2/nlmixr2/discussions/293) where the
 linear compartment solution did not seem to be performing well for
 optimization.  Of course, this is concerning to us as a team and we
