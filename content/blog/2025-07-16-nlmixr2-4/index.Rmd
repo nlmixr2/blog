@@ -28,9 +28,11 @@ seen in line with our vision:
 This release furthers the quality by changing linear compartment
 models the [ADVAN](https://doi.org/10.1016/j.vascn.2015.03.004)
 solutions to the [WNL](https://doi.org/10.12793/tcp.2019.27.2.43)
-solutions.  We also added a few new features to the linear compartment
-solutions too (both claim to be something that `NONMEM` is using for the
+solutions(both claim to be something that `NONMEM` is using for the
 linear solved systems).
+
+We also added a few new features to the linear compartment
+solutions too.
 
 However, since this is a change to the type of linear compartment
 solutions, this is a breaking change so it is a new major release.
