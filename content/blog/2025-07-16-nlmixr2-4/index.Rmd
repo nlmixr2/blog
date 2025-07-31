@@ -202,13 +202,15 @@ took some time and ran `NONMEM` solved and ODE systems to compare to
 
 ![](nonmem-nlmixr2.png)
 
-This shows:
+This shows for focei:
 
 - `nlmixr2`'s one compartment solutions are faster than `NONMEM`'s ODEs
 - `nlmixr2`'s two compartment solutions are similar speed as `NONMEM`'s ODEs
 - `nlmixr2`'s ODEs are faster than `NONMEM`'s ODEs (as previously reported)
 - `NONMEM`'s solved systems are faster than `nlmixr2`
 
+Note these are timings are different when solving with `saem` or for
+solving in general.
 
 This means, the linear compartment solution we have for `focei` (and
 possibly `saem`) will likely be adjusted further in the future to give
@@ -223,7 +225,7 @@ very least maybe switch to the ODE solutions in 2+ compartments).
 ## `saem` tests
 
 The saem routine only uses the non-gradient solutions; We tested the
-linear compartment solutions against the subset of linear comparment
+linear compartment solutions against the subset of linear compartment
 solutions found in [our comparison
 paper](https://doi.org/10.1002/psp4.12471).
 

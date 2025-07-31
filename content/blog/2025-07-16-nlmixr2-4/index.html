@@ -42,7 +42,7 @@ time-varying covariates to be used correctly in linear compartment
 solutions.</p>
 <p>To ensure the accuracy of these results we had 5,662 tests related to
 the linear compartment solutions in <code>rxode2</code>.</p>
-<p>Even with these results, there were
+<p>Even with these tests passing, there were
 <a href="https://github.com/nlmixr2/nlmixr2/discussions/293">cases</a> where the
 linear compartment solution did not seem to be performing well for
 optimization. Of course, this is concerning to us as a team and we
@@ -199,18 +199,28 @@ compartment solutions more.</p>
 took some time and ran <code>NONMEM</code> solved and ODE systems to compare to
 <code>nlmixr2</code> solved systems:</p>
 <p><img src="nonmem-nlmixr2.png" /></p>
-<p>This shows:</p>
+<p>This shows for focei:</p>
 <ul>
 <li><code>nlmixr2</code>’s one compartment solutions are faster than <code>NONMEM</code>’s ODEs</li>
 <li><code>nlmixr2</code>’s two compartment solutions are similar speed as <code>NONMEM</code>’s ODEs</li>
 <li><code>nlmixr2</code>’s ODEs are faster than <code>NONMEM</code>’s ODEs (as previously reported)</li>
 <li><code>NONMEM</code>’s solved systems are faster than <code>nlmixr2</code></li>
 </ul>
+<p>Note these are timings are different when solving with <code>saem</code> or for
+solving in general.</p>
+<p>This means, the linear compartment solution we have for <code>focei</code> (and
+possibly <code>saem</code>) will likely be adjusted further in the future to give
+better speed.</p>
+<p>I decided to make this change now because it gives the correct
+solution in the cases where linear compartment solutions were not
+working. In the future, we hope to come back to the linear compartment
+solutions and provide a faster solution for the <code>focei</code> case. (At the
+very least maybe switch to the ODE solutions in 2+ compartments).</p>
 </div>
 <div id="saem-tests" class="section level2">
 <h2><code>saem</code> tests</h2>
 <p>The saem routine only uses the non-gradient solutions; We tested the
-linear compartment solutions against the subset of linear comparment
+linear compartment solutions against the subset of linear compartment
 solutions found in <a href="https://doi.org/10.1002/psp4.12471">our comparison
 paper</a>.</p>
 <p>We will focus on the volume compartment comparison since all models
@@ -221,6 +231,7 @@ solutions are almost identical.</p>
 <p>Also the speed of linear compartment solutions in <code>saem</code> is faster
 than the ode solution:</p>
 <p><img src="saemSolveTime.png" /></p>
-<p>Unlike <code>focei</code>, I didn’t explore anything else since this is what I expected.</p>
+<p>Unlike <code>focei</code>, I didn’t explore anything else since this is what I
+expected.</p>
 </div>
 </div>
