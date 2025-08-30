@@ -53,9 +53,11 @@ environment.  This is what needed to be done to convert a `nlmixr2`
 3.0 model to a `nlmixr2` 4.0 model.
 
 ```{r nlmixr2fix}
-# In the nlmixr2est package we have an old nlmixr2 fit from the nlmixr2 3.0 package
+# In the nlmixr2est package we have an old nlmixr2 fit from the
+# nlmixr2 3.0 package
 
-fit <- readRDS(system.file("testfit_nlmixr3.rds", package="nlmixr2est"))
+fit <- readRDS(system.file("testfit_nlmixr3.rds",
+                           package="nlmixr2est"))
 
 fit <- nlmixr2fix(fit)
 ```

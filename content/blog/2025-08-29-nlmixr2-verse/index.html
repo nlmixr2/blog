@@ -60,9 +60,11 @@ tries to import an old saved model in the current nlmixr2 ecosystem.
 Often this can be done by re-parsing the original model in the current
 environment. This is what needed to be done to convert a <code>nlmixr2</code>
 3.0 model to a <code>nlmixr2</code> 4.0 model.</p>
-<pre class="r"><code># In the nlmixr2est package we have an old nlmixr2 fit from the nlmixr2 3.0 package
+<pre class="r"><code># In the nlmixr2est package we have an old nlmixr2 fit from the
+# nlmixr2 3.0 package
 
-fit &lt;- readRDS(system.file(&quot;testfit_nlmixr3.rds&quot;, package=&quot;nlmixr2est&quot;))
+fit &lt;- readRDS(system.file(&quot;testfit_nlmixr3.rds&quot;,
+                           package=&quot;nlmixr2est&quot;))
 
 fit &lt;- nlmixr2fix(fit)</code></pre>
 <pre><code>## # This function is meant to load nlmixr2 fits from other versions</code></pre>
