@@ -1,0 +1,71 @@
+---
+title: nlmixr2 verse 4.0+
+author: Matthew Fidler
+date: '2025-08-28'
+slug: []
+categories: [nlmixr2]
+tags: []
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## nlmixr2 4.0 verse
+
+As promised, I am discussing some other change that are breaking and
+makes `nlmixr2` a major release.
+
+First is a very visible change as you load `nlmixr2`:
+
+```{r nlmixr2}
+library(nlmixr2)
+```
+
+This is looks like the `tidyverse` with an additional section for
+optional packages loaded (if available, based loosely on [pkgverse](https://pkgverse.mikewk.com/reference/pkgverse.html))
+
+In this release, the `nlmixr2` has become a complete umbrella package
+like `tidyverse`. The estimation routines are still found in
+`nlmixr2est` and the `nlmixr2`/`rxode2` language and ode solving are
+in `rxode2`. In the past you could call estimation procedures by
+prefixing `nlmixr2`, for example `nlmixr2::nlmixr2()` would run the
+`nlmixr2` estimation routine.  With this new release, this is no
+longer possible (you have to call the corresponding package where the
+routine is defined `nlmixr2est::nlmixr2`)
+
+Also with this release, as long as you have `babelmixr2` installed,
+you can use the estimation routines there like `"nonmem"`, `"monolix"`
+and `"poped"` by simply using `nlmixr2(..., "poped")`, no need to
+manually use `babelmixr2`.  It also loads other utility functions like
+`nonmem2rx` and `monolix2rx`.
+
+This also means, `nlmixr2` itself will no longer need to be updated as
+frequently, the major updates will occur in either `nlmixr2est`,
+`rxode2` or `babelmixr2`.
+
+## nlmixr2 -- trying to import old models with `nlmixr2fix()`
+
+With nlmixr2 4.0, a new function `nlmixr2fix()` has been introduced.
+This function tries to import an old saved model in the current
+nlmixr2 ecosystem.  Often this can be done by re-parsing the original
+model because of language changes.  This is what needed to be done to
+convert a `nlmixr2` 3.0 model to a `nlmixr2` 4.0 model.
+
+```{r nlmixr2fix}
+# In the nlmixr2est package we have an old nlmixr2 fit from the nlmixr2 3.0 package
+
+fit <- readRDS(system.file("testfit_nlmixr3.rds", package="nlmixr2est"))
+
+fit <- nlmixr2fix(fit)
+```
+
+
+This not only tries to fix the fit, it also prints out a mini session information for the fit in case you need to reproduce it (and maybe the fix doesn't work).  This was reported [here](https://github.com/nlmixr2/nlmixr2est/issues/562), and I appreciate such reports as they make `nlmixr2` more useful.
+
+## Note on Rstudio
+
+For the newest Rstudio, `nlmixr2` had some issues when [completing
+objects](https://github.com/nlmixr2/nlmixr2/issues/352).  This is
+fixed with another release of nlmixr2/rxode2 that was released
+today. These also have some features that I will explore in later
+posts.

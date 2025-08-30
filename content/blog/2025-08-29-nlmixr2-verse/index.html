@@ -1,0 +1,131 @@
+---
+title: nlmixr2 verse 4.0+
+author: Matthew Fidler
+date: '2025-08-28'
+slug: []
+categories: [nlmixr2]
+tags: []
+---
+
+
+
+<div id="nlmixr2-4.0-verse" class="section level2">
+<h2>nlmixr2 4.0 verse</h2>
+<p>As promised, I am discussing some other change that are breaking and
+makes <code>nlmixr2</code> a major release.</p>
+<p>First is a very visible change as you load <code>nlmixr2</code>:</p>
+<pre class="r"><code>library(nlmixr2)</code></pre>
+<pre><code>## ── Attaching packages ───────────────────────────────────────────────────────── nlmixr2 4.0.1 ──</code></pre>
+<pre><code>## ✔ lotri         1.0.2     ✔ monolix2rx    0.0.6
+## ✔ nlmixr2data   2.0.9     ✔ nlmixr2lib    0.3.0
+## ✔ nlmixr2est    4.1.0     ✔ nlmixr2rpt    0.2.1
+## ✔ nlmixr2extra  3.0.3     ✔ nonmem2rx     0.1.8
+## ✔ nlmixr2plot   3.0.3     ✔ posologyr     1.2.8
+## ✔ rxode2        4.1.0     ✔ shinyMixR     0.5.2
+## ✔ babelmixr2    0.1.9     ✔ xpose.nlmixr2 0.4.1
+## ✔ ggPMX         1.3.1</code></pre>
+<pre><code>## ── Optional Packages Loaded/Ignored ─────────────────────────────────────────── nlmixr2 4.0.1 ──</code></pre>
+<pre><code>## ✔ babelmixr2        ✔ nonmem2rx    
+## ✔ ggPMX             ✔ posologyr    
+## ✔ monolix2rx        ✔ shinyMixR    
+## ✔ nlmixr2lib        ✔ xpose.nlmixr2
+## ✔ nlmixr2rpt</code></pre>
+<pre><code>## ── Conflicts ───────────────────────────────────────────────────────────── nlmixr2conflicts() ──
+## ✖ rxode2::boxCox()     masks nlmixr2est::boxCox()
+## ✖ rxode2::yeoJohnson() masks nlmixr2est::yeoJohnson()</code></pre>
+<p>This is looks like the <code>tidyverse</code> with an additional section for
+optional packages loaded (if available, based loosely on <a href="https://pkgverse.mikewk.com/reference/pkgverse.html">pkgverse</a>)</p>
+<p>In this release, the <code>nlmixr2</code> has become a complete umbrella package
+like <code>tidyverse</code>. The estimation routines are still found in
+<code>nlmixr2est</code> and the <code>nlmixr2</code>/<code>rxode2</code> language and ode solving are
+in <code>rxode2</code>. In the past you could call estimation procedures by
+prefixing <code>nlmixr2</code>, for example <code>nlmixr2::nlmixr2()</code> would run the
+<code>nlmixr2</code> estimation routine. With this new release, this is no
+longer possible (you have to call the corresponding package where the
+routine is defined <code>nlmixr2est::nlmixr2</code>)</p>
+<p>Also with this release, as long as you have <code>babelmixr2</code> installed,
+you can use the estimation routines there like <code>"nonmem"</code>, <code>"monolix"</code>
+and <code>"poped"</code> by simply using <code>nlmixr2(..., "poped")</code>, no need to
+manually use <code>babelmixr2</code>. It also loads other utility functions like
+<code>nonmem2rx</code> and <code>monolix2rx</code>.</p>
+<p>This also means, <code>nlmixr2</code> itself will no longer need to be updated as
+frequently, the major updates will occur in either <code>nlmixr2est</code>,
+<code>rxode2</code> or <code>babelmixr2</code>.</p>
+</div>
+<div id="nlmixr2-trying-to-import-old-models-with-nlmixr2fix" class="section level2">
+<h2>nlmixr2 – trying to import old models with <code>nlmixr2fix()</code></h2>
+<p>With nlmixr2 4.0, a new function <code>nlmixr2fix()</code> has been introduced.
+This function tries to import an old saved model in the current
+nlmixr2 ecosystem. Often this can be done by re-parsing the original
+model because of language changes. This is what needed to be done to
+convert a <code>nlmixr2</code> 3.0 model to a <code>nlmixr2</code> 4.0 model.</p>
+<pre class="r"><code># In the nlmixr2est package we have an old nlmixr2 fit from the nlmixr2 3.0 package
+
+fit &lt;- readRDS(system.file(&quot;testfit_nlmixr3.rds&quot;, package=&quot;nlmixr2est&quot;))
+
+fit &lt;- nlmixr2fix(fit)</code></pre>
+<pre><code>## # This function is meant to load nlmixr2 fits from other versions</code></pre>
+<pre><code>## # To reproduce the fit, you need to use the same version of nlmixr2</code></pre>
+<pre><code>## ## ==============================
+## ## nlmixr2est Session Information
+## ## ==============================
+## # OS: Debian GNU/Linux 12 (bookworm)
+## # LAPACK: /cosbi/home/boaretti/miniconda3/envs/r_env3/lib/libopenblasp-r0.3.29.so
+## # LAPACK Version: 3.12.0
+## # R Version: R version 4.3.3 (2024-02-29)
+## 
+## 
+## # Install Package version 1.3.1-13 of &#39;dparser&#39;
+## remotes::install_version(&quot;dparser&quot;, version = &quot;1.3.1-13&quot;) 
+## 
+## # Install Package version 1.0.0 of &#39;lotri&#39;
+## remotes::install_version(&quot;lotri&quot;, version = &quot;1.0.0&quot;) 
+## 
+## # Install Package version 0.7 of &#39;PreciseSums&#39;
+## remotes::install_version(&quot;PreciseSums&quot;, version = &quot;0.7&quot;) 
+## 
+## # Install Package version 2.0.11 of &#39;rxode2ll&#39;
+## remotes::install_version(&quot;rxode2ll&quot;, version = &quot;2.0.11&quot;) 
+## 
+## # Install Package version 3.0.4 of &#39;rxode2&#39;
+## remotes::install_version(&quot;rxode2&quot;, version = &quot;3.0.4&quot;) 
+## 
+## # Install Package version 2024-3.5 of &#39;lbfgsb3c&#39;
+## remotes::install_version(&quot;lbfgsb3c&quot;, version = &quot;2024-3.5&quot;) 
+## 
+## # Install Package version 6.0.1-12 of &#39;n1qn1&#39;
+## remotes::install_version(&quot;n1qn1&quot;, version = &quot;6.0.1-12&quot;) 
+## 
+## # Install Package version 3.0.4 of &#39;nlmixr2est&#39;
+## remotes::install_version(&quot;nlmixr2est&quot;, version = &quot;3.0.4&quot;) 
+## 
+## # Install Package version 3.0.0 of &#39;nlmixr2extra&#39;
+## remotes::install_version(&quot;nlmixr2extra&quot;, version = &quot;3.0.0&quot;) 
+## 
+## # Package &#39;nlmixr2lib&#39; is not installed, but known to enhance nlmixr2/babelmixr2
+## 
+## # Install Package version 3.0.1 of &#39;nlmixr2&#39;
+## remotes::install_version(&quot;nlmixr2&quot;, version = &quot;3.0.1&quot;) 
+## 
+## # Package &#39;nonemem2rx&#39; is not installed, but known to enhance nlmixr2/babelmixr2
+## 
+## # Package &#39;monolix2rx&#39; is not installed, but known to enhance nlmixr2/babelmixr2
+## 
+## # Package &#39;babelmixr2&#39; is not installed, but known to enhance nlmixr2/babelmixr2
+## 
+## # Package &#39;PopED&#39; is not installed, but known to enhance nlmixr2/babelmixr2
+## 
+## # Install Package version 0.11.0 of &#39;PKNCA&#39;
+## remotes::install_version(&quot;PKNCA&quot;, version = &quot;0.11.0&quot;)</code></pre>
+<pre><code>## </code></pre>
+<pre><code>## # If all else fails you can try to install the version of nlmixr2 used to create the fit</code></pre>
+<p>This not only tries to fix the fit, it also prints out a mini session information for the fit in case you need to reproduce it (and maybe the fix doesn’t work). This was reported <a href="https://github.com/nlmixr2/nlmixr2est/issues/562">here</a>, and I appreciate such reports as they make <code>nlmixr2</code> more useful.</p>
+</div>
+<div id="note-on-rstudio" class="section level2">
+<h2>Note on Rstudio</h2>
+<p>For the newest Rstudio, <code>nlmixr2</code> had some issues when <a href="https://github.com/nlmixr2/nlmixr2/issues/352">completing
+objects</a>. This is
+fixed with another release of nlmixr2/rxode2 that was released
+today. These also have some features that I will explore in later
+posts.</p>
+</div>
