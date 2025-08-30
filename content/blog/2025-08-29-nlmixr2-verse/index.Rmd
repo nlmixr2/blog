@@ -30,8 +30,8 @@ like `tidyverse`. The estimation routines are still found in
 in `rxode2`. In the past you could call estimation procedures by
 prefixing `nlmixr2`, for example `nlmixr2::nlmixr2()` would run the
 `nlmixr2` estimation routine.  With this new release, this is no
-longer possible (you have to call the corresponding package where the
-routine is defined `nlmixr2est::nlmixr2`)
+longer possible.  Instead you have to call the corresponding package where the
+routine is defined `nlmixr2est::nlmixr2()`.
 
 Also with this release, as long as you have `babelmixr2` installed,
 you can use the estimation routines there like `"nonmem"`, `"monolix"`
@@ -45,11 +45,12 @@ frequently, the major updates will occur in either `nlmixr2est`,
 
 ## nlmixr2 -- trying to import old models with `nlmixr2fix()`
 
-With nlmixr2 4.0, a new function `nlmixr2fix()` has been introduced.
-This function tries to import an old saved model in the current
-nlmixr2 ecosystem.  Often this can be done by re-parsing the original
-model because of language changes.  This is what needed to be done to
-convert a `nlmixr2` 3.0 model to a `nlmixr2` 4.0 model.
+Since nlmixr2 4.0 is a breaking change with a new language definition,
+a new function `nlmixr2fix()` has been introduced.  This function
+tries to import an old saved model in the current nlmixr2 ecosystem.
+Often this can be done by re-parsing the original model in the current
+environment.  This is what needed to be done to convert a `nlmixr2`
+3.0 model to a `nlmixr2` 4.0 model.
 
 ```{r nlmixr2fix}
 # In the nlmixr2est package we have an old nlmixr2 fit from the nlmixr2 3.0 package
