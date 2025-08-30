@@ -36,7 +36,7 @@ routine is defined `nlmixr2est::nlmixr2()`.
 Also with this release, as long as you have `babelmixr2` installed,
 you can use the estimation routines there like `"nonmem"`, `"monolix"`
 and `"poped"` by simply using `nlmixr2(..., "poped")`, no need to
-manually use `babelmixr2`.  It also loads other utility functions like
+manually load `babelmixr2`.  It also loads other utility functions like
 `nonmem2rx` and `monolix2rx`.
 
 This also means, `nlmixr2` itself will no longer need to be updated as
