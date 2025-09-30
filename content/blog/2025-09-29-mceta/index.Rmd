@@ -10,7 +10,7 @@ tags: []
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-## nlmixr2 4.0 mceta
+## nlmixr2 4.0 `mceta`
 
 Two of popular algorithms for fitting nonlinear fixed effects models
 in pharmacometrics are first order conditional estimation (with
@@ -23,9 +23,9 @@ over the likelihood service also trying to figure out the best fit
 based on randomly sampling the likelihood.
 
 The new feature I am discussing is `mceta` for `focei`, which combines
-the Monte-Carlo method with focei.
+the Monte-Carlo sampling with focei.
 
-## What is mceta
+## What is `mceta`
 
 One of the most important parts of getting a good model in non-linear
 mixed effects models is to choose reasonable estimates for the
@@ -82,6 +82,38 @@ the cost of computation time).
 I have not seen much discussion about this feature, though I have
 heard it mentioned a couple of times by some analysts.  I think it can
 help in complex analyses where you want to use `focei`.
+
+## Simple implementation example
+
+To implement mceta, you simply need to put it in the focei-related
+methods like `focei`, `foce`, `laplace`, and `agq`.  For
+simplicity sake, I will add it to the thepohylline example:
+
+```{r theo}
+library(nlmixr2)
+one.cmt <- function() {
+  ini({
+    tka <- 0.45 # Log Ka
+    tcl <- log(c(0, 2.7, 100)) # Log Cl
+    tv <- 3.45; label("log V")
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+    add.sd <- 0.7
+  })
+  model({
+    ka <- exp(tka + eta.ka)
+    cl <- exp(tcl + eta.cl)
+    v <- exp(tv + eta.v)
+    linCmt() ~ add(add.sd)
+  })
+}
+
+fit <- nlmixr(one.cmt, theo_sd, est="focei",
+              control=list(print=0, mceta=5))
+
+print(fit)
+```
 
 Roulette wheel originally <a href="http://www.freepik.com">designed by
 macrovector / Freepik</a> with modifications for this post.
