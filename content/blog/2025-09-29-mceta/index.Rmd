@@ -18,9 +18,9 @@ interaction), sometimes called focei.  This is often considered a
 classical estimation method
 
 As time progressed, Monte-Carlo methods started being used, such as
-stochastic approximation estimation-maximization (saem). This samples
-over the likelihood service also trying to figure out the best fit
-based on randomly sampling the likelihood.
+stochastic approximation estimation-maximization (saem). This uses
+Mote-Carlo Methods to try to find the maximum expectation of the
+nonlinear-mixed effects model.
 
 The new feature I am discussing is `mceta` for `focei`, which combines
 the Monte-Carlo sampling with focei.
@@ -55,8 +55,8 @@ However with `mceta`, we can change the algorithm's default.  In
 - `mceta=0` -- Start at all `eta`s equal 0 (NONMEM's default)
 
 - `mceta=1` -- Try the `eta` at the last best fit estimate as well as
-  the `eta`s set to zero, and start the optimization of that
-  individual at the `eta` with the lowest objective function.
+  the `eta`s set to zero, and start the optimization at the `eta` with
+  the lowest objective function.
 
 - `mceta=N` -- Try the `etas` as described in `mceta=1` and then take
   `N-1` random multivariate normal samples (assuming the specified
@@ -91,6 +91,11 @@ simplicity sake, I will add it to the thepohylline example:
 
 ```{r theo}
 library(nlmixr2)
+
+# For reproducibility, set the seed for R and rxode2
+set.seed(42)
+rxSetSeed(42)
+
 one.cmt <- function() {
   ini({
     tka <- 0.45 # Log Ka
