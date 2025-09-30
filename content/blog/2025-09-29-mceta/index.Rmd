@@ -115,5 +115,12 @@ fit <- nlmixr(one.cmt, theo_sd, est="focei",
 print(fit)
 ```
 
+In this very simplistic case, there was not a huge difference, however
+with complex models this could make the difference between a good
+solution and a poor solution.
+
+Happy modeling!
+
+
 Roulette wheel originally <a href="http://www.freepik.com">designed by
 macrovector / Freepik</a> with modifications for this post.

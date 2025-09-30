@@ -152,24 +152,24 @@ fit &lt;- nlmixr(one.cmt, theo_sd, est=&quot;focei&quot;,
 <pre><code>## → Calculating residuals/tables
 ## ✔ done</code></pre>
 <pre><code>## → compress origData in nlmixr2 object, save 5952</code></pre>
-<pre><code>## → compress parHistData in nlmixr2 object, save 5256</code></pre>
+<pre><code>## → compress parHistData in nlmixr2 object, save 5288</code></pre>
 <pre class="r"><code>print(fit)</code></pre>
 <pre><code>## ── nlmixr² FOCEi (outer: nlminb) ──
 ## 
 ##           OBJF     AIC      BIC Log-likelihood Condition#(Cov) Condition#(Cor)
-## FOCEi 116.8043 373.404 393.5836       -179.702        68.67281        9.401614
+## FOCEi 116.8072 373.407 393.5866      -179.7035        68.21133        9.358419
 ## 
 ## ── Time (sec $time): ──
 ## 
 ##            setup optimize covariance table compress    other
-## elapsed 0.001555  0.35325   0.353251 0.073    0.007 5.862944
+## elapsed 0.001312  0.35638   0.356381 0.072    0.007 5.829927
 ## 
 ## ── Population Parameters ($parFixed or $parFixedDf): ──
 ## 
 ##        Parameter  Est.     SE %RSE Back-transformed(95%CI) BSV(CV%) Shrink(SD)%
-## tka              0.463  0.195 42.1       1.59 (1.08, 2.33)     70.1      1.50% 
-## tcl               1.01 0.0751 7.41       2.75 (2.38, 3.19)     26.9      4.18% 
-## tv         log V  3.46 0.0435 1.26       31.8 (29.2, 34.7)     13.9      10.4% 
+## tka              0.464  0.195 42.1       1.59 (1.08, 2.33)     70.4      1.78% 
+## tcl               1.01 0.0751 7.41       2.76 (2.38, 3.19)     26.6      3.77% 
+## tv         log V  3.46 0.0436 1.26       31.9 (29.2, 34.7)     14.1      10.8% 
 ## add.sd           0.694                               0.694                     
 ##  
 ##   Covariance Type ($covMethod): r,s
@@ -190,11 +190,15 @@ fit &lt;- nlmixr(one.cmt, theo_sd, est=&quot;focei&quot;,
 ##   ID     TIME    DV  PRED    RES   WRES IPRED   IRES  IWRES CPRED   CRES  CWRES
 ##   &lt;fct&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
 ## 1 1      0     0.74  0     0.74   1.07   0     0.74   1.07   0     0.74   1.07 
-## 2 1      0.25  2.84  3.26 -0.418 -0.505  3.85 -1.01  -1.45   3.49 -0.654 -0.747
-## 3 1      0.57  6.57  5.82  0.747  0.703  6.78 -0.215 -0.309  6.16  0.407  0.348
+## 2 1      0.25  2.84  3.26 -0.416 -0.501  3.85 -1.01  -1.45   3.49 -0.646 -0.735
+## 3 1      0.57  6.57  5.82  0.751  0.701  6.78 -0.215 -0.309  6.15  0.418  0.355
 ## # ℹ 129 more rows
 ## # ℹ 10 more variables: eta.ka &lt;dbl&gt;, eta.cl &lt;dbl&gt;, eta.v &lt;dbl&gt;, depot &lt;dbl&gt;,
 ## #   central &lt;dbl&gt;, ka &lt;dbl&gt;, cl &lt;dbl&gt;, v &lt;dbl&gt;, tad &lt;dbl&gt;, dosenum &lt;dbl&gt;</code></pre>
+<p>In this very simplistic case, there was not a huge difference, however
+with complex models this could make the difference between a good
+solution and a poor solution.</p>
+<p>Happy modeling!</p>
 <p>Roulette wheel originally <a href="http://www.freepik.com">designed by
 macrovector / Freepik</a> with modifications for this post.</p>
 </div>
