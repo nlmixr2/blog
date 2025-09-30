@@ -34,7 +34,8 @@ most reasonable model for the data.  This can take several iterations
 to get right.
 
 Usually we set things like the population estimates of the model, and
-the variances/covariance of the residual errors.
+the variances/covariance of between subject variability as well as the
+residual errors.
 
 One thing you can do in both `nlmixr2` and `NONMEM` is to set the
 initial between subject variability estimates (which we will call
