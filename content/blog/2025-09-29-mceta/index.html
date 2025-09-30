@@ -25,10 +25,10 @@ the Monte-Carlo sampling with focei.</p>
 <div id="what-is-mceta" class="section level2">
 <h2>What is <code>mceta</code></h2>
 <p>One of the most important parts of getting a good model in non-linear
-mixed effects models is to choose reasonable estimates for the
+mixed effects models is to choose reasonable initial estimates for the
 model. This is something pharmacometricians do to get the best and
 most reasonable model for the data. This can take several iterations
-to get right.</p>
+to get right (depending on the data, model and algorithm).</p>
 <p>Usually we set things like the population estimates of the model, and
 the variances/covariance of between subject variability as well as the
 residual errors.</p>
@@ -134,8 +134,8 @@ fit &lt;- nlmixr(one.cmt, theo_sd, est=&quot;focei&quot;,
 ## 
 ## ── Time (sec $time): ──
 ## 
-##            setup optimize covariance table compress   other
-## elapsed 0.001566 0.355792   0.355792 0.073    0.006 2.51685
+##            setup optimize covariance table compress    other
+## elapsed 0.001671 0.358515   0.358516 0.074    0.007 2.543298
 ## 
 ## ── Population Parameters ($parFixed or $parFixedDf): ──
 ## 

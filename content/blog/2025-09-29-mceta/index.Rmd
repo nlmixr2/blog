@@ -28,10 +28,10 @@ the Monte-Carlo sampling with focei.
 ## What is `mceta`
 
 One of the most important parts of getting a good model in non-linear
-mixed effects models is to choose reasonable estimates for the
+mixed effects models is to choose reasonable initial estimates for the
 model. This is something pharmacometricians do to get the best and
 most reasonable model for the data.  This can take several iterations
-to get right.
+to get right (depending on the data, model and algorithm).
 
 Usually we set things like the population estimates of the model, and
 the variances/covariance of between subject variability as well as the
