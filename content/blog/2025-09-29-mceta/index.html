@@ -13,7 +13,7 @@ tags: []
 <h2>nlmixr2 4.0 mceta</h2>
 <p>Two of popular algorithms for fitting nonlinear fixed effects models
 in pharmacometrics are first order conditional estimation (with
-estimation), sometimes called focei. This is often considered a
+interaction), sometimes called focei. This is often considered a
 classical estimation method</p>
 <p>As time progressed, Monte-Carlo methods started being used, such as
 stochastic approximation estimation-maximization (saem). This samples
@@ -41,7 +41,8 @@ good final fit.</p>
 <code>nlmixr2</code> these options are:</p>
 <ul>
 <li><p><code>mceta=-1</code> – Use the best eta estimate from the last iteration
-(<code>nlmixr2</code>’s default, and not available in NONMEM at the time of this writing)</p></li>
+(<code>nlmixr2</code>’s default, and not available in NONMEM at the time of
+this writing)</p></li>
 <li><p><code>mceta=0</code> – Start at all <code>eta</code>s equal 0 (NONMEM’s default)</p></li>
 <li><p><code>mceta=1</code> – Try the <code>eta</code> at the last best fit estimate as well as
 the <code>eta</code>s set to zero, and start the optimization of that
@@ -56,10 +57,10 @@ individual objective function.</p></li>
 <p>This means that some of the strengths and robustness of the new
 algorithms can be achieved by increasing the <code>mceta</code> value; of course,
 this also means that the estimation method is non-deterministic too.</p>
-<p>This extra feature was added to help include focei linearization of
+<p>This extra feature was added to help include <code>focei</code> linearization of
 models (which I helped Omar Elashkar work on during his summer
 internship).</p>
-<p>In general, this helps with the focei linearization (in both <code>nlmixr2</code>
+<p>In general, this helps with the <code>focei</code> linearization (in both <code>nlmixr2</code>
 and in <code>NONMEM</code>) but it can also help find better models with ODEs (at
 the cost of computation time).</p>
 <p>I have not seen much discussion about this feature, though I have

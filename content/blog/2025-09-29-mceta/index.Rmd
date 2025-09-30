@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Two of popular algorithms for fitting nonlinear fixed effects models
 in pharmacometrics are first order conditional estimation (with
-estimation), sometimes called focei.  This is often considered a
+interaction), sometimes called focei.  This is often considered a
 classical estimation method
 
 As time progressed, Monte-Carlo methods started being used, such as
@@ -48,7 +48,8 @@ However with `mceta`, we can change the algorithm's default.  In
 `nlmixr2` these options are:
 
 - `mceta=-1` -- Use the best eta estimate from the last iteration
-  (`nlmixr2`'s default, and not available in NONMEM at the time of this writing)
+  (`nlmixr2`'s default, and not available in NONMEM at the time of
+  this writing)
 
 - `mceta=0` -- Start at all `eta`s equal 0 (NONMEM's default)
 
@@ -68,18 +69,17 @@ This means that some of the strengths and robustness of the new
 algorithms can be achieved by increasing the `mceta` value; of course,
 this also means that the estimation method is non-deterministic too.
 
-This extra feature was added to help include focei linearization of
+This extra feature was added to help include `focei` linearization of
 models (which I helped Omar Elashkar work on during his summer
 internship).
 
-In general, this helps with the focei linearization (in both `nlmixr2`
+In general, this helps with the `focei` linearization (in both `nlmixr2`
 and in `NONMEM`) but it can also help find better models with ODEs (at
 the cost of computation time).
 
 I have not seen much discussion about this feature, though I have
 heard it mentioned a couple of times by some analysts.  I think it can
 help in complex analyses where you want to use `focei`.
-
 
 Roulette wheel originally <a href="http://www.freepik.com">designed by
 macrovector / Freepik</a> with modifications for this post.
