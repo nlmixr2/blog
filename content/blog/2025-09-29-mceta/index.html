@@ -1,0 +1,70 @@
+---
+title: mceta -- Monte-Carlo focei?
+author: Matthew Fidler
+date: '2025-09-28'
+slug: []
+categories: [nlmixr2 mceta]
+tags: []
+---
+
+
+
+<div id="nlmixr2-4.0-mceta" class="section level2">
+<h2>nlmixr2 4.0 mceta</h2>
+<p>Two of popular algorithms for fitting nonlinear fixed effects models
+in pharmacometrics are first order conditional estimation (with
+estimation), sometimes called focei. This is often considered a
+classical estimation method</p>
+<p>As time progressed, Monte-Carlo methods started being used, such as
+stochastic approximation estimation-maximization (saem). This samples
+over the likelihood service also trying to figure out the best fit
+based on randomly sampling the likelihood.</p>
+<p>The new feature I am discussing is <code>mceta</code> for <code>focei</code>, which combines
+the Monte-Carlo method with focei.</p>
+</div>
+<div id="what-is-mceta" class="section level2">
+<h2>What is mceta</h2>
+<p>One of the most important parts of getting a good model in non-linear
+mixed effects models is to choose reasonable estimates for the
+model. This is something pharmacometricians do to get the best and
+most reasonable model for the data. This can take several iterations
+to get right.</p>
+<p>Usually we set things like the population estimates of the model, and
+the variances/covariance of the residual errors.</p>
+<p>One thing you can do in both <code>nlmixr2</code> and <code>NONMEM</code> is to set the
+initial between subject variability estimates (which we will call
+<code>eta</code>s) to get an even better initial estimate for the problem.</p>
+<p>While true, this is infrequently done by pharmacometricians.
+Typically they accept the defaults of the algorithm and hope for a
+good final fit.</p>
+<p>However with <code>mceta</code>, we can change the algorithm’s default. In
+<code>nlmixr2</code> these options are:</p>
+<ul>
+<li><p><code>mceta=-1</code> – Use the best eta estimate from the last iteration
+(<code>nlmixr2</code>’s default, and not available in NONMEM at the time of this writing)</p></li>
+<li><p><code>mceta=0</code> – Start at all <code>eta</code>s equal 0 (NONMEM’s default)</p></li>
+<li><p><code>mceta=1</code> – Try the <code>eta</code> at the last best fit estimate as well as
+the <code>eta</code>s set to zero, and start the optimization of that
+individual at the <code>eta</code> with the lowest objective function.</p></li>
+<li><p><code>mceta=N</code> – Try the <code>etas</code> as described in <code>mceta=1</code> and then take
+<code>N-1</code> random multivariate normal samples (assuming <code>omega</code> is
+true). Start the optimization at the <code>eta</code> value with the smallest
+individual objective function.</p></li>
+</ul>
+<p>This makes the <code>focei</code> algorithm a Monte-Carlo method (though not a
+<code>mcmc</code> method).</p>
+<p>This means that some of the strengths and robustness of the new
+algorithms can be achieved by increasing the <code>mceta</code> value; of course,
+this also means that the estimation method is non-deterministic too.</p>
+<p>This extra feature was added to help include focei linearization of
+models (which I helped Omar Elashkar work on during his summer
+internship).</p>
+<p>In general, this helps with the focei linearization (in both <code>nlmixr2</code>
+and in <code>NONMEM</code>) but it can also help find better models with ODEs (at
+the cost of computation time).</p>
+<p>I have not seen much discussion about this feature, though I have
+heard it mentioned a couple of times by some analysts. I think it can
+help in complex analyses where you want to use <code>focei</code>.</p>
+<p>Roulette wheel originally <a href="http://www.freepik.com">designed by
+macrovector / Freepik</a> with modifications for this post.</p>
+</div>
