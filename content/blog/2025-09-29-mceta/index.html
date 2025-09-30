@@ -49,12 +49,13 @@ this writing)</p></li>
 the <code>eta</code>s set to zero, and start the optimization of that
 individual at the <code>eta</code> with the lowest objective function.</p></li>
 <li><p><code>mceta=N</code> – Try the <code>etas</code> as described in <code>mceta=1</code> and then take
-<code>N-1</code> random multivariate normal samples (assuming <code>omega</code> is
+<code>N-1</code> random multivariate normal samples (assuming the specified
+between subject variability covariance matrix, <code>omega</code>, is
 true). Start the optimization at the <code>eta</code> value with the smallest
 individual objective function.</p></li>
 </ul>
-<p>This makes the <code>focei</code> algorithm a Monte-Carlo method (though not a
-<code>mcmc</code> method).</p>
+<p>At values of <code>mceta &gt; 1</code>, the <code>focei</code> algorithm becomes a Monte-Carlo
+method (though not a <code>mcmc</code> method).</p>
 <p>This means that some of the strengths and robustness of the new
 algorithms can be achieved by increasing the <code>mceta</code> value; of course,
 this also means that the estimation method is non-deterministic too.</p>

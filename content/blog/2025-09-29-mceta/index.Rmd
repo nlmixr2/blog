@@ -59,12 +59,13 @@ However with `mceta`, we can change the algorithm's default.  In
   individual at the `eta` with the lowest objective function.
 
 - `mceta=N` -- Try the `etas` as described in `mceta=1` and then take
-  `N-1` random multivariate normal samples (assuming `omega` is
+  `N-1` random multivariate normal samples (assuming the specified
+  between subject variability covariance matrix, `omega`, is
   true). Start the optimization at the `eta` value with the smallest
   individual objective function.
 
-This makes the `focei` algorithm a Monte-Carlo method (though not a
-`mcmc` method).
+At values of `mceta > 1`, the `focei` algorithm becomes a Monte-Carlo
+method (though not a `mcmc` method).
 
 This means that some of the strengths and robustness of the new
 algorithms can be achieved by increasing the `mceta` value; of course,
