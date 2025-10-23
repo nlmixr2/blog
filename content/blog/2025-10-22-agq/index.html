@@ -1,0 +1,380 @@
+---
+title: laplace and agq estimation methods
+author: Matthew Fidler
+date: '2025-10-22'
+slug: []
+categories: [nlmixr2, agq, laplace]
+tags: []
+---
+
+<link href="{{< blogdown/postref >}}index_files/htmltools-fill/fill.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/htmlwidgets/htmlwidgets.js"></script>
+<link href="{{< blogdown/postref >}}index_files/datatables-css/datatables-crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/datatables-binding/datatables.js"></script>
+<script src="{{< blogdown/postref >}}index_files/jquery/jquery-3.6.0.min.js"></script>
+<link href="{{< blogdown/postref >}}index_files/dt-core/css/jquery.dataTables.min.css" rel="stylesheet" />
+<link href="{{< blogdown/postref >}}index_files/dt-core/css/jquery.dataTables.extra.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/dt-core/js/jquery.dataTables.min.js"></script>
+<link href="{{< blogdown/postref >}}index_files/nouislider/jquery.nouislider.min.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/nouislider/jquery.nouislider.min.js"></script>
+<link href="{{< blogdown/postref >}}index_files/selectize/selectize.bootstrap3.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/selectize/selectize.min.js"></script>
+<link href="{{< blogdown/postref >}}index_files/crosstalk/css/crosstalk.min.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/crosstalk/js/crosstalk.min.js"></script>
+
+
+<div id="nlmixr2-log-likelihood" class="section level3">
+<h3>nlmixr2 log-likelihood</h3>
+<p>In 2022 <a href="https://blog.nlmixr2.org/blog/2022-10-23-nlmixr2-llik/">we announced the
+focei</a>
+log-likelihood. However, in our last advisory committee meeting Mats
+Karlsson pointed out that focei log-likelihood may not be the best
+approach. He believed that Stuart L. Beal and Lewis B. Sheiner did not
+include this method since they may have been trying to protect users
+from methods that may not make sense (for example, maybe focei
+log-likelihood is not an accurately enough approximation of the
+likelihood).</p>
+<p>Before I had time to explore this further the github user
+PyryValitalo <a href="https://github.com/nlmixr2/nlmixr2/discussions/336">questioned the math of focei
+Likelihood</a>.
+After taking a bit to explore, I am convinced that what I thought was
+focei log-likelihood is technically more of a laplace method than a
+focei method (since the Hessian was not approximated by an
+expectation).</p>
+<p>That being said, the laplace approximation is not the
+same as NONMEM’s laplace method either.</p>
+</div>
+<div id="nonmems-vs-nlmixr2s-laplace" class="section level3">
+<h3>NONMEM’s vs nlmixr2’s laplace</h3>
+<p>OK, now that we know that nlmixr2’s log-likelihood focei is actually a
+laplace method, lets discuss how it is different from NONMEM’s laplace
+method.</p>
+<p><code>NONMEM</code> calculates the each subjects’ individual Hessian contribution
+to the objective function totally numerically (second order numeric
+derivative).</p>
+<p>On the other hand, <code>nlmixr2</code> numerically differentiates the exact
+symbolic/ad likelihood gradient (first order numeric derivative of
+exact likelihood gradient).</p>
+<p>In theory, this means the <code>nlmixr2</code> likelihood for it’s laplace method
+are more likely to be accurate (and possibly take less time to
+calculate).</p>
+</div>
+<div id="agq-provides-even-likelihood-accuracy" class="section level3">
+<h3>agq provides even likelihood accuracy</h3>
+<p>An implied part of Mats’ comment was that we may need to get better
+approximations of the likelihood than what we currently have.</p>
+<p>To support this, we brought back the adaptive Gaussian Quadrature that
+was in <code>nlmixr</code> 1.0. Since this revision gives different results than
+the previous <code>gnlmm</code> method, we renamed it <code>agq</code> in <code>nlmixr2</code>. We
+also checked:</p>
+<ul>
+<li><p>Adaptive Gaussian Quadrature with <code>nAGQ = 1</code> will converge to the
+<code>focei</code> objective function for normal distributions (that do not
+request log-likelihood).</p></li>
+<li><p>With an increase of Quadrature points <code>nAGQ &gt;= 2</code> the objective
+function will also increase in accuracy (at the cost of more
+evaluations).</p></li>
+</ul>
+<p>As a note, this method increases accuracy by requiring more
+function evaluations. The number of function evaluations are given by:</p>
+<ul>
+<li><p>For an even number of quadrature points, the individual likelihoods
+are evaluated an additional <span class="math display">\[nAGQ^{n_{\eta}}\times
+n_{\textsf{subjects}}\]</span> times.</p></li>
+<li><p>For an odd number of quadrature points, the individual likelihoods
+are evaluated an additional <span class="math display">\[\left(nAGQ^{n_{\eta}}-1\right)\times
+n_{\textsf{subjects}}\]</span> times.</p></li>
+</ul>
+<p>This large amount of extra evaluations makes this method only suitable
+in specialized cases such as:</p>
+<ul>
+<li><p>You need more accuracy in the objective function (probably something
+other than a normal distribution, maybe a beta distribution for instance).</p></li>
+<li><p>The ODE solving isn’t in the model (or is fast for each subject).</p></li>
+<li><p>A “reasonable” number of subjects</p></li>
+<li><p>A small number of between subject variability terms (<span class="math inline">\(\eta\)</span>)</p></li>
+</ul>
+<p>If you are wondering how many function evaluations you would take
+(before you start using this method) you can find out by:</p>
+<pre class="r"><code>library(nlmixr2)</code></pre>
+<pre><code>## ── Attaching packages ───────────────────────────────────────────────────────── nlmixr2 4.0.1 ──</code></pre>
+<pre><code>## ✔ lotri         1.0.2     ✔ monolix2rx    0.0.6
+## ✔ nlmixr2data   2.0.9     ✔ nlmixr2lib    0.3.1
+## ✔ nlmixr2est    4.1.1     ✔ nlmixr2rpt    0.2.2
+## ✔ nlmixr2extra  3.0.3     ✔ nonmem2rx     0.1.8
+## ✔ nlmixr2plot   3.0.3     ✔ posologyr     1.2.8
+## ✔ rxode2        4.1.1     ✔ shinyMixR     0.5.2
+## ✔ babelmixr2    0.1.9     ✔ xpose.nlmixr2 0.4.1
+## ✔ ggPMX         1.3.2</code></pre>
+<pre><code>## ── Optional Packages Loaded/Ignored ─────────────────────────────────────────── nlmixr2 4.0.1 ──</code></pre>
+<pre><code>## ✔ babelmixr2        ✔ nonmem2rx    
+## ✔ ggPMX             ✔ posologyr    
+## ✔ monolix2rx        ✔ shinyMixR    
+## ✔ nlmixr2lib        ✔ xpose.nlmixr2
+## ✔ nlmixr2rpt</code></pre>
+<pre><code>## ── Conflicts ───────────────────────────────────────────────────────────── nlmixr2conflicts() ──
+## ✖ rxode2::boxCox()     masks nlmixr2est::boxCox()
+## ✖ rxode2::yeoJohnson() masks nlmixr2est::yeoJohnson()</code></pre>
+<pre class="r"><code># 2 = number of subjects
+
+# For the even case
+(nrow(.agq(neta=10, nAGQ=2)$x)-1)*2</code></pre>
+<pre><code>## [1] 2046</code></pre>
+<pre class="r"><code># For odd case
+(nrow(.agq(neta=10, nAGQ=3)$x)-1)*2</code></pre>
+<pre><code>## [1] 118096</code></pre>
+<p>You can see with 10 between subject variability parameter, 2 subjects,
+and 3 adaptive quadrature points, we have 118,096 additional function
+evaluations after the empirical Bayesian estimate has been determined
+(which is an optimization problem as well)!</p>
+<p>Because it takes so much time, we want to use a very fast running
+example to illustrate the amount of time increasing the quadrature may
+take. So, we will use most modeled drug in pharmacometrics,
+theophylline.</p>
+<p>In this case we have 12 subjects, and 3 between subject
+variability terms:</p>
+<pre class="r"><code>df &lt;- data.frame(nAGQ=seq(1:12))
+
+# Calculate the additional quadrature point
+df$nextra &lt;- vapply(df$nAGQ,
+                   function(qp) {
+                     if (qp %% 2 == 0) {
+                       # even case
+                       (nrow(.agq(neta=3, nAGQ=qp)$x))*12L
+                     } else {
+                       # odd case
+                       (nrow(.agq(neta=3, nAGQ=qp)$x)-1L)*12L
+                     }
+                   }, integer(1), USE.NAMES=FALSE)
+df</code></pre>
+<pre><code>##    nAGQ nextra
+## 1     1      0
+## 2     2     96
+## 3     3    312
+## 4     4    768
+## 5     5   1488
+## 6     6   2592
+## 7     7   4104
+## 8     8   6144
+## 9     9   8736
+## 10   10  12000
+## 11   11  15960
+## 12   12  20736</code></pre>
+<p>Now lets try this out for a few models:</p>
+<pre class="r"><code>one.cmt &lt;- function() {
+  ini({
+    ## You may label each parameter with a comment
+    tka &lt;- 0.45 # Log Ka
+    tcl &lt;- log(c(0, 2.7, 100)) # Log Cl
+    ## This works with interactive models
+    ## You may also label the preceding line with label(&quot;label text&quot;)
+    tv &lt;- 3.45; label(&quot;log V&quot;)
+    ## the label(&quot;Label name&quot;) works with all models
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+    add.sd &lt;- 0.7
+  })
+  model({
+    ka &lt;- exp(tka + eta.ka)
+    cl &lt;- exp(tcl + eta.cl)
+    v &lt;- exp(tv + eta.v)
+    linCmt() ~ add(add.sd)
+  })
+}
+
+library(tictoc)
+
+mods &lt;- lapply(1:7,
+               function(i) {
+                 tic(paste0(i,&quot; quadrature points&quot;))
+                 fit &lt;- withr::with_output_sink(tempfile(),
+ suppressMessages(nlmixr2(one.cmt, theo_sd, &quot;agq&quot;,
+ agqControl(nAGQ=i, print=0))))
+                 toc()
+                 fit
+               })</code></pre>
+<pre><code>## 1 quadrature points: 5.635 sec elapsed
+## 2 quadrature points: 2.011 sec elapsed
+## 3 quadrature points: 4.566 sec elapsed
+## 4 quadrature points: 8.646 sec elapsed
+## 5 quadrature points: 11.287 sec elapsed
+## 6 quadrature points: 21.292 sec elapsed
+## 7 quadrature points: 30.651 sec elapsed</code></pre>
+<pre class="r"><code>df &lt;- df[df$nAGQ &lt;=7,]
+df$objf &lt;- vapply(df$nAGQ,
+                  function(i) {
+                    signif(mods[[i]]$objf, 4)
+                  }, double(1), USE.NAMES=FALSE)
+
+df$time &lt;- vapply(df$nAGQ,
+                  function(i) {
+                    signif(sum(mods[[i]]$time), 4)
+                  }, double(1), USE.NAMES=FALSE)
+
+# Now add estimates
+df &lt;- cbind(df,
+            do.call(&quot;rbind&quot;,
+                    lapply(df$nAGQ,
+                           function(i) {
+                             as.data.frame(
+                               t(signif(mods[[i]]$theta, 4)))
+                           })))
+
+df2 &lt;- do.call(&quot;rbind&quot;,
+               lapply(df$nAGQ,
+                      function(i) {
+                        as.data.frame(
+                          t(diag(signif(mods[[i]]$omega, 4)))
+                        )
+                      }))
+
+names(df2) &lt;- paste0(&quot;omega(&quot;, names(df2), &quot;)&quot;)
+
+df &lt;- cbind(df, df2)
+
+DT::datatable(df, rownames = FALSE, filter=&quot;top&quot;,  options=list(pageLength = 7, scrollX=TRUE))</code></pre>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-1" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"filter":"top","vertical":false,"filterHTML":"<tr>\n  <td data-type=\"integer\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"1\" data-max=\"7\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"integer\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"0\" data-max=\"4104\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"116.8\" data-max=\"117.7\" data-scale=\"1\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"2.009\" data-max=\"30.65\" data-scale=\"3\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"0.4592\" data-max=\"0.4653\" data-scale=\"4\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"1.008\" data-max=\"1.013\" data-scale=\"3\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"3.455\" data-max=\"3.46\" data-scale=\"3\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"0.6939\" data-max=\"0.6956\" data-scale=\"4\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"0.4001\" data-max=\"0.4048\" data-scale=\"4\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"0.06886\" data-max=\"0.07008\" data-scale=\"5\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"0.01901\" data-max=\"0.0195\" data-scale=\"5\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n<\/tr>","data":[[1,2,3,4,5,6,7],[0,96,312,768,1488,2592,4104],[116.8,117.7,117.7,117.7,117.7,117.7,117.7],[5.633,2.01,4.565,8.646000000000001,11.29,21.29,30.65],[0.4624,0.4613,0.461,0.4627,0.4653,0.4615,0.4592],[1.013,1.012,1.009,1.013,1.012,1.012,1.01],[3.46,3.457,3.457,3.457,3.457,3.455,3.457],[0.694,0.6956,0.6949,0.6951000000000001,0.6951000000000001,0.6949,0.6952],[0.4038,0.4001,0.4048,0.4025,0.4025,0.4025,0.4024],[0.06906,0.06886,0.06934999999999999,0.06897,0.07008,0.06959,0.06952999999999999],[0.0195,0.01915,0.01902,0.01926,0.0191,0.01937,0.01901]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>nAGQ<\/th>\n      <th>nextra<\/th>\n      <th>objf<\/th>\n      <th>time<\/th>\n      <th>tka<\/th>\n      <th>tcl<\/th>\n      <th>tv<\/th>\n      <th>add.sd<\/th>\n      <th>omega(eta.ka)<\/th>\n      <th>omega(eta.cl)<\/th>\n      <th>omega(eta.v)<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"pageLength":7,"scrollX":true,"columnDefs":[{"className":"dt-right","targets":[0,1,2,3,4,5,6,7,8,9,10]},{"name":"nAGQ","targets":0},{"name":"nextra","targets":1},{"name":"objf","targets":2},{"name":"time","targets":3},{"name":"tka","targets":4},{"name":"tcl","targets":5},{"name":"tv","targets":6},{"name":"add.sd","targets":7},{"name":"omega(eta.ka)","targets":8},{"name":"omega(eta.cl)","targets":9},{"name":"omega(eta.v)","targets":10}],"order":[],"autoWidth":false,"orderClasses":false,"orderCellsTop":true,"lengthMenu":[7,10,25,50,100]},"selection":{"mode":"multiple","selected":null,"target":"row","selectable":null}},"evals":[],"jsHooks":[]}</script>
+<p>As you can see, in the normal case, the initial approximation is
+fairly good, with a slightly better approximation of likelihood with <code>nAGQ=2</code>. This approximation is (marginally) better, but takes much more time after <code>nAGQ=3</code>.</p>
+<p>If you want to tune this for a non-normal likelihoods, I would suggest:</p>
+<ul>
+<li><p>Select a few extreme subjects coupled with some typical subject
+(maybe clustering would be helpful here depending on your dataset).</p></li>
+<li><p>With these data, increase <code>nAGQ</code> until the likelihood difference is
+good enough.</p></li>
+<li><p>Use the <code>nAGQ</code> that is a balance of accuracy and speed for your problem.</p></li>
+</ul>
+</div>
+<div id="the-new-methods-in-nlmixr2" class="section level3">
+<h3>The new methods in <code>nlmixr2</code></h3>
+<p>The two new estimation methods in <code>nlmixr2</code> is the adaptive Gaussian
+Quadrature discussed above (<code>"agq"</code>, which defaults to <code>nAGQ=2</code>), and
+<code>"laplace"</code> which defaults to <code>nAGQ=1</code>. Note that <code>"focei"</code>
+log-likelihood (which is still supported) is equivalent to nlmixr2’s
+<code>"laplace"</code> estimation method.</p>
+</div>
+<div id="making-nlmixr2s-laplace-closer-to-nonmem" class="section level3">
+<h3>Making <code>nlmixr2</code>’s <code>"laplace"</code> closer to NONMEM</h3>
+<p>In nlmixr2’s laplace method, it uses the foce(i) approximation of the
+Hessian when available (i.e. for normal data).</p>
+<p>To make the <code>nlmixr2</code> fit closer to what is used in <code>NONMEM</code>’s
+<code>"laplace"</code> method we need to add <code>+dnorm()</code> to the end of a regular
+residual specification. Using the same example as above we would use:</p>
+<pre class="r"><code>one.cmt &lt;- function() {
+  ini({
+    ## You may label each parameter with a comment
+    tka &lt;- 0.45 # Log Ka
+    tcl &lt;- log(c(0, 2.7, 100)) # Log Cl
+    ## This works with interactive models
+    ## You may also label the preceding line with label(&quot;label text&quot;)
+    tv &lt;- 3.45; label(&quot;log V&quot;)
+    ## the label(&quot;Label name&quot;) works with all models
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+    add.sd &lt;- 0.7
+  })
+  model({
+    ka &lt;- exp(tka + eta.ka)
+    cl &lt;- exp(tcl + eta.cl)
+    v &lt;- exp(tv + eta.v)
+    linCmt() ~ add(add.sd) + dnorm()
+  })
+}
+
+fit &lt;- suppressMessages(nlmixr2(one.cmt, theo_sd, &quot;laplace&quot;,
+                                laplaceControl(print=0)))</code></pre>
+<pre><code>## 
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## 
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## 
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## 
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## 
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## 
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## 
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## 
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## 
+## 
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## 
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## 
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## 
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## 
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## 
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## 
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## 
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## 
+## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## done</code></pre>
+<pre class="r"><code>print(fit)</code></pre>
+<pre><code>## ── nlmixr² log-likelihood AGQi (outer: nlminb; Laplace) ──
+## 
+##             OBJF      AIC      BIC Log-likelihood Condition#(Cov)
+## FOCEi   118.5029 375.1027 395.2823      -180.5514        68.80012
+## Laplace 118.5029 375.1027 395.2823      -180.5514        68.80012
+##         Condition#(Cor)
+## FOCEi          9.370914
+## Laplace        9.370914
+## 
+## ── Time (sec $time): ──
+## 
+##            setup optimize covariance table compress
+## elapsed 0.001414 0.763361   0.763361 0.087    0.006
+## 
+## ── Population Parameters ($parFixed or $parFixedDf): ──
+## 
+##        Parameter  Est.     SE %RSE Back-transformed(95%CI) BSV(CV%) Shrink(SD)%
+## tka              0.457  0.197 43.1       1.58 (1.07, 2.32)     70.0      1.43% 
+## tcl               1.01 0.0752 7.44       2.75 (2.37, 3.19)     26.8      3.74% 
+## tv         log V  3.45 0.0439 1.27         31.6 (29, 34.4)     13.7      10.3% 
+## add.sd           0.697                               0.697                     
+##  
+##   Covariance Type ($covMethod): r,s
+##   No correlations in between subject variability (BSV) matrix
+##   Full BSV covariance ($omega) or correlation ($omegaR; diagonals=SDs) 
+##   Distribution stats (mean/skewness/kurtosis/p-value) available in $shrink 
+##   Information about run found ($runInfo):
+##    • gradient problems with initial estimate and covariance; see $scaleInfo 
+##    • ETAs were reset to zero during optimization; (Can control by foceiControl(resetEtaP=.)) 
+##    • initial ETAs were nudged; (can control by foceiControl(etaNudge=., etaNudge2=)) 
+##   Censoring ($censInformation): No censoring
+##   Minimization message ($message):  
+##     relative convergence (4) 
+## 
+## ── Fit Data (object is a modified tibble): ──
+## # A tibble: 132 × 22
+##   ID     TIME    DV  PRED    RES   WRES IPRED   IRES  IWRES CPRED   CRES  CWRES
+##   &lt;fct&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+## 1 1      0     0.74  0     0.74   1.06   0     0.74   1.06   0     0.74   1.06 
+## 2 1      0.25  2.84  3.27 -0.425 -0.513  3.84 -1.00  -1.44   3.52 -0.676 -0.774
+## 3 1      0.57  6.57  5.84  0.728  0.687  6.78 -0.214 -0.307  6.20  0.366  0.315
+## # ℹ 129 more rows
+## # ℹ 10 more variables: eta.ka &lt;dbl&gt;, eta.cl &lt;dbl&gt;, eta.v &lt;dbl&gt;, depot &lt;dbl&gt;,
+## #   central &lt;dbl&gt;, ka &lt;dbl&gt;, cl &lt;dbl&gt;, v &lt;dbl&gt;, tad &lt;dbl&gt;, dosenum &lt;dbl&gt;</code></pre>
+<p>You can notice the objective function is slightly different than the
+foce(i) objective function above; this could be due to many reasons,
+including:</p>
+<ul>
+<li><p>This method does not take use the focei approximation of the Hessian.</p></li>
+<li><p>This method uses numeric differences of the likelihood gradient to
+determine the gradient.</p></li>
+</ul>
+<p>Also this method takes more time than the standard focei method.</p>
+</div>

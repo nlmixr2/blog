@@ -1,0 +1,283 @@
+---
+title: laplace and agq estimation methods
+author: Matthew Fidler
+date: '2025-10-22'
+slug: []
+categories: [nlmixr2, agq, laplace]
+tags: []
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### nlmixr2 log-likelihood
+
+In 2022 [we announced the
+focei](https://blog.nlmixr2.org/blog/2022-10-23-nlmixr2-llik/)
+log-likelihood.  However, in our last advisory committee meeting Mats
+Karlsson pointed out that focei log-likelihood may not be the best
+approach. He believed that Stuart L. Beal and Lewis B. Sheiner did not
+include this method since they may have been trying to protect users
+from methods that may not make sense (for example, maybe focei
+log-likelihood is not an accurately enough approximation of the
+likelihood).
+
+Before I had time to explore this further the github user
+PyryValitalo [questioned the math of focei
+Likelihood](https://github.com/nlmixr2/nlmixr2/discussions/336).
+After taking a bit to explore, I am convinced that what I thought was
+focei log-likelihood is technically more of a laplace method than a
+focei method (since the Hessian was not approximated by an
+expectation).
+
+That being said, the laplace approximation is not the
+same as NONMEM's laplace method either.
+
+### NONMEM's vs nlmixr2's laplace
+
+OK, now that we know that nlmixr2's log-likelihood focei is actually a
+laplace method, lets discuss how it is different from NONMEM's laplace
+method.
+
+`NONMEM` calculates the each subjects' individual Hessian contribution
+to the objective function totally numerically (second order numeric
+derivative).
+
+On the other hand, `nlmixr2` numerically differentiates the exact
+symbolic/ad likelihood gradient (first order numeric derivative of
+exact likelihood gradient).
+
+In theory, this means the `nlmixr2` likelihood for it's laplace method
+are more likely to be accurate (and possibly take less time to
+calculate).
+
+### agq provides even likelihood accuracy
+
+An implied part of Mats' comment was that we may need to get better
+approximations of the likelihood than what we currently have.
+
+To support this, we brought back the adaptive Gaussian Quadrature that
+was in `nlmixr` 1.0.  Since this revision gives different results than
+the previous `gnlmm` method, we renamed it `agq` in `nlmixr2`.  We
+also checked:
+
+- Adaptive Gaussian Quadrature with `nAGQ = 1` will converge to the
+  `focei` objective function for normal distributions (that do not
+  request log-likelihood).
+
+- With an increase of Quadrature points `nAGQ >= 2` the objective
+  function will also increase in accuracy (at the cost of more
+  evaluations).
+
+As a note, this method increases accuracy by requiring more
+function evaluations.  The number of function evaluations are given by:
+
+- For an even number of quadrature points, the individual likelihoods
+  are evaluated an additional $$nAGQ^{n_{\eta}}\times
+  n_{\textsf{subjects}}$$ times.
+
+- For an odd number of quadrature points, the individual likelihoods
+  are evaluated an additional $$\left(nAGQ^{n_{\eta}}-1\right)\times
+  n_{\textsf{subjects}}$$ times.
+
+This large amount of extra evaluations makes this method only suitable
+in specialized cases such as:
+
+- You need more accuracy in the objective function (probably something
+  other than a normal distribution, maybe a beta distribution for instance).
+
+- The ODE solving isn't in the model (or is fast for each subject).
+
+- A "reasonable" number of subjects
+
+- A small number of between subject variability terms ($\eta$)
+
+
+If you are wondering how many function evaluations you would take
+(before you start using this method) you can find out by:
+
+```{r}
+library(nlmixr2)
+# 2 = number of subjects
+
+# For the even case
+(nrow(.agq(neta=10, nAGQ=2)$x)-1)*2
+
+# For odd case
+(nrow(.agq(neta=10, nAGQ=3)$x)-1)*2
+```
+
+You can see with 10 between subject variability parameter, 2 subjects,
+and 3 adaptive quadrature points, we have 118,096 additional function
+evaluations after the empirical Bayesian estimate has been determined
+(which is an optimization problem as well)!
+
+Because it takes so much time, we want to use a very fast running
+example to illustrate the amount of time increasing the quadrature may
+take. So, we will use most modeled drug in pharmacometrics,
+theophylline.
+
+In this case we have 12 subjects, and 3 between subject
+variability terms:
+
+```{r}
+df <- data.frame(nAGQ=seq(1:12))
+
+# Calculate the additional quadrature point
+df$nextra <- vapply(df$nAGQ,
+                   function(qp) {
+                     if (qp %% 2 == 0) {
+                       # even case
+                       (nrow(.agq(neta=3, nAGQ=qp)$x))*12L
+                     } else {
+                       # odd case
+                       (nrow(.agq(neta=3, nAGQ=qp)$x)-1L)*12L
+                     }
+                   }, integer(1), USE.NAMES=FALSE)
+df
+```
+
+Now lets try this out for a few models:
+
+```{r}
+one.cmt <- function() {
+  ini({
+    ## You may label each parameter with a comment
+    tka <- 0.45 # Log Ka
+    tcl <- log(c(0, 2.7, 100)) # Log Cl
+    ## This works with interactive models
+    ## You may also label the preceding line with label("label text")
+    tv <- 3.45; label("log V")
+    ## the label("Label name") works with all models
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+    add.sd <- 0.7
+  })
+  model({
+    ka <- exp(tka + eta.ka)
+    cl <- exp(tcl + eta.cl)
+    v <- exp(tv + eta.v)
+    linCmt() ~ add(add.sd)
+  })
+}
+
+library(tictoc)
+
+mods <- lapply(1:7,
+               function(i) {
+                 tic(paste0(i," quadrature points"))
+                 fit <- withr::with_output_sink(tempfile(),
+ suppressMessages(nlmixr2(one.cmt, theo_sd, "agq",
+ agqControl(nAGQ=i, print=0))))
+                 toc()
+                 fit
+               })
+
+
+df <- df[df$nAGQ <=7,]
+df$objf <- vapply(df$nAGQ,
+                  function(i) {
+                    signif(mods[[i]]$objf, 4)
+                  }, double(1), USE.NAMES=FALSE)
+
+df$time <- vapply(df$nAGQ,
+                  function(i) {
+                    signif(sum(mods[[i]]$time), 4)
+                  }, double(1), USE.NAMES=FALSE)
+
+# Now add estimates
+df <- cbind(df,
+            do.call("rbind",
+                    lapply(df$nAGQ,
+                           function(i) {
+                             as.data.frame(
+                               t(signif(mods[[i]]$theta, 4)))
+                           })))
+
+df2 <- do.call("rbind",
+               lapply(df$nAGQ,
+                      function(i) {
+                        as.data.frame(
+                          t(diag(signif(mods[[i]]$omega, 4)))
+                        )
+                      }))
+
+names(df2) <- paste0("omega(", names(df2), ")")
+
+df <- cbind(df, df2)
+
+DT::datatable(df, rownames = FALSE, filter="top",  options=list(pageLength = 7, scrollX=TRUE))
+```
+
+As you can see, in the normal case, the initial approximation is
+fairly good, with a slightly better approximation of likelihood with `nAGQ=2`.  This approximation is (marginally) better, but takes much more time after `nAGQ=3`.
+
+If you want to tune this for a non-normal likelihoods, I would suggest:
+
+- Select a few extreme subjects coupled with some typical subject
+  (maybe clustering would be helpful here depending on your dataset).
+
+- With these data, increase `nAGQ` until the likelihood difference is
+  good enough.
+
+- Use the `nAGQ` that is a balance of accuracy and speed for your problem.
+
+
+### The new methods in `nlmixr2`
+
+The two new estimation methods in `nlmixr2` is the adaptive Gaussian
+Quadrature discussed above (`"agq"`, which defaults to `nAGQ=2`), and
+`"laplace"` which defaults to `nAGQ=1`.  Note that `"focei"`
+log-likelihood (which is still supported) is equivalent to nlmixr2's
+`"laplace"` estimation method.
+
+### Making `nlmixr2`'s `"laplace"` closer to NONMEM
+
+In nlmixr2's laplace method, it uses the foce(i) approximation of the
+Hessian when available (i.e. for normal data).
+
+To make the `nlmixr2` fit closer to what is used in `NONMEM`'s
+`"laplace"` method we need to add `+dnorm()` to the end of a regular
+residual specification. Using the same example as above we would use:
+
+
+```{r}
+one.cmt <- function() {
+  ini({
+    ## You may label each parameter with a comment
+    tka <- 0.45 # Log Ka
+    tcl <- log(c(0, 2.7, 100)) # Log Cl
+    ## This works with interactive models
+    ## You may also label the preceding line with label("label text")
+    tv <- 3.45; label("log V")
+    ## the label("Label name") works with all models
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+    add.sd <- 0.7
+  })
+  model({
+    ka <- exp(tka + eta.ka)
+    cl <- exp(tcl + eta.cl)
+    v <- exp(tv + eta.v)
+    linCmt() ~ add(add.sd) + dnorm()
+  })
+}
+
+fit <- suppressMessages(nlmixr2(one.cmt, theo_sd, "laplace",
+                                laplaceControl(print=0)))
+
+print(fit)
+```
+
+You can notice the objective function is slightly different than the
+foce(i) objective function above; this could be due to many reasons,
+including:
+
+- This method does not take use the focei approximation of the Hessian.
+
+- This method uses numeric differences of the likelihood gradient to
+  determine the gradient.
+
+Also this method takes more time than the standard focei method.
