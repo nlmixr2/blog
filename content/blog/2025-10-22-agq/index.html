@@ -47,14 +47,15 @@ same as NONMEM’s laplace method either.</p>
 <div id="nonmems-vs-nlmixr2s-laplace" class="section level3">
 <h3>NONMEM’s vs nlmixr2’s laplace</h3>
 <p>OK, now that we know that nlmixr2’s log-likelihood focei is actually a
-laplace method, but it is different, lets discuss the differences
-between NONMEM and nlmixr2’s laplace method.</p>
-<p><code>NONMEM</code> calculates the individual Hessian part of the objective
-function totally numerically (second order numeric
-derivative). <code>nlmixr2</code> numerically differentiates the exact
+laplace method, lets discuss how it is different from NONMEM’s laplace
+method.</p>
+<p><code>NONMEM</code> calculates the each subjects’ individual Hessian contribution
+to the objective function totally numerically (second order numeric
+derivative).</p>
+<p>On the other hand, <code>nlmixr2</code> numerically differentiates the exact
 symbolic/ad likelihood gradient (first order numeric derivative of
 exact likelihood gradient).</p>
-<p>In theory, this means the <code>nlmixr2</code> likelihood
+<p>In theory, this means the <code>nlmixr2</code> likelihood for it’s laplace method
 are more likely to be accurate (and possibly take less time to
 calculate).</p>
 </div>
@@ -69,12 +70,12 @@ also checked:</p>
 <ul>
 <li><p>Adaptive Gaussian Quadrature with <code>nAGQ = 1</code> will converge to the
 <code>focei</code> objective function for normal distributions (that do not
-request log-likelihood)</p></li>
+request log-likelihood).</p></li>
 <li><p>With an increase of Quadrature points <code>nAGQ &gt;= 2</code> the objective
 function will also increase in accuracy (at the cost of more
 evaluations).</p></li>
 </ul>
-<p>As a note, while this method increases accuracy it requires more
+<p>As a note, this method increases accuracy by requiring more
 function evaluations. The number of function evaluations are given by:</p>
 <ul>
 <li><p>For an even number of quadrature points, the individual likelihoods
@@ -84,7 +85,8 @@ n_{\textsf{subjects}}\]</span> times.</p></li>
 are evaluated an additional <span class="math display">\[\left(nAGQ^{n_{\eta}}-1\right)\times
 n_{\textsf{subjects}}\]</span> times.</p></li>
 </ul>
-<p>This large amount of extra evaluations makes this method suitable in cases where:</p>
+<p>This large amount of extra evaluations makes this method only suitable
+in specialized cases such as:</p>
 <ul>
 <li><p>You need more accuracy in the objective function (probably something
 other than a normal distribution, maybe a beta distribution for instance).</p></li>
@@ -95,7 +97,7 @@ other than a normal distribution, maybe a beta distribution for instance).</p></
 <p>If you are wondering how many function evaluations you would take
 (before you start using this method) you can find out by:</p>
 <pre class="r"><code>library(nlmixr2)</code></pre>
-<pre><code>## ── Attaching packages ───────────────────────────────────────── nlmixr2 4.0.1 ──</code></pre>
+<pre><code>## ── Attaching packages ───────────────────────────────────────────────────────── nlmixr2 4.0.1 ──</code></pre>
 <pre><code>## ✔ lotri         1.0.2     ✔ monolix2rx    0.0.6
 ## ✔ nlmixr2data   2.0.9     ✔ nlmixr2lib    0.3.1
 ## ✔ nlmixr2est    4.1.1     ✔ nlmixr2rpt    0.2.2
@@ -104,24 +106,33 @@ other than a normal distribution, maybe a beta distribution for instance).</p></
 ## ✔ rxode2        4.1.1     ✔ shinyMixR     0.5.2
 ## ✔ babelmixr2    0.1.9     ✔ xpose.nlmixr2 0.4.1
 ## ✔ ggPMX         1.3.2</code></pre>
-<pre><code>## ── Optional Packages Loaded/Ignored ─────────────────────────── nlmixr2 4.0.1 ──</code></pre>
+<pre><code>## ── Optional Packages Loaded/Ignored ─────────────────────────────────────────── nlmixr2 4.0.1 ──</code></pre>
 <pre><code>## ✔ babelmixr2        ✔ nonmem2rx    
 ## ✔ ggPMX             ✔ posologyr    
 ## ✔ monolix2rx        ✔ shinyMixR    
 ## ✔ nlmixr2lib        ✔ xpose.nlmixr2
 ## ✔ nlmixr2rpt</code></pre>
-<pre><code>## ── Conflicts ───────────────────────────────────────────── nlmixr2conflicts() ──
+<pre><code>## ── Conflicts ───────────────────────────────────────────────────────────── nlmixr2conflicts() ──
 ## ✖ rxode2::boxCox()     masks nlmixr2est::boxCox()
 ## ✖ rxode2::yeoJohnson() masks nlmixr2est::yeoJohnson()</code></pre>
 <pre class="r"><code># 2 = number of subjects
+
+# For the even case
+(nrow(.agq(neta=10, nAGQ=2)$x)-1)*2</code></pre>
+<pre><code>## [1] 2046</code></pre>
+<pre class="r"><code># For odd case
 (nrow(.agq(neta=10, nAGQ=3)$x)-1)*2</code></pre>
 <pre><code>## [1] 118096</code></pre>
-<p>You can see with 10 between subject variability parameter, 2 subjects, and 3
-adaptive quadrature points, we have 118,096 additional function
-evaluations after the empirical Bayesian estimate has been determined!</p>
-<p>Since we want to work with a toy example to illustrate, we will use
-most modeled drug in pharmacometrics, theophylline. In this case we
-have 12 subjects, and 3 between subject variability terms:</p>
+<p>You can see with 10 between subject variability parameter, 2 subjects,
+and 3 adaptive quadrature points, we have 118,096 additional function
+evaluations after the empirical Bayesian estimate has been determined
+(which is an optimization problem as well)!</p>
+<p>Because it takes so much time, we want to use a very fast running
+example to illustrate the amount of time increasing the quadrature may
+take. So, we will use most modeled drug in pharmacometrics,
+theophylline.</p>
+<p>In this case we have 12 subjects, and 3 between subject
+variability terms:</p>
 <pre class="r"><code>df &lt;- data.frame(nAGQ=seq(1:12))
 
 # Calculate the additional quadrature point
@@ -183,13 +194,13 @@ mods &lt;- lapply(1:7,
                  toc()
                  fit
                })</code></pre>
-<pre><code>## 1 quadrature points: 5.694 sec elapsed
-## 2 quadrature points: 2.08 sec elapsed
-## 3 quadrature points: 4.646 sec elapsed
-## 4 quadrature points: 8.754 sec elapsed
-## 5 quadrature points: 12.309 sec elapsed
-## 6 quadrature points: 21.698 sec elapsed
-## 7 quadrature points: 31.069 sec elapsed</code></pre>
+<pre><code>## 1 quadrature points: 5.635 sec elapsed
+## 2 quadrature points: 2.011 sec elapsed
+## 3 quadrature points: 4.566 sec elapsed
+## 4 quadrature points: 8.646 sec elapsed
+## 5 quadrature points: 11.287 sec elapsed
+## 6 quadrature points: 21.292 sec elapsed
+## 7 quadrature points: 30.651 sec elapsed</code></pre>
 <pre class="r"><code>df &lt;- df[df$nAGQ &lt;=7,]
 df$objf &lt;- vapply(df$nAGQ,
                   function(i) {
@@ -224,7 +235,7 @@ df &lt;- cbind(df, df2)
 
 DT::datatable(df, rownames = FALSE, filter=&quot;top&quot;,  options=list(pageLength = 7, scrollX=TRUE))</code></pre>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-1" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-1">{"x":{"filter":"top","vertical":false,"filterHTML":"<tr>\n  <td data-type=\"integer\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"1\" data-max=\"7\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"integer\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"0\" data-max=\"4104\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"116.8\" data-max=\"117.7\" data-scale=\"1\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"2.079\" data-max=\"31.07\" data-scale=\"3\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"0.4592\" data-max=\"0.4653\" data-scale=\"4\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"1.008\" data-max=\"1.013\" data-scale=\"3\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"3.455\" data-max=\"3.46\" data-scale=\"3\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"0.6939\" data-max=\"0.6956\" data-scale=\"4\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"0.4001\" data-max=\"0.4048\" data-scale=\"4\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"0.06886\" data-max=\"0.07008\" data-scale=\"5\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"0.01901\" data-max=\"0.0195\" data-scale=\"5\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n<\/tr>","data":[[1,2,3,4,5,6,7],[0,96,312,768,1488,2592,4104],[116.8,117.7,117.7,117.7,117.7,117.7,117.7],[5.693,2.079,4.646,8.754,12.31,21.7,31.07],[0.4624,0.4613,0.461,0.4627,0.4653,0.4615,0.4592],[1.013,1.012,1.009,1.013,1.012,1.012,1.01],[3.46,3.457,3.457,3.457,3.457,3.455,3.457],[0.694,0.6956,0.6949,0.6951000000000001,0.6951000000000001,0.6949,0.6952],[0.4038,0.4001,0.4048,0.4025,0.4025,0.4025,0.4024],[0.06906,0.06886,0.06934999999999999,0.06897,0.07008,0.06959,0.06952999999999999],[0.0195,0.01915,0.01902,0.01926,0.0191,0.01937,0.01901]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>nAGQ<\/th>\n      <th>nextra<\/th>\n      <th>objf<\/th>\n      <th>time<\/th>\n      <th>tka<\/th>\n      <th>tcl<\/th>\n      <th>tv<\/th>\n      <th>add.sd<\/th>\n      <th>omega(eta.ka)<\/th>\n      <th>omega(eta.cl)<\/th>\n      <th>omega(eta.v)<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"pageLength":7,"scrollX":true,"columnDefs":[{"className":"dt-right","targets":[0,1,2,3,4,5,6,7,8,9,10]},{"name":"nAGQ","targets":0},{"name":"nextra","targets":1},{"name":"objf","targets":2},{"name":"time","targets":3},{"name":"tka","targets":4},{"name":"tcl","targets":5},{"name":"tv","targets":6},{"name":"add.sd","targets":7},{"name":"omega(eta.ka)","targets":8},{"name":"omega(eta.cl)","targets":9},{"name":"omega(eta.v)","targets":10}],"order":[],"autoWidth":false,"orderClasses":false,"orderCellsTop":true,"lengthMenu":[7,10,25,50,100]},"selection":{"mode":"multiple","selected":null,"target":"row","selectable":null}},"evals":[],"jsHooks":[]}</script>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"filter":"top","vertical":false,"filterHTML":"<tr>\n  <td data-type=\"integer\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"1\" data-max=\"7\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"integer\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"0\" data-max=\"4104\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"116.8\" data-max=\"117.7\" data-scale=\"1\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"2.009\" data-max=\"30.65\" data-scale=\"3\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"0.4592\" data-max=\"0.4653\" data-scale=\"4\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"1.008\" data-max=\"1.013\" data-scale=\"3\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"3.455\" data-max=\"3.46\" data-scale=\"3\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"0.6939\" data-max=\"0.6956\" data-scale=\"4\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"0.4001\" data-max=\"0.4048\" data-scale=\"4\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"0.06886\" data-max=\"0.07008\" data-scale=\"5\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\"><\/span>\n    <\/div>\n    <div style=\"display: none;position: absolute;width: 200px;opacity: 1\">\n      <div data-min=\"0.01901\" data-max=\"0.0195\" data-scale=\"5\"><\/div>\n      <span style=\"float: left;\"><\/span>\n      <span style=\"float: right;\"><\/span>\n    <\/div>\n  <\/td>\n<\/tr>","data":[[1,2,3,4,5,6,7],[0,96,312,768,1488,2592,4104],[116.8,117.7,117.7,117.7,117.7,117.7,117.7],[5.633,2.01,4.565,8.646000000000001,11.29,21.29,30.65],[0.4624,0.4613,0.461,0.4627,0.4653,0.4615,0.4592],[1.013,1.012,1.009,1.013,1.012,1.012,1.01],[3.46,3.457,3.457,3.457,3.457,3.455,3.457],[0.694,0.6956,0.6949,0.6951000000000001,0.6951000000000001,0.6949,0.6952],[0.4038,0.4001,0.4048,0.4025,0.4025,0.4025,0.4024],[0.06906,0.06886,0.06934999999999999,0.06897,0.07008,0.06959,0.06952999999999999],[0.0195,0.01915,0.01902,0.01926,0.0191,0.01937,0.01901]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>nAGQ<\/th>\n      <th>nextra<\/th>\n      <th>objf<\/th>\n      <th>time<\/th>\n      <th>tka<\/th>\n      <th>tcl<\/th>\n      <th>tv<\/th>\n      <th>add.sd<\/th>\n      <th>omega(eta.ka)<\/th>\n      <th>omega(eta.cl)<\/th>\n      <th>omega(eta.v)<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"pageLength":7,"scrollX":true,"columnDefs":[{"className":"dt-right","targets":[0,1,2,3,4,5,6,7,8,9,10]},{"name":"nAGQ","targets":0},{"name":"nextra","targets":1},{"name":"objf","targets":2},{"name":"time","targets":3},{"name":"tka","targets":4},{"name":"tcl","targets":5},{"name":"tv","targets":6},{"name":"add.sd","targets":7},{"name":"omega(eta.ka)","targets":8},{"name":"omega(eta.cl)","targets":9},{"name":"omega(eta.v)","targets":10}],"order":[],"autoWidth":false,"orderClasses":false,"orderCellsTop":true,"lengthMenu":[7,10,25,50,100]},"selection":{"mode":"multiple","selected":null,"target":"row","selectable":null}},"evals":[],"jsHooks":[]}</script>
 <p>As you can see, in the normal case, the initial approximation is
 fairly good, with a slightly better approximation of likelihood with <code>nAGQ=2</code>. This approximation is (marginally) better, but takes much more time after <code>nAGQ=3</code>.</p>
 <p>If you want to tune this for a non-normal likelihoods, I would suggest:</p>
@@ -312,9 +323,7 @@ fit &lt;- suppressMessages(nlmixr2(one.cmt, theo_sd, &quot;laplace&quot;,
 ## calculating covariance matrix
 ## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
 ## done</code></pre>
-<pre class="r"><code># notice that the objective function is slightly different than the
-# foce(i) type of objective function above
-print(fit)</code></pre>
+<pre class="r"><code>print(fit)</code></pre>
 <pre><code>## ── nlmixr² log-likelihood AGQi (outer: nlminb; Laplace) ──
 ## 
 ##             OBJF      AIC      BIC Log-likelihood Condition#(Cov)
@@ -327,7 +336,7 @@ print(fit)</code></pre>
 ## ── Time (sec $time): ──
 ## 
 ##            setup optimize covariance table compress
-## elapsed 0.001384 0.792009   0.792009 0.086    0.005
+## elapsed 0.001414 0.763361   0.763361 0.087    0.006
 ## 
 ## ── Population Parameters ($parFixed or $parFixedDf): ──
 ## 
@@ -359,4 +368,13 @@ print(fit)</code></pre>
 ## # ℹ 129 more rows
 ## # ℹ 10 more variables: eta.ka &lt;dbl&gt;, eta.cl &lt;dbl&gt;, eta.v &lt;dbl&gt;, depot &lt;dbl&gt;,
 ## #   central &lt;dbl&gt;, ka &lt;dbl&gt;, cl &lt;dbl&gt;, v &lt;dbl&gt;, tad &lt;dbl&gt;, dosenum &lt;dbl&gt;</code></pre>
+<p>You can notice the objective function is slightly different than the
+foce(i) objective function above; this could be due to many reasons,
+including:</p>
+<ul>
+<li><p>This method does not take use the focei approximation of the Hessian.</p></li>
+<li><p>This method uses numeric differences of the likelihood gradient to
+determine the gradient.</p></li>
+</ul>
+<p>Also this method takes more time than the standard focei method.</p>
 </div>
