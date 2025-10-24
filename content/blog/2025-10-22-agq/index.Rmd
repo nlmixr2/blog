@@ -51,7 +51,7 @@ In theory, this means the `nlmixr2` likelihood for it's laplace method
 are more likely to be accurate (and possibly take less time to
 calculate).
 
-### agq provides even likelihood accuracy
+### agq provides even more likelihood accuracy
 
 An implied part of Mats' comment was that we may need to get better
 approximations of the likelihood than what we currently have.
