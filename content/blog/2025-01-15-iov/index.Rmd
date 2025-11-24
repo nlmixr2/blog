@@ -61,13 +61,13 @@ two.compartment.tacro.test.Polimorf <- function() {
     tcl <- log(19.84); label("Cl")
     tvc <- log(330.4) ; label("Vc")
     tvp <- log(118.2) ; label ("Vp")
-s    tvq <- log(35.44); label ("Q")
+    tvq <- log(35.44); label ("Q")
     ### VARIABILITY
     eta.ka ~ 0.82 ; label("IIV Ka")
     eta.cl ~ 0.358 ;label("IIV Cl")
     eta.vc ~ 1.186  ;label("IIV Vc")
     eta.q  ~ 0.58  ;label("IIV q")
-    iov.cl ~ 0.25^2 ; label ("IOV CL")
+    iov.cl ~ 0.25^2 | occ ; label ("IOV CL")
     ##COVARIATES
     ascl <- fix(0.75) ; label("Alometric Scaling for CL")
     asv   <- fix(1) ; label("Alometric Scaling for V")
@@ -99,3 +99,57 @@ s    tvq <- log(35.44); label ("Q")
 }
 
 ```
+
+As is the case in many examples, I don't have access to the dataset.
+However, I can simulate a dataset with rxode2.
+
+While in reality Tacrolimus is highly individualized and requires
+therapeutic drug monitoring, we will make the simplifying assumption
+that we are giving 0.05 mg/kg for a 70 kg adult.  We will also assume
+the only subject is exactly at the centered covariate (and has CYP3A5
+not indicator not equal to 1 or 2). This simplifies the model to:
+
+```{r}
+
+two.compartment.tacro.test.Polimorf <- function() {
+  ini({
+    #### FIXED PARAMETERS
+    tka <- log(2.49); label("Ka")
+    tcl <- log(19.84); label("Cl")
+    tvc <- log(330.4) ; label("Vc")
+    tvp <- log(118.2) ; label ("Vp")
+    tvq <- log(35.44); label ("Q")
+    ### VARIABILITY
+    eta.ka ~ 0.82 ; label("IIV Ka")
+    eta.cl ~ 0.358 ;label("IIV Cl")
+    eta.vc ~ 1.186  ;label("IIV Vc")
+    eta.q  ~ 0.58  ;label("IIV q")
+    iov.cl ~ 0.25^2 | occ ; label ("IOV CL")
+    ####ERROR MODEL###
+    prop.sd <- 0.204
+  })
+  model({
+    cl <- exp(tcl+ eta.cl + iov.cl)
+    ka <- exp(tka + eta.ka)
+    vc <- exp(tvc + eta.vc)
+    vp <- exp(tvp)
+    q <- exp(tvq + eta.q)
+    d/dt(depot) <- -ka * depot
+    d/dt(center) <- ka * depot - cl / vc * center
+    d/dt(periph) <- q / vc * depot  - q/vp * periph
+    cp <- center / vc
+    cp ~ prop(prop.sd)
+  })
+}
+
+e <- et(amt=0.05*70, ii=12, until=24*5) %>%
+  et(seq(0.1, 24*5, by=2)) %>%
+  et(id=1:24)
+
+e <- as.data.frame(e)
+
+e$occ <- floor(e$time/24)+1
+
+rxSetSeed(42)
+
+s <- rxSolve(two.compartment.tacro.test.Polimorf, e)
