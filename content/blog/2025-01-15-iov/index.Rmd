@@ -1,0 +1,101 @@
+---
+title: Inter-occasion variability in nlmixr2
+author: Matthew Fidler
+date: '2025-01-15'
+slug: []
+categories: [nlmixr2, iov]
+tags: []
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### nlmixr2 inter-occasion variability
+
+From the first training in `nlmixr2`, people have requested estimation
+of inter-occasion variability.  I am happy to announce that this is
+available in the current version of nlmixr2!
+
+#### How to use inter-occasion variability in `nlmixr2`
+
+In `nlmixr2` currently, you specify between subject variability estimates as:
+
+``` r
+eta.cl ~ 0.1
+```
+
+Where `eta.cl` is the variable name of the individual deviations and
+the estimate of the variability of the deviation is `0.1`.
+
+For IOV the syntax is very similar, it is:
+
+``` r
+iov.cl ~ 0.1 | occ
+```
+
+In this case, `iov.cl` is the variable name of the occasion
+deviations, and the estimate of the occasion variability is `0.1`.
+The variable name `occ`  is the occasion indicator.
+
+So for a complete specification for inter-occasion and between subject
+variability the equation line would be specified by:
+
+``` r
+cl = exp(tcl + eta.cl + iov.cl)
+```
+
+### Example
+
+We will be using the new iov syntax for the example
+[here](https://github.com/nlmixrdevelopment/nlmixr/issues/93#issuecomment-2093486042).
+
+
+```{r}
+library(nlmixr2)
+
+two.compartment.tacro.test.Polimorf <- function() {
+  ini({
+    ### Umpierrez_etal_model
+    #### FIXED PARAMETERS
+    tka <- log(2.49); label("Ka")
+    tcl <- log(19.84); label("Cl")
+    tvc <- log(330.4) ; label("Vc")
+    tvp <- log(118.2) ; label ("Vp")
+s    tvq <- log(35.44); label ("Q")
+    ### VARIABILITY
+    eta.ka ~ 0.82 ; label("IIV Ka")
+    eta.cl ~ 0.358 ;label("IIV Cl")
+    eta.vc ~ 1.186  ;label("IIV Vc")
+    eta.q  ~ 0.58  ;label("IIV q")
+    iov.cl ~ 0.25^2 ; label ("IOV CL")
+    ##COVARIATES
+    ascl <- fix(0.75) ; label("Alometric Scaling for CL")
+    asv   <- fix(1) ; label("Alometric Scaling for V")
+    beta.hct  <- fix(-1.0) ; label("Effect of HCT on Cl")
+    beta.CYP3A5.1  <- fix(0.91)  ; label("Effect of CYP3A5*1*1 on CL")
+    beta.CYP3A5.2  <- fix(0.63)  ; label("Effect of CYP3A5*1*3 on CL")
+    ####ERROR MODEL###
+    prop.sd <- 0.204
+  })
+  model({
+    cov.cl <- ascl*log(LBW/55) + beta.hct*log(HCT/33.5)
+    if (CYP3A5 == 1){
+      cl = exp(tcl + beta.CYP3A5.1 + eta.cl + iov.cl + cov.cl)
+    } else if (CYP3A5 == 2){
+      cl = exp(tcl + beta.CYP3A5.2 + eta.cl + iov.cl + cov.cl)
+    } else {
+      cl = exp(tcl+ eta.cl + iov.cl + cov.cl)
+    }
+    ka <- exp(tka + eta.ka)
+    vc <- exp(tvc + eta.vc + asv*log(LBW/55))
+    vp <- exp(tvp + asv*log(LBW/55))
+    q <- exp(tvq + eta.q + ascl*log(LBW/55))
+    d/dt(depot) <- -ka * depot
+    d/dt(center) <- ka * depot - cl / vc * center
+    d/dt(periph) <- q / vc * depot  - q/vp * periph
+    cp <- center / vc
+    cp ~ prop(prop.sd)
+  })
+}
+
+```
