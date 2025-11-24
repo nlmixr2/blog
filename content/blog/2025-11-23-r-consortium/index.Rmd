@@ -1,0 +1,83 @@
+---
+title: nlmixr2 Working Group
+author: Matthew Fidler
+date: '2025-11-24'
+slug: []
+categories: [nlmixr2, R consortium]
+tags: []
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### nlmixr2 Working Group
+
+We are very excited to announce we are joining the R consortium as a
+Working Group (WG).  Or vision will remain the same:
+
+    The vision of nlmixr2 is to develop a R-based open-source nonlinear mixed-effects
+    modeling software package that can compete with commercial pharmacometric tools and
+    is suitable for regulatory submissions.
+
+### What is a R consortium Working Group?
+
+A R consortium [ISC working
+group](https://r-consortium.org/all-projects/isc-working-groups.html)
+is a group of volunteers for a project that "requires the skills not
+possessed by a single individual, or the amount of work required is
+more than can be accomplished by a single person in a reasonable
+amount of time."
+
+### What benefits does the working group provide (from the working group website):
+
+The `nlmixr2` project will be:
+
+- Vetted by the relevant experts
+
+- Sanctioned by the R Consortium
+
+- Receive the attention of the R Foundation
+
+- Become visible to the greater R Community
+
+- Administrative support from the R Consortium
+
+
+### Why did `nlmixr2` team choose to become a working group?
+
+
+#### Sustainability and Funding
+
+The benefits and reasons listed above are all true for the `nlmixr2`
+project.  However, there are additional reasons that the `nlmixr2`
+team decided to become a working group.
+
+One of the concerns of the `nlmixr2` team is long term sustainability
+of the project, and mechanisms of funding a part of the project that
+take a bit more time than can be supported by one individual.
+
+By joining the R consortium, we have a mechanism to support donations
+and funding from multiple companies to work on projects the working
+group thinks advances our vision.  We also have the ability to
+contract work that helps the `nlmixr2` team maintain or add features
+to allow long-term sustainability of the `nlmixr2` project.
+
+#### Training
+
+One of the other benefits not yet mentioned is training.  Training has
+been generously funded by Occams and Novarits for some of the past
+training at PAGE and ACoP. However the administrative burden (and cost
+burden) can make this occur less frequently than we would like it to
+occur.
+
+By joining the R Consortium can help administer training that can make
+trainings more frequent and possibly occur at other international
+pharmacometric conferences.
+
+## Wrapping up
+
+The `nlmixr2` team is excited for the synergies and possibilities that
+joining the R consortium can provide for both teams.  There may be
+some future administrative changes in the future, but we can expect
+the project to continue and have a more stable future with this
+transition.
