@@ -1,9 +1,9 @@
 ---
-title: nlmixr2 Working Group
+title: nlmixr2 is becoming a R Consortium Working Group
 author: Matthew Fidler
 date: '2025-11-24'
 slug: []
-categories: [nlmixr2, R consortium]
+categories: ["working groups", "announcements"]
 tags: []
 ---
 
@@ -13,15 +13,15 @@ knitr::opts_chunk$set(echo = TRUE)
 ### nlmixr2 Working Group
 
 We are very excited to announce we are joining the R consortium as a
-Working Group (WG).  Or vision will remain the same:
+Working Group (WG).  Our vision will remain the same:
 
-    The vision of nlmixr2 is to develop a R-based open-source nonlinear mixed-effects
-    modeling software package that can compete with commercial pharmacometric tools and
-    is suitable for regulatory submissions.
+>    The vision of nlmixr2 is to develop a R-based open-source nonlinear mixed-effects
+>    modeling software package that can compete with commercial pharmacometric tools and
+>    is suitable for regulatory submissions.
 
-### What is a R consortium Working Group?
+### What is a R Consortium Working Group?
 
-A R consortium [ISC working
+A R Consortium [ISC working
 group](https://r-consortium.org/all-projects/isc-working-groups.html)
 is a group of volunteers for a project that "requires the skills not
 possessed by a single individual, or the amount of work required is
@@ -40,7 +40,7 @@ The `nlmixr2` project will be:
 
 - Become visible to the greater R Community
 
-- Administrative support from the R Consortium
+- Eligible for administrative support from the R Consortium
 
 
 ### Why did `nlmixr2` team choose to become a working group?
@@ -56,7 +56,7 @@ One of the concerns of the `nlmixr2` team is long term sustainability
 of the project, and mechanisms of funding a part of the project that
 take a bit more time than can be supported by one individual.
 
-By joining the R consortium, we have a mechanism to support donations
+Joining the R Consortium, we have a mechanism to support donations
 and funding from multiple companies to work on projects the working
 group thinks advances our vision.  We also have the ability to
 contract work that helps the `nlmixr2` team maintain or add features
@@ -77,7 +77,7 @@ pharmacometric conferences.
 ## Wrapping up
 
 The `nlmixr2` team is excited for the synergies and possibilities that
-joining the R consortium can provide for both teams.  There may be
-some future administrative changes in the future, but we can expect
+joining the R Consortium can provide for both teams.  There may be
+some administrative changes in the future, but we can expect
 the project to continue and have a more stable future with this
 transition.
