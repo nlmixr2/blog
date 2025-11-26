@@ -11,13 +11,13 @@ tags: []
 
 <div id="nlmixr2-5.0" class="section level3">
 <h3>nlmixr2 5.0</h3>
-<p>As time progress, dependencies update, dependencies come and go, and
+<p>As time progresses, dependencies update, dependencies come and go, and
 sometimes these dependencies change what happens to <code>rxode2</code>/<code>nlmixr2</code>
 models.</p>
 <p>One dependency change (<code>qs</code> being dropped) means that models from
-<code>nlmixr2</code> 4.0 and before models saved to a disk will may not be able to load in
-<code>nlmixr2</code> 5.0. This is because internally <code>nlmixr2</code>/<code>rxode2</code> encodes its
-models in binary <code>qs</code> format and will be switching to the <code>qs2</code> format.</p>
+before <code>nlmixr2</code>/<code>rxode2</code> 5.0 have the UI/fit models saved to disk will
+may not be able to load completely in <code>nlmixr2</code> 5.0. This is because internally
+<code>nlmixr2</code>/<code>rxode2</code> encoded its models in binary <code>qs</code> format.</p>
 </div>
 <div id="why-is-qs-going-away" class="section level3">
 <h3>Why is <code>qs</code> going away?</h3>
@@ -27,13 +27,13 @@ changed. This is to try to keep people from misusing these entry
 points and breaking R.</p>
 <p>Since <code>qs</code> had specific code accessing these entry points, this change
 makes it impossible to have the same file format.</p>
-<p>Travers Chang, the maintainer of <code>qs</code> made a huge effort to create the
+<p>Travers Ching, the maintainer of <code>qs</code> made a huge effort to create the
 new <code>qs2</code> package that uses the R serialization instead of the custom
-serialization, and we will be using that format going forward. Since
-it uses the R serialization format, it can always be loaded even if
-<code>qs2</code> somehow has a similar issue in the future.</p>
+serialization. We will be using the qs2 serialization format
+internally in the C code we generate and have switched to simple lists
+and environments for <code>rxode2</code>/<code>nlmixr2</code> models.</p>
 <p>I would like to thank both the R core team and CRAN for their effort
 in trying to make R more stable and secure.</p>
-<p>I would also like to thank Travers Chang for his diligent effort in
+<p>I would also like to thank Travers Ching for his diligent effort in
 making faster binary inputs/outputs from the R ecosystem.</p>
 </div>

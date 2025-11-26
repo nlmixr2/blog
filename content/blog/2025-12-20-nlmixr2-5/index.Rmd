@@ -12,14 +12,14 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 ### nlmixr2 5.0
 
-As time progress, dependencies update, dependencies come and go, and
+As time progresses, dependencies update, dependencies come and go, and
 sometimes these dependencies change what happens to `rxode2`/`nlmixr2`
 models.
 
 One dependency change (`qs` being dropped) means that models from
-`nlmixr2` 4.0 and before models saved to a disk will may not be able to load in
-`nlmixr2` 5.0.  This is because internally `nlmixr2`/`rxode2` encodes its
-models in binary `qs` format and will be switching to the `qs2` format.
+before `nlmixr2`/`rxode2` 5.0 have the UI/fit models saved to disk will
+may not be able to load completely in `nlmixr2` 5.0.  This is because internally
+`nlmixr2`/`rxode2` encoded its models in binary `qs` format.
 
 ### Why is `qs` going away?
 
@@ -31,14 +31,14 @@ points and breaking R.
 Since `qs` had specific code accessing these entry points, this change
 makes it impossible to have the same file format.
 
-Travers Chang, the maintainer of `qs` made a huge effort to create the
+Travers Ching, the maintainer of `qs` made a huge effort to create the
 new `qs2` package that uses the R serialization instead of the custom
-serialization, and we will be using that format going forward.  Since
-it uses the R serialization format, it can always be loaded even if
-`qs2` somehow has a similar issue in the future.
+serialization.  We will be using the qs2 serialization format
+internally in the C code we generate and have switched to simple lists
+and environments for `rxode2`/`nlmixr2` models.
 
 I would like to thank both the R core team and CRAN for their effort
 in trying to make R more stable and secure.
 
-I would also like to thank Travers Chang for his diligent effort in
+I would also like to thank Travers Ching for his diligent effort in
 making faster binary inputs/outputs from the R ecosystem.
