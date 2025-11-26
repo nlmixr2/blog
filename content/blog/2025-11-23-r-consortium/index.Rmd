@@ -82,7 +82,7 @@ and discuss the path forward.  Their shared experience and expertise
 can be used to help our R-based nonlinear mixed effects modeling tool
 grow and expand.
 
-## Wrapping up
+### Wrapping up
 
 The `nlmixr2` team is excited for the synergies and possibilities that
 joining the R Consortium can provide for both teams.  There may be
@@ -90,7 +90,7 @@ some administrative changes in the future, but we can expect
 the project to continue and have a more stable future with this
 transition.
 
-## Contacting & Joining us
+### Contacting & Joining us
 
 You can always contact us by posting a comment below or from our
 [https://github.com/nlmixr2/nlmixr2](nlmixr2 github) by either
