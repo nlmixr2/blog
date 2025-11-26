@@ -89,3 +89,10 @@ joining the R Consortium can provide for both teams.  There may be
 some administrative changes in the future, but we can expect
 the project to continue and have a more stable future with this
 transition.
+
+## Contacting & Joining us
+
+You can always contact us by posting a comment below or from our
+[https://github.com/nlmixr2/nlmixr2](nlmixr2 github) by either
+submitting an [issue](https://github.com/nlmixr2/nlmixr2/issues) or
+starting a [dicussion](https://github.com/nlmixr2/nlmixr2/discussions).
