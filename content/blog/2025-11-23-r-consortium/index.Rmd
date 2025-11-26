@@ -45,7 +45,6 @@ The `nlmixr2` project will be:
 
 ### Why did `nlmixr2` team choose to become a working group?
 
-
 #### Sustainability and Funding
 
 The benefits and reasons listed above are all true for the `nlmixr2`
@@ -73,6 +72,15 @@ occur.
 By joining the R Consortium can help administer training that can make
 trainings more frequent and possibly occur at other international
 pharmacometric conferences.
+
+## Non-competitive space
+
+Some of these are really talking about one overarching concept -- a
+"non-competitive space".  This means colleagues from different pharma
+companies and others who use nonlinear mixed effects modeling can meet
+and discuss the path forward.  Their shared experience and expertise
+can be used to help our R-based nonlinear mixed effects modeling tool
+grow and expand.
 
 ## Wrapping up
 
