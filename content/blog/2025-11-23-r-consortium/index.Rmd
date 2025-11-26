@@ -93,6 +93,6 @@ transition.
 ### Contacting & Joining us
 
 You can always contact us by posting a comment below or from our
-[https://github.com/nlmixr2/nlmixr2](nlmixr2 github) by either
-submitting an [issue](https://github.com/nlmixr2/nlmixr2/issues) or
-starting a [dicussion](https://github.com/nlmixr2/nlmixr2/discussions).
+[nlmixr2 github](https://github.com/nlmixr2/nlmixr2) by either
+submitting an [https://github.com/nlmixr2/nlmixr2/issues](issue) or
+starting a [https://github.com/nlmixr2/nlmixr2/discussions](dicussion).
