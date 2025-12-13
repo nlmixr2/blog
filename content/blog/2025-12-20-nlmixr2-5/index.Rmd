@@ -1,0 +1,74 @@
+---
+title: nlmixr2 5.0
+author: Matthew Fidler
+date: '2025-12-12'
+slug: []
+categories: [nlmixr2]
+tags: []
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### nlmixr2 5.0
+
+As time progresses, dependencies update, dependencies come and go, and
+sometimes these dependencies change what happens to `rxode2`/`nlmixr2`
+models.
+
+One dependency change (`qs` being dropped) means that models from
+before `nlmixr2`/`rxode2` 5.0 have the UI/fit models saved to disk will
+may not be able to load completely in `nlmixr2` 5.0.  This is because internally
+`nlmixr2`/`rxode2` encoded its models in binary `qs` format.
+
+### Why is `qs` going away?
+
+While the maintainer wanted to keep `qs` and its file format around, R
+is changing and what is acceptable to access within C/C++ from R has
+changed.  This is to try to keep people from misusing these entry
+points and breaking R.
+
+Since `qs` had specific code accessing these entry points, this change
+makes it impossible to have the same file format.
+
+Travers Ching, the maintainer of `qs`, made a huge effort to create the
+new `qs2` package that uses the R serialization instead of the custom
+serialization.  We are using the `qs2` serialization format for cached
+files and intend to keep that option. (See [github post](https://github.com/qsbase/qs/issues/103))
+
+We have switched to simple lists and environments for
+`rxode2`/`nlmixr2` function models.  For our C code, we have switched
+to compressed serialized data, with the option to use `qs2` with
+their superior encode/decode speed. This can be changed with the
+`option(rxode2.serialize.type="")`.  The following options are
+currently supported:
+
+- `option(rxode2.serialize.type="qs2")` -- Use the `qs2` format
+
+- `option(rxode2.serialize.type="qdata")` -- Use the `qdata` format
+  (from `qs2` package)
+
+- `option(rxode2.serialize.type="base")` -- Use simple, base
+  uncompressed serialization
+
+- `option(rxode2.serialize.type="bzip2")` -- Use base serialization
+  compressed with `bzip2`
+
+- `option(rxode2.serialize.type="xz")` -- Use base serialization
+  compressed with `xz` (default)
+
+I would like to thank both the R core team and CRAN for their effort
+in trying to make R more stable and secure.
+
+I would also like to thank Travers Ching for his diligent effort in
+making faster binary inputs/outputs from the R ecosystem.
+
+### Looking forward
+
+This has highlighted a need for a simple model export method that
+gives simple text files or a zip file for everything a fit has and
+possible minimal footprint.
+
+This future method will make sure the output is covered in the expanded
+[eCTD](https://r-consortium.org/posts/expanded-fda-ectd-file-format-support-for-r-packages/)
+format to allow importing or exporting of models.
