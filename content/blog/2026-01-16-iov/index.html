@@ -1,0 +1,261 @@
+---
+title: nlmixr2 inter occasion varibility
+author: Matthew Fidler
+date: '2026-01-16'
+slug: []
+categories: [nlmixr2]
+tags: []
+---
+
+
+
+<div id="inter-occasion-variability" class="section level3">
+<h3>Inter-occasion variability</h3>
+<p>Happy new year! With the holidays over we had the opportunity to
+celebrate many special occasions.</p>
+<p>I invite you to celebrate a new occasion for nlmixr2 – inter-occasion
+variability.</p>
+<p>We now support inter-occasion variability estimation in <code>nlmixr2</code>!</p>
+</div>
+<div id="implementing-inter-occasion-variability-in-models" class="section level3">
+<h3>Implementing inter-occasion variability in models</h3>
+<p>To implement inter-occasion variaiblity in <code>nlmixr2</code> models you simply
+have to specify that the variable is an occasion variable, say <code>occ</code>:</p>
+<pre class="r"><code>iov.cl ~ 0.1 | occ</code></pre>
+<p>The <code>~</code> syntax is similar to how between subject variability is
+specified, the addition of <code>|</code> tells that this a between <code>occ</code>
+variability.</p>
+<p>A full model based on the theophylline example is given below:</p>
+<pre class="r"><code>library(nlmixr2)</code></pre>
+<pre><code>## ── Attaching packages ───────────────────────────────────────────────────────── nlmixr2 5.0.0 ──</code></pre>
+<pre><code>## ✔ lotri         1.0.2          ✔ monolix2rx    0.0.6     
+## ✔ nlmixr2data   2.0.9          ✔ nlmixr2lib    0.3.2     
+## ✔ nlmixr2est    5.0.2.9000     ✔ nlmixr2rpt    0.2.2     
+## ✔ nlmixr2extra  5.0.0          ✔ nonmem2rx     0.1.9     
+## ✔ nlmixr2plot   5.0.0          ✔ posologyr     1.2.8     
+## ✔ rxode2        5.0.1.9000     ✔ shinyMixR     0.5.3     
+## ✔ babelmixr2    0.1.11         ✔ xpose.nlmixr2 0.4.1     
+## ✔ ggPMX         1.3.2</code></pre>
+<pre><code>## ── Optional Packages Loaded/Ignored ─────────────────────────────────────────── nlmixr2 5.0.0 ──</code></pre>
+<pre><code>## ✔ babelmixr2        ✔ nonmem2rx    
+## ✔ ggPMX             ✔ posologyr    
+## ✔ monolix2rx        ✔ shinyMixR    
+## ✔ nlmixr2lib        ✔ xpose.nlmixr2
+## ✔ nlmixr2rpt</code></pre>
+<pre><code>## ── Conflicts ───────────────────────────────────────────────────────────── nlmixr2conflicts() ──
+## ✖ rxode2::boxCox()     masks nlmixr2est::boxCox()
+## ✖ rxode2::yeoJohnson() masks nlmixr2est::yeoJohnson()</code></pre>
+<pre class="r"><code>one.cmt &lt;- function() {
+  ini({
+    tka &lt;- 0.45 # Log Ka
+    tcl &lt;- log(c(0, 2.7, 100)) # Log Cl
+    tv &lt;- 3.45; label(&quot;log V&quot;)
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+    iov.cl ~ 0.1 | occ
+    add.sd &lt;- 0.7
+  })
+  model({
+    ka &lt;- exp(tka + eta.ka)
+    cl &lt;- exp(tcl + eta.cl + iov.cl)
+    v &lt;- exp(tv + eta.v)
+    linCmt() ~ add(add.sd)
+  })
+}</code></pre>
+<p>Note that the inter-occasion variability is specified for clearance:</p>
+<pre class="r"><code>cl &lt;- exp(tcl + eta.cl + iov.cl)</code></pre>
+<p>Trying this out with the theophylline multiple dose dataset with an
+additional occasion added:</p>
+<pre class="r"><code>theo_iov &lt;- nlmixr2data::theo_md
+theo_iov$occ &lt;- 1
+theo_iov$occ[theo_iov$TIME &gt;= 144] &lt;- 2
+
+fit &lt;- nlmixr(one.cmt, theo_iov, est=&quot;focei&quot;,
+                control=foceiControl(print=0))</code></pre>
+<pre><code>## ℹ parameter labels from comments are typically ignored in non-interactive mode</code></pre>
+<pre><code>## ℹ Need to run with the source intact to parse comments</code></pre>
+<pre><code>## → loading into symengine environment...</code></pre>
+<pre><code>## → pruning branches (`if`/`else`) of full model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → calculate jacobian</code></pre>
+<pre><code>## → calculate ∂(f)/∂(η)</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → calculate ∂(R²)/∂(η)</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → finding duplicate expressions in inner model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in inner model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## 
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## 
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → finding duplicate expressions in EBE model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in EBE model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → compiling inner model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → finding duplicate expressions in FD model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → compiling EBE model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → compiling events FD model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## done</code></pre>
+<pre><code>## → Calculating residuals/tables
+## ✔ done</code></pre>
+<pre class="r"><code>print(fit)</code></pre>
+<pre><code>## ── nlmixr² FOCEi (outer: nlminb) ──
+## 
+##           OBJF     AIC      BIC Log-likelihood Condition#(Cov) Condition#(Cor)
+## FOCEi 354.9795 856.179 884.7866      -420.0895        59.67827        4.524057
+## 
+## ── Time (sec $time): ──
+## 
+##            setup optimize covariance table compress    other
+## elapsed 0.001947 0.678468   0.678469 0.083    0.001 8.790116
+## 
+## ── Population Parameters ($parFixed or $parFixedDf): ──
+## 
+##        Parameter  Est.     SE  %RSE Back-transformed(95%CI) BSV(CV% or SD)
+## tka              0.277 0.0747  26.9       1.32 (1.14, 1.53)           48.6
+## tcl               1.04 0.0217  2.09       2.83 (2.71, 2.95)           26.5
+## tv         log V  3.42 0.0136 0.398       30.6 (29.8, 31.4)           23.0
+## add.sd            1.01                                 1.01               
+## iov.cl                                                                5.80
+##        Shrink(SD)%
+## tka         7.66% 
+## tcl         18.0% 
+## tv          38.9% 
+## add.sd            
+## iov.cl            
+##  
+##   Covariance Type ($covMethod): r,s
+##   No correlations in between subject variability (BSV) matrix
+##   Full BSV covariance ($omega) or correlation ($omegaR; diagonals=SDs) 
+##   Distribution stats (mean/skewness/kurtosis/p-value) available in $shrink 
+##   Information about run found ($runInfo):
+##    • gradient problems with initial estimate and covariance; see $scaleInfo 
+##    • last objective function was not at minimum, possible problems in optimization 
+##    • ETAs were reset to zero during optimization; (Can control by foceiControl(resetEtaP=.)) 
+##    • initial ETAs were nudged; (can control by foceiControl(etaNudge=., etaNudge2=)) 
+##   Censoring ($censInformation): No censoring
+##   Minimization message ($message):  
+##     false convergence (8) 
+##   In an ODE system, false convergence may mean &quot;useless&quot; evaluations were performed.
+##   See https://tinyurl.com/yyrrwkce
+##   It could also mean the convergence is poor, check results before accepting fit
+##   You may also try a good derivative free optimization:
+##     nlmixr2(...,control=list(outerOpt=&quot;bobyqa&quot;))
+## 
+## ── Fit Data (object is a modified tibble): ──
+## # A tibble: 264 × 24
+##   ID     TIME    DV  PRED     RES    WRES IPRED   IRES  IWRES CPRED   CRES
+##   &lt;fct&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;
+## 1 1      0     0.74  0     0.74    0.732   0     0.74   0.732  0     0.74 
+## 2 1      0.25  2.84  2.91 -0.0659 -0.0546  3.51 -0.666 -0.659  3.18 -0.344
+## 3 1      0.57  6.57  5.37  1.20    0.756   6.37  0.196  0.194  5.79  0.781
+## # ℹ 261 more rows
+## # ℹ 13 more variables: CWRES &lt;dbl&gt;, eta.ka &lt;dbl&gt;, eta.cl &lt;dbl&gt;, eta.v &lt;dbl&gt;,
+## #   depot &lt;dbl&gt;, central &lt;dbl&gt;, iov.cl &lt;dbl&gt;, ka &lt;dbl&gt;, cl &lt;dbl&gt;, v &lt;dbl&gt;,
+## #   tad &lt;dbl&gt;, dosenum &lt;dbl&gt;, occ &lt;dbl&gt;</code></pre>
+<p>Note that IOV is specified in the final output table in the same
+column as the between subject variability:</p>
+<pre class="r"><code>fit$parFixed</code></pre>
+<pre><code>##        Parameter  Est.     SE  %RSE Back-transformed(95%CI) BSV(CV% or SD)
+## tka              0.277 0.0747  26.9       1.32 (1.14, 1.53)           48.6
+## tcl               1.04 0.0217  2.09       2.83 (2.71, 2.95)           26.5
+## tv         log V  3.42 0.0136 0.398       30.6 (29.8, 31.4)           23.0
+## add.sd            1.01                                 1.01               
+## iov.cl                                                                5.80
+##        Shrink(SD)%
+## tka         7.66%&lt;
+## tcl         18.0%&lt;
+## tv          38.9%&gt;
+## add.sd            
+## iov.cl</code></pre>
+<p>Note that some of the outputs are in a different format, for example
+<code>$omega</code> gives both the between subject variaiblity and between
+occasion variability:</p>
+<pre class="r"><code>fit$omega</code></pre>
+<pre><code>## $id
+##           eta.ka     eta.cl      eta.v
+## eta.ka 0.2121193 0.00000000 0.00000000
+## eta.cl 0.0000000 0.06767512 0.00000000
+## eta.v  0.0000000 0.00000000 0.05147434
+## 
+## $occ
+##             iov.cl
+## iov.cl 0.003356938</code></pre>
+<p>Though, the <code>eta</code> table, and corresponding standard errors and related
+values are missing IOV:</p>
+<pre class="r"><code>fit$eta</code></pre>
+<pre><code>##    ID      eta.ka       eta.cl       eta.v
+## 1   1  0.11178377 -0.350696519 -0.09179236
+## 2   2  0.21320534  0.180088719  0.01620989
+## 3   3  0.34784269  0.007176760  0.05811273
+## 4   4 -0.38823979 -0.009535879 -0.01784342
+## 5   5 -0.08174054 -0.088884607 -0.17830919
+## 6   6 -0.07935958  0.306247521  0.29078525
+## 7   7 -0.63626831  0.065598746  0.05281517
+## 8   8 -0.04167719  0.142087566  0.10282427
+## 9   9  0.60635472  0.108975754 -0.02990126
+## 10 10 -0.48685522 -0.347833928 -0.14047960
+## 11 11  0.75070635  0.247298015  0.13513855
+## 12 12 -0.26840209 -0.159895454 -0.17541536</code></pre>
+<p>The IOV is listed by the categories below:</p>
+<pre class="r"><code>fit$iov</code></pre>
+<pre><code>## $occ
+##    ID occ        iov.cl
+## 1   1   1  0.0175144384
+## 2   1   2 -0.0346953400
+## 3   2   1  0.0164926135
+## 4   2   2 -0.0091093139
+## 5   3   1  0.0227586504
+## 6   3   2 -0.0227876573
+## 7   4   1  0.0335910668
+## 8   4   2 -0.0341699800
+## 9   5   1  0.0216101932
+## 10  5   2 -0.0261311945
+## 11  6   1  0.0062832327
+## 12  6   2  0.0089152751
+## 13  7   1  0.0239805641
+## 14  7   2 -0.0207246290
+## 15  8   1  0.0142320120
+## 16  8   2 -0.0071908899
+## 17  9   1  0.0279137952
+## 18  9   2 -0.0226798741
+## 19 10   1 -0.0196319804
+## 20 10   2  0.0008275913
+## 21 11   1  0.0217150008
+## 22 11   2 -0.0095099663
+## 23 12   1  0.0141313980
+## 24 12   2 -0.0222200794</code></pre>
+</div>
+<div id="implementation-details" class="section level3">
+<h3>Implementation details</h3>
+<p>The implementation is based on pre-processing and post-processing the
+models before running them. This is done by “hooks” into the nlmixr2
+estimation engine (you can see the code
+<a href="https://github.com/nlmixr2/nlmixr2est/blob/main/R/iov.R">here</a>) which
+can be used to extend <code>nlmixr2</code> even more).</p>
+<p>The pre-processing hooks are equivalent to the code <a href="https://github.com/nlmixrdevelopment/nlmixr/issues/93#issuecomment-2093486042">here</a>.</p>
+<p>This process:</p>
+<ul>
+<li><p>Creates a fixed between subject variability for each occasion/parameter in the model.</p></li>
+<li><p>Estimates the standard deviation (in some way) of the between occasion varibility</p></li>
+<li><p>Back-translates this to the variance</p></li>
+</ul>
+<p>As such, covariance/correlation in inter-occasion terms are not supported yet.</p>
+</div>
+<div id="changing-iov-items-in-the-next-release-of-nlmixr2est" class="section level3">
+<h3>Changing IOV items in the next release of nlmixr2est</h3>
+<p>The current release filters out the statistics based on each
+inter-occasion varaibility between subject variaibility for many
+terms. However, the next release will also keep shrinkage
+calculations for this and include an overall shrinkage calculation.</p>
+</div>

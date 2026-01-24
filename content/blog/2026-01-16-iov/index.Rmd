@@ -1,0 +1,139 @@
+---
+title: nlmixr2 inter occasion varibility
+author: Matthew Fidler
+date: '2026-01-16'
+slug: []
+categories: [nlmixr2]
+tags: []
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### Inter-occasion variability
+
+Happy new year!  With the holidays over we had the opportunity to
+celebrate many special occasions.
+
+I invite you to celebrate a new occasion for nlmixr2 -- inter-occasion
+variability.
+
+We now support inter-occasion variability estimation in `nlmixr2`!
+
+### Implementing inter-occasion variability in models
+
+To implement inter-occasion variaiblity in `nlmixr2` models you simply
+have to specify that the variable is an occasion variable, say `occ`:
+
+```r
+iov.cl ~ 0.1 | occ
+```
+
+The `~` syntax is similar to how between subject variability is
+specified, the addition of `|` tells that this a between `occ`
+variability.
+
+A full model based on the theophylline example is given below:
+
+```{r iov}
+
+library(nlmixr2)
+
+one.cmt <- function() {
+  ini({
+    tka <- 0.45 # Log Ka
+    tcl <- log(c(0, 2.7, 100)) # Log Cl
+    tv <- 3.45; label("log V")
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+    iov.cl ~ 0.1 | occ
+    add.sd <- 0.7
+  })
+  model({
+    ka <- exp(tka + eta.ka)
+    cl <- exp(tcl + eta.cl + iov.cl)
+    v <- exp(tv + eta.v)
+    linCmt() ~ add(add.sd)
+  })
+}
+```
+
+Note that the inter-occasion variability is specified for clearance:
+
+```r
+cl <- exp(tcl + eta.cl + iov.cl)
+```
+
+Trying this out with the theophylline multiple dose dataset with an
+additional occasion added:
+
+
+```{r iovRun}
+
+theo_iov <- nlmixr2data::theo_md
+theo_iov$occ <- 1
+theo_iov$occ[theo_iov$TIME >= 144] <- 2
+
+fit <- nlmixr(one.cmt, theo_iov, est="focei",
+                control=foceiControl(print=0))
+
+print(fit)
+```
+
+Note that IOV is specified in the final output table in the same
+column as the between subject variability:
+
+```{r fitParFixed}
+fit$parFixed
+```
+
+Note that some of the outputs are in a different format, for example
+`$omega` gives both the between subject variaiblity and between
+occasion variability:
+
+
+```{r iovVar}
+fit$omega
+```
+
+Though, the `eta` table, and corresponding standard errors and related
+values are missing IOV:
+
+```{r eta}
+fit$eta
+```
+
+The IOV is listed by the categories below:
+
+```{r iovPrint}
+fit$iov
+```
+
+
+### Implementation details
+
+The implementation is based on pre-processing and post-processing the
+models before running them.  This is done by "hooks" into the nlmixr2
+estimation engine (you can see the code
+[here](https://github.com/nlmixr2/nlmixr2est/blob/main/R/iov.R)) which
+can be used to extend `nlmixr2` even more).
+
+The pre-processing hooks are equivalent to the code [here](https://github.com/nlmixrdevelopment/nlmixr/issues/93#issuecomment-2093486042).
+
+This process:
+
+ - Creates a fixed between subject variability for each occasion/parameter in the model.
+
+ - Estimates the standard deviation (in some way) of the between occasion varibility
+
+ - Back-translates this to the variance
+
+ As such, covariance/correlation in inter-occasion terms are not supported yet.
+
+### Changing IOV items in the next release of nlmixr2est
+
+The current release filters out the statistics based on each
+inter-occasion varaibility between subject variaibility for many
+terms.  However, the next release will also keep shrinkage
+calculations for this and include an overall shrinkage calculation.
