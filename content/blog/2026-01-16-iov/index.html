@@ -72,26 +72,7 @@ theo_iov$occ &lt;- 1
 theo_iov$occ[theo_iov$TIME &gt;= 144] &lt;- 2
 
 fit &lt;- suppressMessages(nlmixr(one.cmt, theo_iov, est=&quot;focei&quot;))</code></pre>
-<pre><code>## 
-## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
-## 
-## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
-## 
-## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
-## 
-## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
-## 
-## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
-## 
-## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
-## 
-## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
-## 
-## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
-## 
-## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
-## 
-## Key: U: Unscaled Parameters; X: Back-transformed parameters; G: Gill difference gradient approximation
+<pre><code>## Key: U: Unscaled Parameters; X: Back-transformed parameters; G: Gill difference gradient approximation
 ## F: Forward difference gradient approximation
 ## C: Central difference gradient approximation
 ## M: Mixed forward and central difference gradient approximation
@@ -473,7 +454,7 @@ fit &lt;- suppressMessages(nlmixr(one.cmt, theo_iov, est=&quot;focei&quot;))</co
 ## ── Time (sec $time): ──
 ## 
 ##            setup optimize covariance table compress    other
-## elapsed 0.001779 0.609039    0.60904 0.078    0.001 6.285142
+## elapsed 0.002132 0.640828   0.640829 0.075    0.001 3.939211
 ## 
 ## ── Population Parameters ($parFixed or $parFixedDf): ──
 ## 
@@ -614,4 +595,8 @@ can be used to extend <code>nlmixr2</code> even more).</p>
 inter-occasion varaibility between subject variaibility for many
 terms. However, the next release will also keep shrinkage
 calculations for this and include an overall shrinkage calculation.</p>
+<div id="note" class="section level4">
+<h4>Note</h4>
+<p>The inter-occasion variability logo was created by Canva using AI.</p>
+</div>
 </div>
