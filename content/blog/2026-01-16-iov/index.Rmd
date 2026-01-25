@@ -75,9 +75,7 @@ theo_iov <- nlmixr2data::theo_md
 theo_iov$occ <- 1
 theo_iov$occ[theo_iov$TIME >= 144] <- 2
 
-fit <- nlmixr(one.cmt, theo_iov, est="focei",
-                control=foceiControl(print=0))
-
+fit <- suppressMessages(nlmixr(one.cmt, theo_iov, est="focei"))
 print(fit)
 ```
 
