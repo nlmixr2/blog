@@ -87,7 +87,7 @@ fit$parFixed
 ```
 
 Note that some of the outputs are in a different format, for example
-`$omega` gives both the between subject variaiblity and between
+`$omega` gives both the between subject variability and between
 occasion variability:
 
 
