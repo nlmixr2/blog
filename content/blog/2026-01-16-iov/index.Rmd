@@ -30,7 +30,7 @@ iov.cl ~ 0.1 | occ
 ```
 
 The `~` syntax is similar to how between subject variability is
-specified, the addition of `|` tells that this a between `occ`
+specified, the addition of `|` tells that this is a between `occ`
 variability.
 
 A full model based on the theophylline example is given below:
