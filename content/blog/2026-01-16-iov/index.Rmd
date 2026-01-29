@@ -22,7 +22,7 @@ We now support inter-occasion variability estimation in `nlmixr2`!
 
 ### Implementing inter-occasion variability in models
 
-To implement inter-occasion variaiblity in `nlmixr2` models you simply
+To implement inter-occasion variability in `nlmixr2` models you simply
 have to specify that the variable is an occasion variable, say `occ`:
 
 ```r
@@ -87,7 +87,7 @@ fit$parFixed
 ```
 
 Note that some of the outputs are in a different format, for example
-`$omega` gives both the between subject variaiblity and between
+`$omega` gives both the between subject variability and between
 occasion variability:
 
 
