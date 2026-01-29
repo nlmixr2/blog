@@ -132,7 +132,7 @@ This process:
 ### Changing IOV items in the next release of nlmixr2est
 
 The current release filters out the statistics based on each
-inter-occasion varaibility between subject variaibility for many
+inter-occasion variability between subject variability for many
 terms.  However, the next release will also keep shrinkage
 calculations for this and include an overall shrinkage calculation.
 
