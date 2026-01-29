@@ -1,5 +1,5 @@
 ---
-title: nlmixr2 inter occasion varibility
+title: nlmixr2 inter occasion variability
 author: Matthew Fidler
 date: '2026-01-16'
 slug: []
@@ -123,7 +123,7 @@ This process:
 
  - Creates a fixed between subject variability for each occasion/parameter in the model.
 
- - Estimates the standard deviation (in some way) of the between occasion varibility
+ - Estimates the standard deviation (in some way) of the between occasion variability
 
  - Back-translates this to the variance
 
