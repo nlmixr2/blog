@@ -19,7 +19,7 @@ variability.</p>
 </div>
 <div id="implementing-inter-occasion-variability-in-models" class="section level3">
 <h3>Implementing inter-occasion variability in models</h3>
-<p>To implement inter-occasion variaiblity in <code>nlmixr2</code> models you simply
+<p>To implement inter-occasion variability in <code>nlmixr2</code> models you simply
 have to specify that the variable is an occasion variable, say <code>occ</code>:</p>
 <pre class="r"><code>iov.cl ~ 0.1 | occ</code></pre>
 <p>The <code>~</code> syntax is similar to how between subject variability is
@@ -146,7 +146,7 @@ column as the between subject variability:</p>
 ## add.sd            
 ## iov.cl</code></pre>
 <p>Note that some of the outputs are in a different format, for example
-<code>$omega</code> gives both the between subject variaiblity and between
+<code>$omega</code> gives both the between subject variability and between
 occasion variability:</p>
 <pre class="r"><code>fit$omega</code></pre>
 <pre><code>## $id
