@@ -153,7 +153,7 @@ fit &lt;- nlmixr(pheno, pheno_sd, &quot;saem&quot;,
 <pre><code>## → compiling events FD model...</code></pre>
 <pre><code>## ✔ done</code></pre>
 <pre class="r"><code># Using the VPC package, a regular VPC
-p1 &lt;- vpcPlot(fit, show=list(obs_dv=TRUE))</code></pre>
+p1a &lt;- vpcPlot(fit, show=list(obs_dv=TRUE))</code></pre>
 <pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre><code>## Warning in filter_dv(obs, verbose): No software packages matched for filtering values, not filtering.
 ##  Object class: other, data.frame
@@ -165,7 +165,7 @@ p1 &lt;- vpcPlot(fit, show=list(obs_dv=TRUE))</code></pre>
 ##   method               from 
 ##   print.classIntervals ggPMX</code></pre>
 <pre class="r"><code>## A prediction-corrected VPC
-p2 &lt;- vpcPlot(fit, pred_corr = TRUE, show=list(obs_dv=TRUE))</code></pre>
+p2a &lt;- vpcPlot(fit, pred_corr = TRUE, show=list(obs_dv=TRUE))</code></pre>
 <pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre><code>## Warning in filter_dv(obs, verbose): No software packages matched for filtering values, not filtering.
 ##  Object class: other, data.frame
@@ -175,13 +175,14 @@ p2 &lt;- vpcPlot(fit, pred_corr = TRUE, show=list(obs_dv=TRUE))</code></pre>
 ##  Available filters: phoenix, nonmem</code></pre>
 <pre class="r"><code># using the tidyvpc package with method=&quot;tidyvpc&quot;
 # Using the VPC package, a regular VPC
-p1 &lt;- vpcPlot(fit, method=&quot;tidyvpc&quot;)</code></pre>
+p1b &lt;- vpcPlot(fit, method=&quot;tidyvpc&quot;)</code></pre>
 <pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre class="r"><code>## A prediction-corrected VPC
-p2 &lt;- vpcPlot(fit, pred_corr = TRUE, method=&quot;tidyvpc&quot;)</code></pre>
+p2b &lt;- vpcPlot(fit, pred_corr = TRUE, method=&quot;tidyvpc&quot;)</code></pre>
 <pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
-<pre class="r"><code>p1 / p2</code></pre>
+<pre class="r"><code>(p1a * p1b) / (p2a * p2b)</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/pheno-1.png" alt="" width="672" /></p>
+<p>On the right is the old <code>vpc</code> package and on the left is the new <code>tidyvpc</code> package</p>
 </div>
 <div id="what-inspired-adding-tidyvpc-package-now" class="section level2">
 <h2>What inspired adding <code>tidyvpc</code> package now?</h2>

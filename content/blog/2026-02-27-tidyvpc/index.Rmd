@@ -50,22 +50,26 @@ fit <- nlmixr(pheno, pheno_sd, "saem",
               table=list(cwres=TRUE, npde=TRUE))
 
 # Using the VPC package, a regular VPC
-p1 <- vpcPlot(fit, show=list(obs_dv=TRUE))
+p1a <- vpcPlot(fit, show=list(obs_dv=TRUE))
 
 ## A prediction-corrected VPC
-p2 <- vpcPlot(fit, pred_corr = TRUE, show=list(obs_dv=TRUE))
+p2a <- vpcPlot(fit, pred_corr = TRUE, show=list(obs_dv=TRUE))
+
+
 
 
 # using the tidyvpc package with method="tidyvpc"
 # Using the VPC package, a regular VPC
-p1 <- vpcPlot(fit, method="tidyvpc")
+p1b <- vpcPlot(fit, method="tidyvpc")
 
 ## A prediction-corrected VPC
-p2 <- vpcPlot(fit, pred_corr = TRUE, method="tidyvpc")
+p2b <- vpcPlot(fit, pred_corr = TRUE, method="tidyvpc")
 
-p1 / p2
+(p1a * p1b) / (p2a * p2b)
 
 ```
+
+On the right is the old `vpc` package and on the left is the new `tidyvpc` package
 
 ## What inspired adding `tidyvpc` package now?
 
