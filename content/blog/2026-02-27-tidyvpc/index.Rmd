@@ -69,7 +69,7 @@ p2b <- vpcPlot(fit, pred_corr = TRUE, method="tidyvpc")
 
 ```
 
-On the right is the old `vpc` package and on the left is the new `tidyvpc` package
+On the left is the `vpc` package and on the right is the `tidyvpc` package.
 
 ## What inspired adding `tidyvpc` package now?
 
