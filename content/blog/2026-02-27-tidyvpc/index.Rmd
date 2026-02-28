@@ -1,0 +1,108 @@
+---
+title: nlmixr2 and tidyvpc
+author: Matthew Fidler
+date: '2026-02-27'
+slug: []
+categories: [nlmixr2]
+tags: []
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### VPCs -- a new method for VPCs in nlmixr2
+
+I am excited to announce a new VPC method available in `nlmixr2` --
+`tidyvpc`.
+
+This method can be built on-top of previous code and provides slightly
+different visualizations than the `vpc` package.
+
+Below is an example that shows the two different methods:
+
+```{r pheno}
+library(nlmixr2)
+library(patchwork)
+
+
+pheno <- function() {
+  ini({
+    tcl <- log(0.008) # typical value of clearance
+    tv <-  log(0.6)   # typical value of volume
+    ## var(eta.cl)
+    eta.cl + eta.v ~ c(1,
+                       0.01, 1) ## cov(eta.cl, eta.v), var(eta.v)
+                      # interindividual variability on clearance and volume
+    add.err <- 0.1    # residual variability
+  })
+  model({
+    cl <- exp(tcl + eta.cl) # individual value of clearance
+    v <- exp(tv + eta.v)    # individual value of volume
+    ke <- cl / v            # elimination rate constant
+    d/dt(A1) = - ke * A1    # model differential equation
+    cp = A1 / v             # concentration in plasma
+    cp ~ add(add.err)       # define error model
+  })
+}
+
+fit <- nlmixr(pheno, pheno_sd, "saem",
+              control=list(print=0),
+              table=list(cwres=TRUE, npde=TRUE))
+
+# Using the VPC package, a regular VPC
+p1 <- vpcPlot(fit, show=list(obs_dv=TRUE))
+
+## A prediction-corrected VPC
+p2 <- vpcPlot(fit, pred_corr = TRUE, show=list(obs_dv=TRUE))
+
+
+# using the tidyvpc package with method="tidyvpc"
+# Using the VPC package, a regular VPC
+p1 <- vpcPlot(fit, show=list(obs_dv=TRUE))
+
+## A prediction-corrected VPC
+p2 <- vpcPlot(fit, pred_corr = TRUE, show=list(obs_dv=TRUE))
+
+p1 / p2
+
+
+p1 <- vpcPlot(fit, method="tidyvpc")
+
+## A prediction-corrected VPC
+p2 <- vpcPlot(fit, pred_corr = TRUE, method="tidyvpc")
+
+p1 / p2
+
+```
+
+This different ways to handle and visualize the VPCs.
+
+I have been long wanting to add `tidyvpc` as an option to the
+`vpcPlot()` function in `nlmixr2` since `tidyvpc` is also an excellent
+VPC package.
+
+
+## What inspired adding `tidyvpc` package now?
+
+This was driven by a CRAN request to fix `nlmixr2plot` errors
+that started when the excellent `vpc` package was updated.
+
+I have submitted a bug-fix to the `vpc` package which hopefully will
+be integrated in the next CRAN release.
+
+In the meantime, there are a few VPCs that `nlmixr2` could plot but
+cannot plot any longer using the `vpc` package.
+
+With this new release, you now have a few more options to produce a VPC.
+
+First, you can try the new method `vpcPlot(..., method="tidyvpc")`.
+
+Second, you can use:
+
+``` r
+remotes::install_github("mattfidler/vpc")
+```
+
+To use the bug fixed VPC package.
+
+Or, you can roll your own VPC code if you wish.
