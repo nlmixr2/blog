@@ -58,14 +58,6 @@ p2 <- vpcPlot(fit, pred_corr = TRUE, show=list(obs_dv=TRUE))
 
 # using the tidyvpc package with method="tidyvpc"
 # Using the VPC package, a regular VPC
-p1 <- vpcPlot(fit, show=list(obs_dv=TRUE))
-
-## A prediction-corrected VPC
-p2 <- vpcPlot(fit, pred_corr = TRUE, show=list(obs_dv=TRUE))
-
-p1 / p2
-
-
 p1 <- vpcPlot(fit, method="tidyvpc")
 
 ## A prediction-corrected VPC
@@ -75,34 +67,19 @@ p1 / p2
 
 ```
 
-This different ways to handle and visualize the VPCs.
-
-I have been long wanting to add `tidyvpc` as an option to the
-`vpcPlot()` function in `nlmixr2` since `tidyvpc` is also an excellent
-VPC package.
-
-
 ## What inspired adding `tidyvpc` package now?
 
-This was driven by a CRAN request to fix `nlmixr2plot` errors
-that started when the excellent `vpc` package was updated.
+The addition of `tidyvpc` was driven by a CRAN request to fix
+`nlmixr2plot`. These errors started when the `vpc` package was
+updated.  For people experiencing similar errors, using the new `tidyvpc`
+method may be helpful.
 
-I have submitted a bug-fix to the `vpc` package which hopefully will
-be integrated in the next CRAN release.
+Still, I have submitted a `vpc` bug-fix which also fixes all the
+issues we had and will hopefully be integrated in the next CRAN
+release of `vpc`.
 
-In the meantime, there are a few VPCs that `nlmixr2` could plot but
-cannot plot any longer using the `vpc` package.
-
-With this new release, you now have a few more options to produce a VPC.
-
-First, you can try the new method `vpcPlot(..., method="tidyvpc")`.
-
-Second, you can use:
+If you want to try out the bug-fix I submitted before it is released use:
 
 ``` r
 remotes::install_github("mattfidler/vpc")
 ```
-
-To use the bug fixed VPC package.
-
-Or, you can roll your own VPC code if you wish.

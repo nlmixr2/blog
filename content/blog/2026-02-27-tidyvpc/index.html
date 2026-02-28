@@ -175,49 +175,23 @@ p2 &lt;- vpcPlot(fit, pred_corr = TRUE, show=list(obs_dv=TRUE))</code></pre>
 ##  Available filters: phoenix, nonmem</code></pre>
 <pre class="r"><code># using the tidyvpc package with method=&quot;tidyvpc&quot;
 # Using the VPC package, a regular VPC
-p1 &lt;- vpcPlot(fit, show=list(obs_dv=TRUE))</code></pre>
-<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
-<pre><code>## Warning in filter_dv(obs, verbose): No software packages matched for filtering values, not filtering.
-##  Object class: other, data.frame
-##  Available filters: phoenix, nonmem
-## Warning in filter_dv(obs, verbose): No software packages matched for filtering values, not filtering.
-##  Object class: other, nlmixr2vpcSim, data.frame
-##  Available filters: phoenix, nonmem</code></pre>
-<pre class="r"><code>## A prediction-corrected VPC
-p2 &lt;- vpcPlot(fit, pred_corr = TRUE, show=list(obs_dv=TRUE))</code></pre>
-<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
-<pre><code>## Warning in filter_dv(obs, verbose): No software packages matched for filtering values, not filtering.
-##  Object class: other, data.frame
-##  Available filters: phoenix, nonmem
-## Warning in filter_dv(obs, verbose): No software packages matched for filtering values, not filtering.
-##  Object class: other, nlmixr2vpcSim, data.frame
-##  Available filters: phoenix, nonmem</code></pre>
-<pre class="r"><code>p1 / p2</code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/pheno-1.png" alt="" width="672" /></p>
-<pre class="r"><code>p1 &lt;- vpcPlot(fit, method=&quot;tidyvpc&quot;)</code></pre>
+p1 &lt;- vpcPlot(fit, method=&quot;tidyvpc&quot;)</code></pre>
 <pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre class="r"><code>## A prediction-corrected VPC
 p2 &lt;- vpcPlot(fit, pred_corr = TRUE, method=&quot;tidyvpc&quot;)</code></pre>
 <pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre class="r"><code>p1 / p2</code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/pheno-2.png" alt="" width="672" /></p>
-<p>This different ways to handle and visualize the VPCs.</p>
-<p>I have been long wanting to add <code>tidyvpc</code> as an option to the
-<code>vpcPlot()</code> function in <code>nlmixr2</code> since <code>tidyvpc</code> is also an excellent
-VPC package.</p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/pheno-1.png" alt="" width="672" /></p>
 </div>
 <div id="what-inspired-adding-tidyvpc-package-now" class="section level2">
 <h2>What inspired adding <code>tidyvpc</code> package now?</h2>
-<p>This was driven by a CRAN request to fix <code>nlmixr2plot</code> errors
-that started when the excellent <code>vpc</code> package was updated.</p>
-<p>I have submitted a bug-fix to the <code>vpc</code> package which hopefully will
-be integrated in the next CRAN release.</p>
-<p>In the meantime, there are a few VPCs that <code>nlmixr2</code> could plot but
-cannot plot any longer using the <code>vpc</code> package.</p>
-<p>With this new release, you now have a few more options to produce a VPC.</p>
-<p>First, you can try the new method <code>vpcPlot(..., method="tidyvpc")</code>.</p>
-<p>Second, you can use:</p>
+<p>The addition of <code>tidyvpc</code> was driven by a CRAN request to fix
+<code>nlmixr2plot</code>. These errors started when the <code>vpc</code> package was
+updated. For people experiencing similar errors, using the new <code>tidyvpc</code>
+method may be helpful.</p>
+<p>Still, I have submitted a <code>vpc</code> bug-fix which also fixes all the
+issues we had and will hopefully be integrated in the next CRAN
+release of <code>vpc</code>.</p>
+<p>If you want to try out the bug-fix I submitted before it is released use:</p>
 <pre class="r"><code>remotes::install_github(&quot;mattfidler/vpc&quot;)</code></pre>
-<p>To use the bug fixed VPC package.</p>
-<p>Or, you can roll your own VPC code if you wish.</p>
 </div>
