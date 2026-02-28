@@ -1,0 +1,198 @@
+---
+title: nlmixr2 and tidyvpc
+author: Matthew Fidler
+date: '2026-02-27'
+slug: []
+categories: [nlmixr2]
+tags: []
+---
+
+
+
+<div id="vpcs-a-new-method-for-vpcs-in-nlmixr2" class="section level3">
+<h3>VPCs – a new method for VPCs in nlmixr2</h3>
+<p>I am excited to announce a new VPC method available in <code>nlmixr2</code> –
+<code>tidyvpc</code>.</p>
+<p>This method can be built on-top of previous code and provides slightly
+different visualizations than the <code>vpc</code> package.</p>
+<p>Below is an example that shows the two different methods:</p>
+<pre class="r"><code>library(nlmixr2)</code></pre>
+<pre><code>## ── Attaching packages ───────────────────────────────────────────────────────── nlmixr2 5.0.0 ──</code></pre>
+<pre><code>## ✔ lotri         1.0.2      ✔ monolix2rx    0.0.6 
+## ✔ nlmixr2data   2.0.9      ✔ nlmixr2lib    0.3.2 
+## ✔ nlmixr2est    5.0.2      ✔ nlmixr2rpt    0.2.2 
+## ✔ nlmixr2extra  5.0.0      ✔ nonmem2rx     0.1.9 
+## ✔ nlmixr2plot   5.0.1      ✔ posologyr     1.2.8 
+## ✔ rxode2        5.0.1      ✔ shinyMixR     0.5.3 
+## ✔ babelmixr2    0.1.11     ✔ xpose.nlmixr2 0.4.1 
+## ✔ ggPMX         1.3.2</code></pre>
+<pre><code>## ── Optional Packages Loaded/Ignored ─────────────────────────────────────────── nlmixr2 5.0.0 ──</code></pre>
+<pre><code>## ✔ babelmixr2        ✔ nonmem2rx    
+## ✔ ggPMX             ✔ posologyr    
+## ✔ monolix2rx        ✔ shinyMixR    
+## ✔ nlmixr2lib        ✔ xpose.nlmixr2
+## ✔ nlmixr2rpt</code></pre>
+<pre><code>## ── Conflicts ───────────────────────────────────────────────────────────── nlmixr2conflicts() ──
+## ✖ rxode2::boxCox()     masks nlmixr2est::boxCox()
+## ✖ rxode2::yeoJohnson() masks nlmixr2est::yeoJohnson()</code></pre>
+<pre class="r"><code>library(patchwork)
+
+
+pheno &lt;- function() {
+  ini({
+    tcl &lt;- log(0.008) # typical value of clearance
+    tv &lt;-  log(0.6)   # typical value of volume
+    ## var(eta.cl)
+    eta.cl + eta.v ~ c(1,
+                       0.01, 1) ## cov(eta.cl, eta.v), var(eta.v)
+                      # interindividual variability on clearance and volume
+    add.err &lt;- 0.1    # residual variability
+  })
+  model({
+    cl &lt;- exp(tcl + eta.cl) # individual value of clearance
+    v &lt;- exp(tv + eta.v)    # individual value of volume
+    ke &lt;- cl / v            # elimination rate constant
+    d/dt(A1) = - ke * A1    # model differential equation
+    cp = A1 / v             # concentration in plasma
+    cp ~ add(add.err)       # define error model
+  })
+}
+
+fit &lt;- nlmixr(pheno, pheno_sd, &quot;saem&quot;,
+              control=list(print=0),
+              table=list(cwres=TRUE, npde=TRUE))</code></pre>
+<pre><code>## ℹ parameter labels from comments are typically ignored in non-interactive mode</code></pre>
+<pre><code>## ℹ Need to run with the source intact to parse comments</code></pre>
+<pre><code>## → loading into symengine environment...</code></pre>
+<pre><code>## → pruning branches (`if`/`else`) of saem model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → finding duplicate expressions in saem model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## ℹ calculate uninformed etas</code></pre>
+<pre><code>## ℹ done</code></pre>
+<pre><code>## Calculating covariance matrix</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → loading into symengine environment...</code></pre>
+<pre><code>## → pruning branches (`if`/`else`) of saem model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → finding duplicate expressions in saem predOnly model 0...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → finding duplicate expressions in saem predOnly model 1...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → finding duplicate expressions in saem predOnly model 2...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → Calculating residuals/tables</code></pre>
+<pre><code>## → loading into symengine environment...</code></pre>
+<pre><code>## → pruning branches (`if`/`else`) of full model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → calculate jacobian</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → calculate sensitivities</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → calculate ∂(f)/∂(η)</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → calculate ∂(R²)/∂(η)</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → finding duplicate expressions in inner model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in inner model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## 
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## 
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → finding duplicate expressions in EBE model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in EBE model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → compiling inner model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → finding duplicate expressions in FD model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in FD model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → compiling EBE model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → compiling events FD model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → loading into symengine environment...</code></pre>
+<pre><code>## → pruning branches (`if`/`else`) of full model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → calculate jacobian</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → calculate sensitivities</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → calculate ∂(f)/∂(η)</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → calculate ∂(R²)/∂(η)</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → finding duplicate expressions in inner model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in inner model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## 
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## 
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → finding duplicate expressions in EBE model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in EBE model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → compiling inner model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → finding duplicate expressions in FD model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → optimizing duplicate expressions in FD model...</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## → compiling EBE model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre><code>## → compiling events FD model...</code></pre>
+<pre><code>## ✔ done</code></pre>
+<pre class="r"><code># Using the VPC package, a regular VPC
+p1a &lt;- vpcPlot(fit, show=list(obs_dv=TRUE))</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## Warning in filter_dv(obs, verbose): No software packages matched for filtering values, not filtering.
+##  Object class: other, data.frame
+##  Available filters: phoenix, nonmem</code></pre>
+<pre><code>## Warning in filter_dv(sim, verbose): No software packages matched for filtering values, not filtering.
+##  Object class: other, nlmixr2vpcSim, data.frame
+##  Available filters: phoenix, nonmem</code></pre>
+<pre><code>## Registered S3 method overwritten by &#39;classInt&#39;:
+##   method               from 
+##   print.classIntervals ggPMX</code></pre>
+<pre class="r"><code>## A prediction-corrected VPC
+p2a &lt;- vpcPlot(fit, pred_corr = TRUE, show=list(obs_dv=TRUE))</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## Warning in filter_dv(obs, verbose): No software packages matched for filtering values, not filtering.
+##  Object class: other, data.frame
+##  Available filters: phoenix, nonmem
+## Warning in filter_dv(obs, verbose): No software packages matched for filtering values, not filtering.
+##  Object class: other, nlmixr2vpcSim, data.frame
+##  Available filters: phoenix, nonmem</code></pre>
+<pre class="r"><code># using the tidyvpc package with method=&quot;tidyvpc&quot;
+# Using the VPC package, a regular VPC
+p1b &lt;- vpcPlot(fit, method=&quot;tidyvpc&quot;)</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre class="r"><code>## A prediction-corrected VPC
+p2b &lt;- vpcPlot(fit, pred_corr = TRUE, method=&quot;tidyvpc&quot;)</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre class="r"><code>(p1a * p1b) / (p2a * p2b)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/pheno-1.png" alt="" width="672" /></p>
+<p>On the left is the <code>vpc</code> package and on the right is the <code>tidyvpc</code> package.</p>
+</div>
+<div id="what-inspired-adding-tidyvpc-package-now" class="section level2">
+<h2>What inspired adding <code>tidyvpc</code> package now?</h2>
+<p>The addition of <code>tidyvpc</code> was driven by a CRAN request to fix
+<code>nlmixr2plot</code>. These errors started when the <code>vpc</code> package was
+updated. For people experiencing similar errors, using the new <code>tidyvpc</code>
+method may be helpful.</p>
+<p>Still, I have submitted a <code>vpc</code> bug-fix which also fixes all the
+issues we had and will hopefully be integrated in the next CRAN
+release of <code>vpc</code>.</p>
+<p>If you want to try out the bug-fix I submitted before it is released use:</p>
+<pre class="r"><code>remotes::install_github(&quot;mattfidler/vpc&quot;)</code></pre>
+</div>
