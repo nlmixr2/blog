@@ -237,9 +237,9 @@ ggplot(df_multi_rate, aes(time, depot, colour = Scenario)) +
   theme(legend.position = "top")
 ```
 
-The orange curve is different because dose 1 fires when $$state \approx 4$$
+The orange curve is different because dose 1 fires when $state \approx 4$
 (rate = 9) while dose 2 fires when `state` has decayed toward zero
-(rate ≈ 5).
+($rate \approx≈ 5$).
 
 ### Per-subject initial state changes the infusion profile
 
