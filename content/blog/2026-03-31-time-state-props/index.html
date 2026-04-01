@@ -1,0 +1,978 @@
+---
+title: "State-Dependent Dosing Properties in rxode2"
+author: Matthew Fidler
+date: '2026-03-31'
+slug: []
+categories: [rxode2]
+tags: []
+---
+
+
+
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>A long-standing limitation in <code>rxode2</code> was that the dosing-modifier
+expressions — <code>rate()</code>, <code>dur()</code>, <code>f()</code>, and <code>alag()</code> — could only
+reference <strong>parameters</strong>.
+If you wanted infusion duration, bioavailability, or lag time to depend
+on the <em>current concentration</em> or any other ODE state variable, you
+were out of luck.</p>
+<p><code>rxode2</code> 5.0.2 lifts that restriction. All four dosing modifiers, as
+well as model-event times (<code>mtime()</code>), can now reference state
+variables. The expression is evaluated at the moment the dose fires,
+using whatever the system state happens to be at that instant.</p>
+<p>This opens the door to more realistic pharmacokinetic models where,
+for example:</p>
+<ul>
+<li><strong>Infusion rate or duration</strong> depends on a patient’s current drug
+level (e.g., adaptive infusion protocols).</li>
+<li><strong>Bioavailability</strong> changes with the concentration of a competing
+substrate or an enzyme state.</li>
+<li><strong>Absorption lag time</strong> varies with gastric emptying driven by
+another compartment.</li>
+<li><strong>Model event times</strong> are triggered by threshold crossings in a
+state variable.</li>
+</ul>
+<p>In this post we walk through each feature with reproducible examples
+and compare the simulated trajectories against closed-form analytical
+solutions.</p>
+<pre class="r"><code>library(rxode2)
+library(ggplot2)
+library(dplyr)
+library(tidyr)</code></pre>
+</div>
+<div id="analytical-helper" class="section level2">
+<h2>Analytical Helper</h2>
+<p>All of the rate and duration examples below involve a one-compartment
+depot that drains with first-order rate constant <span class="math inline">\(k_a\)</span> and receives a
+zero-order (constant-rate) infusion.
+The closed-form solution is:</p>
+<p><span class="math display">\[
+\text{depot}(t) =
+\begin{cases}
+\dfrac{R}{k_a}\bigl(1 - e^{-k_a t}\bigr) &amp; 0 \le t \le D \\[6pt]
+\dfrac{R}{k_a}\bigl(1 - e^{-k_a D}\bigr)\,e^{-k_a(t-D)} &amp; t &gt; D
+\end{cases}
+\]</span></p>
+<p>where <span class="math inline">\(R\)</span> is the infusion rate and <span class="math inline">\(D\)</span> is the infusion duration
+(<span class="math inline">\(D = \text{amt}/R\)</span> or set directly).</p>
+<pre class="r"><code>depot_analytic &lt;- function(t, R, D, ka) {
+  vapply(t, function(ti) {
+    if (ti &lt;= 0) return(0)
+    if (ti &lt;= D) {
+      (R / ka) * (1 - exp(-ka * ti))
+    } else {
+      depot_D &lt;- (R / ka) * (1 - exp(-ka * D))
+      depot_D * exp(-ka * (ti - D))
+    }
+  }, numeric(1))
+}</code></pre>
+<hr />
+</div>
+<div id="state-dependent-modeled-rate" class="section level2">
+<h2>State-Dependent Modeled Rate</h2>
+<div id="the-idea" class="section level3">
+<h3>The idea</h3>
+<p><code>rate(depot) &lt;- rate0 + state</code> tells <code>rxode2</code> that the zero-order
+infusion rate into <code>depot</code> is <strong>not</strong> a fixed parameter but an
+expression that includes the ODE variable <code>state</code>.
+The rate is evaluated when the dose fires, and the infusion stop-event
+is placed at <span class="math inline">\(t_{\text{dose}} + \text{amt}/R_{\text{eff}}\)</span>.</p>
+</div>
+<div id="baseline-state-0" class="section level3">
+<h3>Baseline: state = 0</h3>
+<p>When the state is zero the expression collapses to the fixed-rate
+case. This lets us verify that the new code path produces exactly the
+same answer as before.</p>
+<pre class="r"><code>mod_rate &lt;- rxode2({
+  rate(depot) &lt;- rate0 + state
+  d/dt(depot) &lt;- -ka * depot
+  d/dt(state) &lt;- 0
+})
+
+amt   &lt;- 100
+rate0 &lt;- 10
+ka    &lt;- 0.5
+times &lt;- seq(0, 30, by = 0.25)
+
+et_rate &lt;- et() |&gt;
+  et(amt = amt, rate = -1, cmt = &quot;depot&quot;) |&gt;
+  et(times)
+
+s_rate0 &lt;- rxSolve(mod_rate, et_rate,
+                    params = c(rate0 = rate0, ka = ka),
+                    inits  = c(state = 0, depot = 0))
+
+R0 &lt;- rate0
+D0 &lt;- amt / R0
+analytic0 &lt;- depot_analytic(times, R0, D0, ka)
+
+df_rate0 &lt;- data.frame(
+  time     = times,
+  rxode2   = s_rate0$depot[s_rate0$time %in% times],
+  analytic = analytic0
+)
+
+ggplot(df_rate0, aes(x = time)) +
+  geom_line(aes(y = analytic), colour = &quot;grey40&quot;, linewidth = 1.2) +
+  geom_point(aes(y = rxode2), colour = &quot;#E74C3C&quot;, size = 1.4, alpha = 0.7) +
+  labs(title = &quot;State-Dependent Rate — state = 0 (baseline)&quot;,
+       subtitle = paste0(&quot;rate(depot) = &quot;, rate0, &quot; + 0  →  R = &quot;, R0,
+                         &quot;, D = &quot;, D0, &quot; h&quot;),
+       x = &quot;Time (h)&quot;, y = &quot;Depot amount&quot;) +
+  theme_minimal(base_size = 14)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/rate-state0-1.png" alt="" width="768" /></p>
+<p>The red dots (simulation) sit exactly on the grey curve (analytical).
+The new code path reproduces the classical fixed-rate result.</p>
+</div>
+<div id="non-zero-state-shifts-the-rate" class="section level3">
+<h3>Non-zero state shifts the rate</h3>
+<p>Setting <code>state</code> to different constant values changes the effective
+infusion rate and therefore the duration and peak depot amount.</p>
+<pre class="r"><code>S0_values &lt;- c(-3, 0, 2, 5)
+
+results_rate &lt;- lapply(S0_values, function(S0) {
+  R_eff &lt;- rate0 + S0
+  D_eff &lt;- amt / R_eff
+
+  s &lt;- rxSolve(mod_rate, et_rate,
+               params = c(rate0 = rate0, ka = ka),
+               inits  = c(state = S0, depot = 0))
+
+  data.frame(
+    time     = times,
+    depot    = s$depot[s$time %in% times],
+    analytic = depot_analytic(times, R_eff, D_eff, ka),
+    S0       = S0,
+    label    = paste0(&quot;S0 = &quot;, S0, &quot;  (R = &quot;, R_eff, &quot;, D = &quot;,
+                      round(D_eff, 2), &quot; h)&quot;)
+  )
+})
+
+df_rate &lt;- bind_rows(results_rate)
+
+ggplot(df_rate, aes(x = time, colour = label)) +
+  geom_line(aes(y = analytic), linewidth = 1.1) +
+  geom_point(aes(y = depot), size = 1, alpha = 0.6) +
+  labs(title = &quot;State-Dependent Rate — varying initial state&quot;,
+       subtitle = &quot;rate(depot) &lt;- rate0 + state;   d/dt(state) &lt;- 0&quot;,
+       x = &quot;Time (h)&quot;, y = &quot;Depot amount&quot;, colour = NULL) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = &quot;top&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/rate-state-shift-1.png" alt="" width="768" /></p>
+<p>Each trajectory matches its own analytical solution perfectly.
+Higher <code>state</code> -&gt; higher rate -&gt; shorter infusion -&gt; lower peak (the drug
+is pushed in faster but drains simultaneously).</p>
+</div>
+<div id="consecutive-doses-with-decaying-state" class="section level3">
+<h3>Consecutive doses with decaying state</h3>
+<p>When <code>state</code> decays over time each dose sees a different effective
+rate. Dose 1 gets the high rate (large state); dose 2 gets a
+lower rate because state has decayed.</p>
+<pre class="r"><code>mod_rate_decay &lt;- rxode2({
+  rate(depot) &lt;- rate0 + state
+  d/dt(depot) &lt;- -ka * depot
+  d/dt(state) &lt;- -kstate * state
+})
+
+et_multi &lt;- et() |&gt;
+  et(amt = 50, rate = -1, time = 0) |&gt;
+  et(amt = 50, rate = -1, time = 15) |&gt;
+  et(seq(0, 30, by = 0.25))
+
+s_decay &lt;- rxSolve(mod_rate_decay, et_multi,
+                   params = c(rate0 = 5, ka = 0.4, kstate = 0.2),
+                   inits  = c(depot = 0, state = 4))
+
+s_nostate &lt;- rxSolve(mod_rate_decay, et_multi,
+                     params = c(rate0 = 5, ka = 0.4, kstate = 0.2),
+                     inits  = c(depot = 0, state = 0))
+
+df_multi_rate &lt;- bind_rows(
+  data.frame(time = s_decay$time,   depot = s_decay$depot,
+             Scenario = &quot;state0 = 4 (decaying)&quot;),
+  data.frame(time = s_nostate$time, depot = s_nostate$depot,
+             Scenario = &quot;state0 = 0 (no shift)&quot;)
+)
+
+ggplot(df_multi_rate, aes(time, depot, colour = Scenario)) +
+  geom_line(linewidth = 0.9) +
+  geom_vline(xintercept = c(0, 15), linetype = &quot;dashed&quot;, alpha = 0.4) +
+  annotate(&quot;text&quot;, x = 0.5,  y = max(df_multi_rate$depot) * 0.95,
+           label = &quot;Dose 1&quot;, hjust = 0, size = 3.5) +
+  annotate(&quot;text&quot;, x = 15.5, y = max(df_multi_rate$depot) * 0.95,
+           label = &quot;Dose 2&quot;, hjust = 0, size = 3.5) +
+  labs(title = &quot;Two Doses with Decaying State-Dependent Rate&quot;,
+       subtitle = &quot;rate(depot) &lt;- rate0 + state;  d/dt(state) &lt;- -kstate * state&quot;,
+       x = &quot;Time (h)&quot;, y = &quot;Depot amount&quot;, colour = NULL) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = &quot;top&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/rate-multidose-1.png" alt="" width="768" /></p>
+<p>The orange curve is different because dose 1 fires when <span class="math display">\[state \approx 4\]</span>
+(rate = 9) while dose 2 fires when <code>state</code> has decayed toward zero
+(rate ≈ 5).</p>
+</div>
+<div id="per-subject-initial-state-changes-the-infusion-profile" class="section level3">
+<h3>Per-subject initial state changes the infusion profile</h3>
+<p>Because the rate expression is evaluated per-subject at the dose time,
+subjects that start with different compartment values get different
+infusion profiles automatically.</p>
+<pre class="r"><code>mod_rate_subj &lt;- rxode2({
+  rate(depot) &lt;- central * 0.1 + 1.0
+  d/dt(depot) &lt;- -ka * depot
+  d/dt(central) &lt;- ka * depot - kel * central
+})
+
+et_subj &lt;- et(amt = 100, rate = -1) |&gt; et(seq(0, 24, by = 0.5))
+
+s_c0 &lt;- rxSolve(mod_rate_subj, et_subj, c(ka = 0.5, kel = 0.2),
+                 inits = c(depot = 0, central = 0))
+s_c5 &lt;- rxSolve(mod_rate_subj, et_subj, c(ka = 0.5, kel = 0.2),
+                 inits = c(depot = 0, central = 5))
+
+df_subj_rate &lt;- bind_rows(
+  data.frame(time = s_c0$time, central = s_c0$central,
+             Subject = &quot;central₀ = 0  (rate = 1.0)&quot;),
+  data.frame(time = s_c5$time, central = s_c5$central,
+             Subject = &quot;central₀ = 5  (rate = 1.5)&quot;)
+)
+
+ggplot(df_subj_rate, aes(time, central, colour = Subject)) +
+  geom_line(linewidth = 0.9) +
+  labs(title = &quot;Per-Subject State-Dependent Rate&quot;,
+       subtitle = &quot;rate(depot) &lt;- central * 0.1 + 1.0&quot;,
+       x = &quot;Time (h)&quot;, y = &quot;Central amount&quot;, colour = NULL) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = &quot;top&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/rate-per-subject-1.png" alt="" width="768" /></p>
+<hr />
+</div>
+</div>
+<div id="state-dependent-modeled-duration" class="section level2">
+<h2>State-Dependent Modeled Duration</h2>
+<div id="the-idea-1" class="section level3">
+<h3>The idea</h3>
+<p><code>dur(depot) &lt;- dur0 + state</code> sets the infusion <strong>duration</strong> directly
+(<code>rate = -2</code> in NONMEM convention).
+The derived rate is <span class="math inline">\(R = \text{amt} / (\text{dur0} + \text{state})\)</span>.</p>
+</div>
+<div id="baseline-and-state-shifted-duration" class="section level3">
+<h3>Baseline and state-shifted duration</h3>
+<pre class="r"><code>mod_dur &lt;- rxode2({
+  dur(depot) &lt;- dur0 + state
+  d/dt(depot) &lt;- -ka * depot
+  d/dt(state) &lt;- 0
+})
+
+amt  &lt;- 100
+dur0 &lt;- 10
+ka   &lt;- 0.5
+times &lt;- seq(0, 40, by = 0.25)
+
+et_dur &lt;- et() |&gt;
+  et(amt = amt, rate = -2, cmt = &quot;depot&quot;) |&gt;
+  et(times)
+
+S0_dur &lt;- c(-3, 0, 2, 5)
+
+results_dur &lt;- lapply(S0_dur, function(S0) {
+  D_eff &lt;- dur0 + S0
+  R_eff &lt;- amt / D_eff
+
+  s &lt;- rxSolve(mod_dur, et_dur,
+               params = c(dur0 = dur0, ka = ka),
+               inits  = c(state = S0, depot = 0))
+
+  data.frame(
+    time     = times,
+    depot    = s$depot[s$time %in% times],
+    analytic = depot_analytic(times, R_eff, D_eff, ka),
+    S0       = S0,
+    label    = sprintf(&quot;S0 = %d  (D = %g h, R = %.2f)&quot;, S0, D_eff, R_eff)
+  )
+})
+
+df_dur &lt;- bind_rows(results_dur)
+
+ggplot(df_dur, aes(x = time, colour = label)) +
+  geom_line(aes(y = analytic), linewidth = 1.1) +
+  geom_point(aes(y = depot), size = 0.9, alpha = 0.5) +
+  labs(title = &quot;State-Dependent Duration&quot;,
+       subtitle = &quot;dur(depot) &lt;- dur0 + state;  D = dur0 + S0;  R = amt / D&quot;,
+       x = &quot;Time (h)&quot;, y = &quot;Depot amount&quot;, colour = NULL) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = &quot;top&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/dur-demo-1.png" alt="" width="768" /></p>
+</div>
+<div id="verifying-the-exact-infusion-stop-time" class="section level3">
+<h3>Verifying the exact infusion stop time</h3>
+<p>A critical check: does the infusion actually <strong>stop</strong> at exactly
+<span class="math inline">\(D = \text{dur0} + \text{state}\)</span>?
+We sample densely around the expected stop time and compare the
+depot value at <span class="math inline">\(t = D\)</span> to the analytical peak.</p>
+<pre class="r"><code>dur0_check &lt;- 5
+ka_check   &lt;- 0.3
+S0_check   &lt;- c(0, 3, -1)
+
+stop_check &lt;- lapply(S0_check, function(S0) {
+  D &lt;- dur0_check + S0
+  R &lt;- amt / D
+  fine_times &lt;- sort(unique(c(seq(0, D + 8, by = 0.05), D)))
+
+  et_fine &lt;- et() |&gt;
+    et(amt = amt, rate = -2, cmt = &quot;depot&quot;) |&gt;
+    et(fine_times)
+
+  s &lt;- rxSolve(mod_dur, et_fine,
+               params = c(dur0 = dur0_check, ka = ka_check),
+               inits  = c(state = S0, depot = 0))
+
+  obs_D      &lt;- s$depot[which.min(abs(s$time - D))]
+  expected_D &lt;- (R / ka_check) * (1 - exp(-ka_check * D))
+
+  data.frame(S0 = S0, D = D, R = round(R, 3),
+             depot_sim = round(obs_D, 4),
+             depot_analytic = round(expected_D, 4),
+             match = abs(obs_D - expected_D) &lt; 1e-3)
+})
+
+knitr::kable(bind_rows(stop_check),
+             caption = &quot;Depot at infusion stop time D: simulation vs analytical&quot;)</code></pre>
+<table>
+<caption><span id="tab:dur-stop-time">Table 1: </span>Depot at infusion stop time D: simulation vs analytical</caption>
+<thead>
+<tr class="header">
+<th align="right">S0</th>
+<th align="right">D</th>
+<th align="right">R</th>
+<th align="right">depot_sim</th>
+<th align="right">depot_analytic</th>
+<th align="left">match</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">0</td>
+<td align="right">5</td>
+<td align="right">20.0</td>
+<td align="right">51.7913</td>
+<td align="right">51.7913</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="even">
+<td align="right">3</td>
+<td align="right">8</td>
+<td align="right">12.5</td>
+<td align="right">37.8868</td>
+<td align="right">37.8868</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="odd">
+<td align="right">-1</td>
+<td align="right">4</td>
+<td align="right">25.0</td>
+<td align="right">58.2338</td>
+<td align="right">58.2338</td>
+<td align="left">TRUE</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="multiple-doses-with-decaying-state" class="section level3">
+<h3>Multiple doses with decaying state</h3>
+<pre class="r"><code>mod_dur_decay &lt;- rxode2({
+  dur(depot) &lt;- dur0 + state
+  d/dt(depot) &lt;- -ka * depot
+  d/dt(state) &lt;- -kstate * state
+})
+
+et_dur_multi &lt;- et() |&gt;
+  et(amt = 50, rate = -2, time = 0) |&gt;
+  et(amt = 50, rate = -2, time = 20) |&gt;
+  et(seq(0, 35, by = 0.25))
+
+s_dur_decay &lt;- rxSolve(mod_dur_decay, et_dur_multi,
+                       params = c(dur0 = 5, ka = 0.4, kstate = 0.2),
+                       inits  = c(depot = 0, state = 3))
+
+s_dur_flat  &lt;- rxSolve(mod_dur_decay, et_dur_multi,
+                       params = c(dur0 = 5, ka = 0.4, kstate = 0.2),
+                       inits  = c(depot = 0, state = 0))
+
+df_dur_multi &lt;- bind_rows(
+  data.frame(time = s_dur_decay$time, depot = s_dur_decay$depot,
+             Scenario = &quot;state0 = 3 (decaying)&quot;),
+  data.frame(time = s_dur_flat$time,  depot = s_dur_flat$depot,
+             Scenario = &quot;state0 = 0 (fixed dur)&quot;)
+)
+
+ggplot(df_dur_multi, aes(time, depot, colour = Scenario)) +
+  geom_line(linewidth = 0.9) +
+  geom_vline(xintercept = c(0, 20), linetype = &quot;dashed&quot;, alpha = 0.4) +
+  labs(title = &quot;Multiple Doses with Decaying State-Dependent Duration&quot;,
+       subtitle = &quot;dur(depot) &lt;- dur0 + state;  d/dt(state) &lt;- -kstate * state&quot;,
+       x = &quot;Time (h)&quot;, y = &quot;Depot amount&quot;, colour = NULL) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = &quot;top&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/dur-multidose-1.png" alt="" width="768" /></p>
+<hr />
+</div>
+</div>
+<div id="state-dependent-bioavailability" class="section level2">
+<h2>State-Dependent Bioavailability</h2>
+<div id="the-idea-2" class="section level3">
+<h3>The idea</h3>
+<p><code>f(depot) &lt;- f0 + state</code> means the bioavailable fraction is evaluated
+at the moment each dose fires.
+For a bolus dose into a mono-exponential depot:</p>
+<p><span class="math display">\[
+\text{depot}(t) = \text{amt} \cdot (f_0 + S_0)\; e^{-k_a\,t}
+\]</span></p>
+</div>
+<div id="single-dose-varying-state" class="section level3">
+<h3>Single dose — varying state</h3>
+<pre class="r"><code>mod_f &lt;- rxode2({
+  f(depot)    &lt;- f0 + state
+  d/dt(depot) &lt;- -ka * depot
+  d/dt(state) &lt;- 0
+})
+
+amt_f &lt;- 100
+f0    &lt;- 0.8
+ka_f  &lt;- 0.5
+times_f &lt;- seq(0, 20, by = 0.25)
+
+et_f &lt;- et() |&gt;
+  et(amt = amt_f, cmt = &quot;depot&quot;) |&gt;
+  et(times_f)
+
+S0_f &lt;- c(-0.2, 0, 0.1, 0.5)
+
+results_f &lt;- lapply(S0_f, function(S0) {
+  F_eff &lt;- f0 + S0
+  s &lt;- rxSolve(mod_f, et_f,
+               params = c(f0 = f0, ka = ka_f),
+               inits  = c(state = S0, depot = 0))
+
+  data.frame(
+    time     = times_f,
+    depot    = s$depot[s$time %in% times_f],
+    analytic = amt_f * F_eff * exp(-ka_f * times_f),
+    S0       = S0,
+    label    = sprintf(&quot;S0 = %.1f  (F = %.2f)&quot;, S0, F_eff)
+  )
+})
+
+df_f &lt;- bind_rows(results_f)
+
+ggplot(df_f, aes(x = time, colour = label)) +
+  geom_line(aes(y = analytic), linewidth = 1.1) +
+  geom_point(aes(y = depot), size = 0.9, alpha = 0.5) +
+  labs(title = &quot;State-Dependent Bioavailability — Single Dose&quot;,
+       subtitle = &quot;f(depot) &lt;- f0 + state;  depot(t) = amt × (f0 + S0) × exp(−ka t)&quot;,
+       x = &quot;Time (h)&quot;, y = &quot;Depot amount&quot;, colour = NULL) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = &quot;top&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/f-single-1.png" alt="" width="768" /></p>
+</div>
+<div id="two-doses-with-decaying-state" class="section level3">
+<h3>Two doses with decaying state</h3>
+<p>With a decaying state, the second dose sees a lower bioavailability
+than the first.</p>
+<pre class="r"><code>mod_f_decay &lt;- rxode2({
+  f(depot)    &lt;- f0 + state
+  d/dt(depot) &lt;- -ka * depot
+  d/dt(state) &lt;- -kstate * state
+})
+
+f0_2     &lt;- 0.8
+ka_2     &lt;- 0.5
+kstate_2 &lt;- 0.3
+amt_2    &lt;- 100
+dose_times &lt;- c(0, 5)
+times_f2   &lt;- seq(0, 15, by = 0.25)
+
+et_f2 &lt;- et() |&gt;
+  et(amt = amt_2, time = 0, cmt = &quot;depot&quot;) |&gt;
+  et(amt = amt_2, time = 5, cmt = &quot;depot&quot;) |&gt;
+  et(times_f2)
+
+S0_f2 &lt;- c(0, 0.2, 0.5)
+
+results_f2 &lt;- lapply(S0_f2, function(S0) {
+  s &lt;- rxSolve(mod_f_decay, et_f2,
+               params = c(f0 = f0_2, ka = ka_2, kstate = kstate_2),
+               inits  = c(depot = 0, state = S0))
+
+  # Analytical:  state(t) = S0 * exp(-kstate * t)
+  # f at each dose time = f0 + S0 * exp(-kstate * t_d)
+  expected &lt;- vapply(times_f2, function(t) {
+    contrib &lt;- 0
+    for (td in dose_times) {
+      if (t &gt;= td) {
+        f_td   &lt;- f0_2 + S0 * exp(-kstate_2 * td)
+        contrib &lt;- contrib + amt_2 * f_td * exp(-ka_2 * (t - td))
+      }
+    }
+    contrib
+  }, numeric(1))
+
+  data.frame(
+    time     = times_f2,
+    depot    = s$depot[s$time %in% times_f2],
+    analytic = expected,
+    S0       = S0,
+    label    = sprintf(&quot;S0 = %.1f&quot;, S0)
+  )
+})
+
+df_f2 &lt;- bind_rows(results_f2)
+
+ggplot(df_f2, aes(x = time, colour = label)) +
+  geom_line(aes(y = analytic), linewidth = 1.1) +
+  geom_point(aes(y = depot), size = 0.9, alpha = 0.5) +
+  geom_vline(xintercept = dose_times, linetype = &quot;dashed&quot;, alpha = 0.3) +
+  labs(title = &quot;Two Doses with Decaying State-Dependent Bioavailability&quot;,
+       subtitle = &quot;f(depot) &lt;- f0 + state;  d/dt(state) &lt;- -kstate × state&quot;,
+       x = &quot;Time (h)&quot;, y = &quot;Depot amount&quot;, colour = NULL) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = &quot;top&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/f-two-dose-1.png" alt="" width="768" /></p>
+<p>Note how the second dose (dashed line at <span class="math inline">\(t = 5\)</span>) adds less drug to
+the depot when <span class="math inline">\(S_0 &gt; 0\)</span> because <code>state</code> has partially decayed,
+reducing <span class="math inline">\(f\)</span>.</p>
+<hr />
+</div>
+</div>
+<div id="state-dependent-lag-time-alag" class="section level2">
+<h2>State-Dependent Lag Time (alag)</h2>
+<div id="the-idea-3" class="section level3">
+<h3>The idea</h3>
+<p><code>alag(depot) &lt;- state_val</code> delays each dose by the current value of
+<code>state_val</code> at the scheduled dose time.
+A bolus intended for <span class="math inline">\(t = 0\)</span> actually fires at <span class="math inline">\(t = \text{state\_val}\)</span>.</p>
+</div>
+<div id="constant-lag-via-a-state-variable" class="section level3">
+<h3>Constant lag via a state variable</h3>
+<p>We use <code>d/dt(state_val) &lt;- 0</code> so the lag is a known constant
+and the trajectory is analytically verifiable.</p>
+<pre class="r"><code>mod_alag &lt;- rxode2({
+  alag(depot) &lt;- state_val
+  d/dt(depot)     &lt;- -ka * depot
+  d/dt(central)   &lt;- ka * depot - kel * central
+  d/dt(state_val) &lt;- 0
+})
+
+params_alag &lt;- c(ka = 0.5, kel = 0.2)
+
+# Two doses at t = 0 and t = 3
+et_alag &lt;- et(amt = 100, time = 0, cmt = &quot;depot&quot;) |&gt;
+  et(amt = 100, time = 3, cmt = &quot;depot&quot;) |&gt;
+  et(seq(0, 12, by = 0.25))
+
+lag_values &lt;- c(0, 1, 2)
+
+results_alag &lt;- lapply(lag_values, function(sv) {
+  s &lt;- rxSolve(mod_alag, et_alag, params_alag,
+               inits = c(depot = 0, central = 0, state_val = sv))
+
+  t_fire1 &lt;- sv
+  t_fire2 &lt;- 3 + sv
+
+  analytic &lt;- vapply(s$time, function(t) {
+    d &lt;- 0
+    if (t &gt;= t_fire1) d &lt;- d + 100 * exp(-0.5 * (t - t_fire1))
+    if (t &gt;= t_fire2) d &lt;- d + 100 * exp(-0.5 * (t - t_fire2))
+    d
+  }, numeric(1))
+
+  data.frame(time = s$time, depot = s$depot,
+             analytic = analytic, lag = sv,
+             label = paste0(&quot;lag = &quot;, sv, &quot; h&quot;))
+})
+
+df_alag &lt;- bind_rows(results_alag)
+
+ggplot(df_alag, aes(x = time, colour = label)) +
+  geom_line(aes(y = analytic), linewidth = 1.1) +
+  geom_point(aes(y = depot), size = 0.9, alpha = 0.5) +
+  labs(title = &quot;State-Dependent Lag Time — Constant State&quot;,
+       subtitle = &quot;alag(depot) &lt;- state_val;  d/dt(state_val) &lt;- 0&quot;,
+       x = &quot;Time (h)&quot;, y = &quot;Depot amount&quot;, colour = NULL) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = &quot;top&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/alag-constant-1.png" alt="" width="768" /></p>
+<p>Each dose is shifted rightward by exactly the <code>state_val</code> amount.</p>
+</div>
+<div id="lag-depending-on-a-dynamic-state" class="section level3">
+<h3>Lag depending on a dynamic state</h3>
+<p>When the lag depends on a compartment that changes over time, each
+dose gets a different effective lag.</p>
+<pre class="r"><code>mod_alag_dyn &lt;- rxode2({
+  alag(depot) &lt;- central * 0.1
+  d/dt(depot)   &lt;- -ka * depot
+  d/dt(central) &lt;- ka * depot - kel * central
+})
+
+et_alag_dyn &lt;- et() |&gt;
+  et(amt = 100, time = 0) |&gt;
+  et(amt = 100, time = 6) |&gt;
+  et(seq(0, 24, by = 0.25))
+
+s_lag0 &lt;- rxSolve(mod_alag_dyn, et_alag_dyn,
+                  c(ka = 0.5, kel = 0.2),
+                  inits = c(depot = 0, central = 0))
+
+s_lag5 &lt;- rxSolve(mod_alag_dyn, et_alag_dyn,
+                  c(ka = 0.5, kel = 0.2),
+                  inits = c(depot = 0, central = 5))
+
+df_alag_dyn &lt;- bind_rows(
+  data.frame(time = s_lag0$time, central = s_lag0$central,
+             Subject = &quot;central0 = 0  (lag = 0 h)&quot;),
+  data.frame(time = s_lag5$time, central = s_lag5$central,
+             Subject = &quot;central0 = 5  (lag = 0.5 h)&quot;)
+)
+
+ggplot(df_alag_dyn, aes(time, central, colour = Subject)) +
+  geom_line(linewidth = 0.9) +
+  labs(title = &quot;Dynamic State-Dependent Lag Time&quot;,
+       subtitle = &quot;alag(depot) &lt;- central × 0.1&quot;,
+       x = &quot;Time (h)&quot;, y = &quot;Central amount&quot;, colour = NULL) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = &quot;top&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/alag-dynamic-1.png" alt="" width="768" /></p>
+<p>The subject starting with <code>central = 5</code> has a 0.5 h lag on the first
+dose, visibly delaying the rise in central concentrations.</p>
+<hr />
+</div>
+</div>
+<div id="combining-features-lag-duration" class="section level2">
+<h2>Combining Features: Lag + Duration</h2>
+<p>Dosing modifiers compose.
+Here we combine a fixed lag with a state-dependent duration to show
+that the infusion-stop event is placed at the correct absolute time:
+<span class="math inline">\(t_{\text{stop}} = t_{\text{dose}} + \text{lag} + \text{dur}\)</span>.</p>
+<pre class="r"><code>mod_combo &lt;- rxode2({
+  alag(depot) &lt;- 0.5
+  dur(depot)  &lt;- central * 0.1 + 1.0
+  d/dt(depot)   &lt;- -ka * depot
+  d/dt(central) &lt;- ka * depot - kel * central
+})
+
+et_combo &lt;- et(amt = 100, rate = -2) |&gt; et(seq(0, 24, by = 0.25))
+
+s_combo &lt;- rxSolve(mod_combo, et_combo,
+                   c(ka = 0.5, kel = 0.2),
+                   inits = c(depot = 0, central = 3))
+
+s_combo0 &lt;- rxSolve(mod_combo, et_combo,
+                    c(ka = 0.5, kel = 0.2),
+                    inits = c(depot = 0, central = 0))
+
+df_combo &lt;- bind_rows(
+  data.frame(time = s_combo$time, depot = s_combo$depot,
+             central = s_combo$central,
+             Scenario = &quot;central₀ = 3  (lag 0.5 h, dur ≈ 1.3 h)&quot;),
+  data.frame(time = s_combo0$time, depot = s_combo0$depot,
+             central = s_combo0$central,
+             Scenario = &quot;central₀ = 0  (lag 0.5 h, dur = 1.0 h)&quot;)
+)
+
+p_combo_depot &lt;- ggplot(df_combo, aes(time, depot, colour = Scenario)) +
+  geom_line(linewidth = 0.9) +
+  labs(title = &quot;Combined Lag + State-Dependent Duration — Depot&quot;,
+       subtitle = &quot;alag(depot) &lt;- 0.5;  dur(depot) &lt;- central × 0.1 + 1.0&quot;,
+       x = &quot;Time (h)&quot;, y = &quot;Depot amount&quot;, colour = NULL) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = &quot;top&quot;)
+
+p_combo_central &lt;- ggplot(df_combo, aes(time, central, colour = Scenario)) +
+  geom_line(linewidth = 0.9) +
+  labs(title = &quot;Combined Lag + State-Dependent Duration — Central&quot;,
+       x = &quot;Time (h)&quot;, y = &quot;Central amount&quot;, colour = NULL) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = &quot;top&quot;)
+
+p_combo_depot</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/alag-plus-dur-1.png" alt="" width="768" /></p>
+<pre class="r"><code>p_combo_central</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/alag-plus-dur-2.png" alt="" width="768" /></p>
+<p>The subject with <code>central₀ = 3</code> has a slightly longer infusion
+duration ($0.1 + 1 = 1.3$ h) compared to the baseline
+($1.0$ h).
+Both subjects share the same 0.5 h absorption lag.
+The plots confirm that the stop-event is placed correctly:
+the depot rises only after the lag, and the infusion ends at
+<span class="math display">\[t = 0 + 0.5 + \text{dur}\]</span>.</p>
+<hr />
+</div>
+<div id="state-dependent-model-event-times-mtime" class="section level2">
+<h2>State-Dependent Model Event Times (mtime)</h2>
+<div id="the-idea-4" class="section level3">
+<h3>The idea</h3>
+<p><code>mtime()</code> inserts an extra observation/solver-restart time into the
+integration grid.
+Previously the argument had to be a constant or parameter expression.
+Now it can reference state variables, enabling event times that depend
+on the evolving system.</p>
+<p>A practical use case is triggering a covariate shift (e.g., enzyme
+induction onset) at a time that depends on cumulative drug exposure.</p>
+<pre class="r"><code>
+mod_mtime &lt;- rxode2({
+  # Model event time depends on a state variable
+  # state decays; mtime fires at t = 2 + state (evaluated at init)
+  mtime(mt) &lt;- 2 + state
+
+  # Effect switches on at the model event time
+  eff &lt;- ifelse(time &gt;= mt, 1, 0)
+
+  d/dt(depot)   &lt;- -ka * depot
+  d/dt(central) &lt;- ka * depot - kel * central * (1 + 0.5 * eff)
+  d/dt(state)   &lt;- -kstate * state
+})
+
+
+et_mt &lt;- et(amt = 100) |&gt; et(seq(0, 24, by = 0.1))
+
+s_mt0 &lt;- rxSolve(mod_mtime, et_mt,
+                 c(ka = 1.0, kel = 0.2, kstate = 0.1),
+                 inits = c(depot = 0, central = 0, state = 0))
+
+s_mt3 &lt;- rxSolve(mod_mtime, et_mt,
+                 c(ka = 1.0, kel = 0.2, kstate = 0.1),
+                 inits = c(depot = 0, central = 0, state = 3))
+
+s_mt6 &lt;- rxSolve(mod_mtime, et_mt,
+                 c(ka = 1.0, kel = 0.2, kstate = 0.1),
+                 inits = c(depot = 0, central = 0, state = 6))
+
+df_mtime &lt;- bind_rows(
+  data.frame(time = s_mt0$time, central = s_mt0$central,
+             Scenario = &quot;state0 = 0  (mtime = 2 h)&quot;),
+  data.frame(time = s_mt3$time, central = s_mt3$central,
+             Scenario = &quot;state0 = 3  (mtime = 5 h)&quot;),
+  data.frame(time = s_mt6$time, central = s_mt6$central,
+             Scenario = &quot;state0 = 6  (mtime = 8 h)&quot;)
+)
+
+ggplot(df_mtime, aes(time, central, colour = Scenario)) +
+  geom_line(linewidth = 0.9) +
+  geom_vline(xintercept = c(2, 5, 8), linetype = &quot;dashed&quot;, alpha = 0.3) +
+  annotate(&quot;text&quot;, x = c(2.3, 5.3, 8.3),
+           y = rep(max(df_mtime$central) * 0.95, 3),
+           label = c(&quot;mtime=2&quot;, &quot;mtime=5&quot;, &quot;mtime=8&quot;),
+           size = 3, hjust = 0) +
+  labs(title = &quot;State-Dependent Model Event Times&quot;,
+       subtitle = &quot;mtime(mt) &lt;- 2 + state;  eff switches on at mt&quot;,
+       x = &quot;Time (h)&quot;, y = &quot;Central amount&quot;, colour = NULL) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = &quot;top&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/mtime-demo-1.png" alt="" width="768" /></p>
+<p>The dashed vertical lines mark the model event time for each scenario.
+Higher initial <code>state</code> pushes the effect onset later, resulting in
+higher peak concentrations (the enhanced elimination kicks in later).</p>
+<hr />
+</div>
+</div>
+<div id="summary-of-new-capabilities" class="section level2">
+<h2>Summary of New Capabilities</h2>
+<p>The table below summarizes what is now possible with state-dependent
+dosing properties:</p>
+<table>
+<caption><span id="tab:summary-table">Table 2: </span>State-dependent dosing modifiers added in PR #991</caption>
+<colgroup>
+<col width="8%" />
+<col width="29%" />
+<col width="24%" />
+<col width="38%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Feature</th>
+<th align="left">NONMEM Analog</th>
+<th align="left">When Evaluated</th>
+<th align="left">Key Behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">rate(cmt)</td>
+<td align="left">RATE = -1 with state-dep expression</td>
+<td align="left">At dose firing time</td>
+<td align="left">Infusion stop re-sorted; R = expr at dose time</td>
+</tr>
+<tr class="even">
+<td align="left">dur(cmt)</td>
+<td align="left">RATE = -2 with state-dep expression</td>
+<td align="left">At dose firing time</td>
+<td align="left">Duration = expr at dose time; R = amt/dur</td>
+</tr>
+<tr class="odd">
+<td align="left">f(cmt)</td>
+<td align="left">F1 depending on state</td>
+<td align="left">At dose firing time</td>
+<td align="left">Effective amount = amt × f(state)</td>
+</tr>
+<tr class="even">
+<td align="left">alag(cmt)</td>
+<td align="left">ALAG1 depending on state</td>
+<td align="left">At dose sorting / firing time</td>
+<td align="left">Dose shifted to t_dose + alag(state)</td>
+</tr>
+<tr class="odd">
+<td align="left">mtime()</td>
+<td align="left">MTIME depending on state</td>
+<td align="left">At model initialization</td>
+<td align="left">Solver restart point depends on state</td>
+</tr>
+</tbody>
+</table>
+<div id="key-implementation-details" class="section level3">
+<h3>Key implementation details</h3>
+<ol style="list-style-type: decimal">
+<li><p><strong>Evaluation timing.</strong>
+All dosing modifiers are evaluated at the moment the dose event
+fires (or, for <code>alag</code>, at the sort phase before firing).
+The solver uses the state vector at that instant.</p></li>
+<li><p><strong>Runtime re-sort.</strong>
+When a state-dependent <code>rate()</code> or <code>dur()</code> changes the infusion
+stop time, <code>rxode2</code> re-sorts the event queue at runtime so that
+the stop event lands at the correct absolute time.</p></li>
+<li><p><strong>Per-subject evaluation.</strong>
+In population simulations each subject’s initial conditions
+(and evolving states) are used independently, so the same model
+naturally produces different dosing profiles across subjects.</p></li>
+<li><p><strong>Multiple doses.</strong>
+Each dose is evaluated independently. With a decaying or
+accumulating state, consecutive doses get different effective rates,
+durations, bioavailabilities, or lags.</p></li>
+<li><p><strong>Composability.</strong>
+The modifiers compose freely — you can have a state-dependent lag
+<em>and</em> a state-dependent duration on the same compartment.</p></li>
+</ol>
+<hr />
+</div>
+</div>
+<div id="a-more-realistic-example-adaptive-infusion" class="section level2">
+<h2>A More Realistic Example: Adaptive Infusion</h2>
+<p>To close, here is a slightly more pharmacologically motivated example.
+Suppose a drug is given by IV infusion, and the clinical protocol
+adjusts the infusion rate based on the patient’s current plasma
+concentration (a form of therapeutic drug monitoring built into the
+model):</p>
+<pre class="r"><code>mod_adaptive &lt;- rxode2({
+  # Infusion rate is adjusted based on current central concentration:
+  # higher concentration → slower infusion (safety cap)
+  rate(central) &lt;- Rmax / (1 + central / IC50)
+
+  d/dt(central) &lt;- -(CL / V) * central
+  cp &lt;- central / V
+})
+
+et_adaptive &lt;- et() |&gt;
+  et(amt = 500, rate = -1, time = 0) |&gt;
+  et(amt = 500, rate = -1, time = 12) |&gt;
+  et(seq(0, 36, by = 0.1))
+
+params_adpt &lt;- c(Rmax = 100, IC50 = 5, CL = 5, V = 50)
+
+# Subject starting from scratch
+s_naive &lt;- rxSolve(mod_adaptive, et_adaptive, params_adpt,
+                   inits = c(central = 0))
+
+# Subject already at steady state (high concentration)
+s_loaded &lt;- rxSolve(mod_adaptive, et_adaptive, params_adpt,
+                    inits = c(central = 250))
+
+df_adaptive &lt;- bind_rows(
+  data.frame(time = s_naive$time,  cp = s_naive$cp,
+             Subject = &quot;Drug-naïve (central₀ = 0)&quot;),
+  data.frame(time = s_loaded$time, cp = s_loaded$cp,
+             Subject = &quot;Pre-loaded (central₀ = 250)&quot;)
+)
+
+ggplot(df_adaptive, aes(time, cp, colour = Subject)) +
+  geom_line(linewidth = 0.9) +
+  geom_vline(xintercept = c(0, 12), linetype = &quot;dashed&quot;, alpha = 0.3) +
+  labs(title = &quot;Adaptive Infusion Rate Based on Plasma Concentration&quot;,
+       subtitle = &quot;rate(central) &lt;- Rmax / (1 + central / IC50)&quot;,
+       x = &quot;Time (h)&quot;,
+       y = &quot;Plasma concentration (mg/L)&quot;,
+       colour = NULL) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = &quot;top&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/adaptive-infusion-1.png" alt="" width="768" /></p>
+<p>The pre-loaded subject receives a much slower infusion (the
+denominator $1 + C/$ is large), producing a markedly
+different PK profile from the same dosing regimen — all handled
+automatically by <code>rxode2</code> evaluating the rate expression at dose time.</p>
+<hr />
+</div>
+<div id="conclusion" class="section level2">
+<h2>Conclusion</h2>
+<p>rxode2 5.0.2 adds a powerful feature to <code>rxode2</code>: the ability to make
+dosing properties — infusion rate, infusion duration, bioavailability,
+absorption lag time, and model event times — depend on the current
+state of the ODE system.</p>
+<p>This required changes deep in the event-sorting and dose-firing
+machinery, including runtime re-sorting of infusion stop events and
+careful evaluation of state vectors at the correct time points.
+The result is a clean, intuitive syntax (<code>rate(cmt) &lt;- expr</code>,
+<code>dur(cmt) &lt;- expr</code>, <code>f(cmt) &lt;- expr</code>, <code>alag(cmt) &lt;- expr</code>) that
+works exactly the same whether the expression involves only parameters
+or also state variables.</p>
+<p>To try it out, install the latest version of <code>rxode2</code> from
+CRAN.</p>
+<p>As always, please report any issues on
+<a href="https://github.com/nlmixr2/rxode2/issues">GitHub</a>.</p>
+</div>
+<div id="session-information" class="section level2">
+<h2>Session Information</h2>
+<pre class="r"><code>sessionInfo()
+#&gt; R version 4.5.3 (2026-03-11)
+#&gt; Platform: x86_64-pc-linux-gnu
+#&gt; Running under: Ubuntu 24.04.4 LTS
+#&gt; 
+#&gt; Matrix products: default
+#&gt; BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.12.0 
+#&gt; LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.12.0  LAPACK version 3.12.0
+#&gt; 
+#&gt; locale:
+#&gt;  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+#&gt;  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+#&gt;  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+#&gt;  [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+#&gt;  [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+#&gt; [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+#&gt; 
+#&gt; time zone: America/Chicago
+#&gt; tzcode source: system (glibc)
+#&gt; 
+#&gt; attached base packages:
+#&gt; [1] stats     graphics  grDevices utils     datasets  methods   base     
+#&gt; 
+#&gt; other attached packages:
+#&gt; [1] tidyr_1.3.2   dplyr_1.2.0   ggplot2_4.0.2 rxode2_5.0.2 
+#&gt; 
+#&gt; loaded via a namespace (and not attached):
+#&gt;  [1] sass_0.4.10           generics_0.1.4        blogdown_1.23        
+#&gt;  [4] lattice_0.22-9        digest_0.6.39         magrittr_2.0.4       
+#&gt;  [7] evaluate_1.0.5        grid_4.5.3            RColorBrewer_1.1-3   
+#&gt; [10] bookdown_0.46         fastmap_1.2.0         lotri_1.0.3          
+#&gt; [13] qs2_0.1.7             jsonlite_2.0.0        rxode2ll_2.0.14      
+#&gt; [16] backports_1.5.0       purrr_1.2.1           scales_1.4.0         
+#&gt; [19] jquerylib_0.1.4       cli_3.6.5             crayon_1.5.3         
+#&gt; [22] rlang_1.1.7           units_1.0-0           withr_3.0.2          
+#&gt; [25] cachem_1.1.0          yaml_2.3.12           otel_0.2.0           
+#&gt; [28] tools_4.5.3           memoise_2.0.1         checkmate_2.3.4      
+#&gt; [31] vctrs_0.7.2           R6_2.6.1              lifecycle_1.0.5      
+#&gt; [34] stringfish_0.18.0     PreciseSums_0.7       pkgconfig_2.0.3      
+#&gt; [37] RcppParallel_5.1.11-2 pillar_1.11.1         bslib_0.10.0         
+#&gt; [40] gtable_0.3.6          data.table_1.18.2.1   glue_1.8.0           
+#&gt; [43] Rcpp_1.1.1            xfun_0.57             tibble_3.3.1         
+#&gt; [46] tidyselect_1.2.1      sys_3.4.3             knitr_1.51           
+#&gt; [49] farver_2.1.2          dparser_1.3.1-13      htmltools_0.5.9      
+#&gt; [52] nlme_3.1-168          labeling_0.4.3        rmarkdown_2.30       
+#&gt; [55] compiler_4.5.3        S7_0.2.1</code></pre>
+</div>
