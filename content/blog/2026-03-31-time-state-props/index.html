@@ -13,7 +13,7 @@ tags: []
 <h2>Introduction</h2>
 <p>A long-standing limitation in <code>rxode2</code> was that the dosing-modifier
 expressions — <code>rate()</code>, <code>dur()</code>, <code>f()</code>, and <code>alag()</code> — could only
-reference <strong>parameters</strong>.
+reference things that did not depend on state.
 If you wanted infusion duration, bioavailability, or lag time to depend
 on the <em>current concentration</em> or any other ODE state variable, you
 were out of luck.</p>

@@ -22,7 +22,7 @@ knitr::opts_chunk$set(
 
 A long-standing limitation in `rxode2` was that the dosing-modifier
 expressions — `rate()`, `dur()`, `f()`, and `alag()` — could only
-reference **parameters**.
+reference things that did not depend on state.
 If you wanted infusion duration, bioavailability, or lag time to depend
 on the *current concentration* or any other ODE state variable, you
 were out of luck.
