@@ -43,3 +43,24 @@ message(sprintf(
   sum(tte_colon$EVENT[tte_colon$rx == "Lev"]),
   sum(tte_colon$EVENT[tte_colon$rx == "Lev+5FU"])
 ))
+
+# ── Kaplan-Meier ──────────────────────────────────────────────────────────────
+tte_colon$rx <- factor(tte_colon$rx, levels = c("Obs", "Lev", "Lev+5FU"))
+
+km_fit <- survfit(Surv(TIME, EVENT) ~ rx, data = tte_colon)
+
+km_ggsurv <- ggsurvplot(
+  km_fit,
+  data         = tte_colon,
+  palette      = c("grey50", "steelblue", "firebrick"),
+  legend.labs  = c("Obs", "Lev", "Lev+5FU"),
+  legend.title = "Treatment",
+  xlab         = "Days",
+  ylab         = "Survival probability",
+  title        = "Kaplan-Meier curves by treatment arm (NCCTG Colon Cancer)",
+  conf.int     = FALSE,
+  ggtheme      = theme_bw()
+)
+
+ggsave(file.path(script_dir, "km_plot.png"), km_ggsurv$plot, width = 7, height = 5, dpi = 150)
+message("=== KM plot saved to km_plot.png ===")
