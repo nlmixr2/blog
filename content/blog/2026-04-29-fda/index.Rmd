@@ -58,21 +58,21 @@ training resources.
 
 So, then:
 
-## What does “regulatory readiness” mean for nlmixr2?
+### What does “regulatory readiness” mean for nlmixr2?
 
 It means our tools and workflows support reproducible results, clear documentation, and reviewer-friendly outputs, so regulators can confidently follow what was done and why, without ambiguity.
 
-## Has nlmixr2 been used in regulatory submissions?
+### Has nlmixr2 been used in regulatory submissions?
 
 Yes.
 
-## Does the FDA require any specific modeling tools?
+### Does the FDA require any specific modeling tools?
 
 No. A key point, emphasized repeatedly, was that the FDA is
 tool-agnostic. The emphasis is on scientific validity, clarity, and
 reproducibility - so fitness for purpose, not branding.
 
-## What is "model exchange" (or model interchange), and why is it important?
+### What is "model exchange" (or model interchange), and why is it important?
 
 Model interchange is the ability to move a model between tools without
 losing meaning or correctness. This is important, because:
@@ -82,7 +82,7 @@ losing meaning or correctness. This is important, because:
 -	Support reviewers' ability to work in the tools they know best
 
 
-## Why does "full model export" matter?
+### Why does "full model export" matter?
 
 Reviewers need to see the complete, self-contained model
 definition. Relying on separate libraries or implicit dependencies can
@@ -91,6 +91,9 @@ especially if reviewers are not familiar with specific tools.
 
 ## Summing up
 
-That the `nlmixr2` team enjoyed the conversation and appreciated the
+Overall the `nlmixr2` team enjoyed the conversation and appreciated the
 feedback from the colleagues at the FDA, and we are looking forward to
 continued interaction with the FDA.
+
+By the way, the slides shared with the FDA are found in our
+[courses](courses).
