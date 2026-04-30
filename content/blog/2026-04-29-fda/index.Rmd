@@ -23,7 +23,7 @@ takeaways and are not necessarily the views of the FDA, nor are they
 necessarily the views of the companies or individuals represented by
 the nlmixr2 working group, or the R Consortium.
 
-Noe that the disclaimers are out of the way, here are some highlights
+Now that the disclaimers are out of the way, here are some highlights
 from the discussion.
 
 Participants emphasized that FDA is tool-agnostic where submissions
