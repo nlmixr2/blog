@@ -10,12 +10,12 @@ tags: []
 
 
 <p>The nlmixr2 development team, represented by Bill Denney, Lisa
-Hendricks, and I (Matt Fidler), recently gave a talk at the FDA to
-discuss nlmixr2 and how open, community-built modeling tools can be
-helpful in regulatory settings. The conversation was constructive and
-forward-looking, and a clear theme emerged: anything that lets
-regulatory reviewers trust, reproduce, and exchange models across
-tools would be very useful.</p>
+Hendricks, and I (Matt Fidler), recently gave a talk to the FDA
+quantitative clinical pharmacology reviewers to discuss nlmixr2 and
+how open, community-built modeling tools can be helpful in regulatory
+settings. The conversation was constructive and forward-looking, and a
+clear theme emerged: anything that lets regulatory reviewers trust,
+reproduce, and exchange models across tools would be very useful.</p>
 <p>As we go through these reflections, I must add that these are my
 takeaways and are not necessarily the views of the FDA, nor are they
 necessarily the views of the companies or individuals represented by
@@ -30,21 +30,14 @@ are available for regulators to use.</p>
 <p>The following specific points came up:</p>
 <p>Participants were excited about model interchange and what it could
 unlock for reviewers and sponsors.</p>
-<p>While discussing <code>monolix2rx</code>, it was noted that the (excellent)
-Monolix model library could be imported into <code>nlmixr2</code> when the model
-text-file was included in the project (not always the case), otherwise
-without the model text file the import is only possible with a Monolix
-license. There was some discussion about how having a fully exported
-Monolix model (or the same from any other tool) would be desirable
-during the review process. Such a full model specification would make
-for more consistent review, especially when tools support this kind of
-interoperability.</p>
 <p>Interest was expressed in the eventual ability to interchange between
-any model format (including Pumas, Phoenix, and others). While the
-<code>nlmixr2</code> dev team has no immediate plans to support additional formats
-currently, we understand the gap, and would love to have this kind of
-functionality available. <code>nlmixr2</code> is open source, so if anyone wants to
-add this, we invite you to have at it. We look forward to your contributions!</p>
+any model format (including NONMEM (<code>nonmem2rx</code>), Monolix (<code>monolix2rx</code>),
+Campsis, dMod, mrgsolve, Pumas, Phoenix, PKsim, SimBiology, Ubiquity
+and many many others). While the <code>nlmixr2</code> dev team has no immediate
+plans to support additional formats currently, we understand the gap,
+and would love to have this kind of functionality available. <code>nlmixr2</code>
+is open source, so if anyone wants to add this, we invite you to have
+at it. We look forward to your contributions!</p>
 <p>Interoperability, transparency, and reviewer-friendly workflows are
 crucially important. One of our primary focuses moving forward is to
 strengthen <code>nlmixr2</code>s regulatory readiness through clear validation
@@ -63,7 +56,9 @@ training resources.</p>
 <h3>Does the FDA require any specific modeling tools?</h3>
 <p>No. A key point, emphasized repeatedly, was that the FDA is
 tool-agnostic. The emphasis is on scientific validity, clarity, and
-reproducibility - so fitness for purpose, not branding.</p>
+reproducibility - so fitness for purpose, not branding. While the
+common wisdom in industry is that certain tools are approved by the
+FDA, being tool agnostic has in fact long been the agency’s position.</p>
 </div>
 <div id="what-is-model-exchange-or-model-interchange-and-why-is-it-important" class="section level3">
 <h3>What is “model exchange” (or model interchange), and why is it important?</h3>
