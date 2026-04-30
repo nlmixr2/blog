@@ -1,0 +1,100 @@
+---
+title: "nlmixr2 FDA visit"
+author: Matthew Fidler
+date: '2026-04-17'
+slug: []
+categories: [nlmixr2, rxode2, babelmixr2]
+tags: []
+---
+
+
+
+<div id="nlmixr2-meets-with-fda-key-signals-and-whats-next" class="section level1">
+<h1>nlmixr2 Meets with FDA: Key Signals and What’s Next</h1>
+<p>We recently met with the FDA to discuss <code>nlmixr2</code> and what helps open,
+community-built modeling tools succeed in regulatory settings. The
+conversation was constructive and forward-looking, with a clear theme:
+make it easier for reviewers to trust, reproduce, and exchange models
+across tools.</p>
+<p>As we go through these reflections, I must add that these are my
+reflections and are not necessarily the views of the FDA nor the views
+of the companies or individuals represented by the <code>nlmixr2</code> working
+group or the R consortium.</p>
+<div id="highlights-from-the-discussion" class="section level2">
+<h2>Highlights from the discussion</h2>
+<p><strong>Tool-agnostic approach:</strong> The FDA emphasized they are tool agnostic
+in submissions and have accepted <code>nlmixr2</code>-based submissions (as well
+as many other tools). Since they are tool agnostic, they really
+resonated with conversion between modeling tools.</p>
+<p>For this conversion, I recall the following points:</p>
+<ul>
+<li><p><strong>Strong interest in model exchange:</strong> They were excited about model
+interchange and what it could unlock for reviewers and sponsors.</p></li>
+<li><p><strong>Export matters for review:</strong> While discussing <code>monolix2rx</code> we
+noted that their excellent model library could be imported into
+<code>nlmixr2</code> when the model text-file was included in the project (an
+opt-in option), or if they have a Monolix license to import the
+model from the Monolix model library. There was some discussion
+about how having the fully exported model from Monolix is desirable
+in submission (and would be in any other tool). This full model
+specification would make for more consistent reviews, especially
+when the tools help with the exchange.</p></li>
+<li><p><strong>Integration request:</strong> They expressed interest in the eventual
+ability to exchange between any model format (ie Pumas, Phoenix,
+etc). While we at the <code>nlmixr2</code> team are not looking to translate to
+other formats currently, we understand the gap for system exchange
+and would love to have this available in the open source world as
+well.</p></li>
+</ul>
+</div>
+<div id="why-this-matters" class="section level2">
+<h2>Why this matters</h2>
+<p>The direction is encouraging: interoperability, transparency, and
+reviewer-friendly workflows are important. Our focus moving forward is
+to strengthen regulatory readiness through clear validation signals,
+smooth model exchange, and better training resources.</p>
+</div>
+<div id="faq-regulatory-readiness-and-model-exchange" class="section level2">
+<h2>FAQ — Regulatory Readiness and Model Exchange</h2>
+<div id="what-does-regulatory-readiness-mean-for-nlmixr2" class="section level3">
+<h3>What does “regulatory readiness” mean for nlmixr2?</h3>
+<p>It means the tool and workflows support reproducible results, clear
+documentation, and reviewer-friendly outputs, so regulators can
+confidently follow what was done and why—without ambiguity.</p>
+</div>
+<div id="has-nlmixr2-been-used-in-regulatory-submissions" class="section level3">
+<h3>Has nlmixr2 been used in regulatory submissions?</h3>
+<p>Yes. The FDA indicated they have accepted submissions that used
+<code>nlmixr2</code></p>
+</div>
+<div id="does-the-fda-require-a-specific-modeling-tool" class="section level3">
+<h3>Does the FDA require a specific modeling tool?</h3>
+<p>No. A key point shared was that the FDA is tool agnostic—the emphasis
+is on scientific validity, clarity, and reproducibility, not the brand
+of software.</p>
+</div>
+<div id="what-is-model-exchange-or-model-interchange-and-why-is-it-important" class="section level3">
+<h3>What is “model exchange” (or model interchange), and why is it important?</h3>
+<p>Model exchange is the ability to move a model between tools without
+losing meaning or correctness. It matters because it can:</p>
+<ul>
+<li><p>Make reviews more consistent</p></li>
+<li><p>Reduce translation errors</p></li>
+<li><p>Help different reviewers work in the tools they know best</p></li>
+</ul>
+</div>
+<div id="what-did-the-fda-say-about-model-exchange-specifically" class="section level3">
+<h3>What did the FDA say about model exchange specifically?</h3>
+<p>They were excited about model interchange and emphasized the
+importance of full model export, particularly from Monolix, to support
+review workflows without depending on external model libraries.</p>
+</div>
+<div id="why-does-full-model-export-matter" class="section level3">
+<h3>Why does “full model export” matter?</h3>
+<p>Because reviewers need to see the complete, self-contained model
+definition. Relying on separate libraries or implicit dependencies can
+make it harder to validate what was actually run and compared,
+especially if the reviewer isn’t as familiar with the tool.</p>
+</div>
+</div>
+</div>
