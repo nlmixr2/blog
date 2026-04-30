@@ -10,6 +10,7 @@ tags: []
 
 ## Open Source in Review: nlmixr2 Developers Meet Regulators
 
+
 The nlmixr2 development team, represented by Bill Denney and I (Matt Fidler),
 recently gave a talk at the FDA to discuss nlmixr2 and how open,
 community-built modeling tools can be helpful in regulatory
@@ -59,11 +60,13 @@ signals, smooth model format interchange, and providing better
 training resources.
 
 So, then:
+
 ## What does “regulatory readiness” mean for nlmixr2?
 
 It means our tools and workflows support reproducible results, clear documentation, and reviewer-friendly outputs, so regulators can confidently follow what was done and why, without ambiguity.
 
 ## Has nlmixr2 been used in regulatory submissions?
+
 Yes.
 
 ## Does the FDA require any specific modeling tools?
@@ -88,3 +91,9 @@ Reviewers need to see the complete, self-contained model
 definition. Relying on separate libraries or implicit dependencies can
 make it harder to validate and/or compare what was actually run,
 especially if reviewers are not familiar with specific tools.
+
+## Summing up
+
+That the `nlmixr2` team enjoyed the conversation and appreciated the
+feedback from the colleagues at the FDA, and we are looking forward to
+continued interaction with the FDA.
