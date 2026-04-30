@@ -7,10 +7,6 @@ categories: [nlmixr2, rxode2, babelmixr2]
 tags: []
 ---
 
-
-## Open Source in Review: nlmixr2 Developers Meet Regulators
-
-
 The nlmixr2 development team, represented by Bill Denney and I (Matt Fidler),
 recently gave a talk at the FDA to discuss nlmixr2 and how open,
 community-built modeling tools can be helpful in regulatory
@@ -32,7 +28,7 @@ are concerned and have accepted several based on work done in nlmixr2
 a lot of cross-conversion between tools, since not all common tools
 are available for regulators to use.
 
-## The following specific points came up:
+The following specific points came up:
 
 Participants were excited about model interchange and what it could
 unlock for reviewers and sponsors.
