@@ -96,4 +96,4 @@ feedback from the colleagues at the FDA, and we are looking forward to
 continued interaction with the FDA.
 
 By the way, the slides shared with the FDA are found in our
-[courses](courses).
+[courses](../../courses).
