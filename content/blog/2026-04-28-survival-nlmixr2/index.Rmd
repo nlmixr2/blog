@@ -1,7 +1,7 @@
 ---
 title: "Survival Analysis with nlmixr2"
 author: "Justin Wilkins and the nlmixr2 Development Team"
-date: '2026-05-03'
+date: '2026-05-02'
 slug: []
 categories: [nlmixr2]
 tags: [time-to-event, survival, tutorial]
