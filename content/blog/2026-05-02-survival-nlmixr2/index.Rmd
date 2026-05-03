@@ -5,6 +5,9 @@ date: '2026-05-02'
 slug: []
 categories: [nlmixr2]
 tags: [time-to-event, survival, tutorial]
+output:
+  blogdown::html_page:
+    toc: false
 ---
 
 ```{r setup, include=FALSE}
