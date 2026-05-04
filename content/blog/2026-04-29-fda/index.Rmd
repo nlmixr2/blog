@@ -1,5 +1,5 @@
 ---
-title: "Open Source in Review: nlmixr2 Developers Meet Regulators"
+title: "Open Source in Regulatory Review: nlmixr2 Developers Meet Regulators"
 author: Matthew Fidler
 date: '2026-04-17'
 slug: []
@@ -8,12 +8,13 @@ tags: []
 ---
 
 The nlmixr2 development team, represented by Bill Denney, Lisa
-Hendricks, and I (Matt Fidler), recently gave a talk to the FDA
-quantitative clinical pharmacology reviewers to discuss nlmixr2 and
-how open, community-built modeling tools can be helpful in regulatory
-settings. The conversation was constructive and forward-looking, and a
-clear theme emerged: anything that lets regulatory reviewers trust,
-reproduce, and exchange models across tools would be very useful.
+Hendricks, and I (Matt Fidler), recently gave a invited seminar to the
+FDA quantitative clinical pharmacology reviewers to discuss nlmixr2
+and how open, community-built modeling tools can be helpful in
+regulatory settings. The conversation was constructive and
+forward-looking, and a clear theme emerged: anything that lets
+regulatory reviewers trust, reproduce, and exchange models across
+tools would be very useful.
 
 As we go through these reflections, I must add that these are my
 takeaways and are not necessarily the views of the FDA, nor are they
@@ -57,7 +58,7 @@ It means our tools and workflows support reproducible results, clear documentati
 
 ### Has nlmixr2 been used in regulatory submissions?
 
-Yes.
+Yes, and no issues were raised about its use.
 
 ### Does the FDA require any specific modeling tools?
 
