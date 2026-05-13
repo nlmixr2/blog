@@ -1,0 +1,88 @@
+---
+title: "Open Source in Regulatory Review: nlmixr2 Developers Meet Regulators"
+author: Matthew Fidler
+date: '2026-04-17'
+slug: []
+categories: [nlmixr2, rxode2, babelmixr2]
+tags: []
+---
+
+
+
+<p>The nlmixr2 development team, represented by Bill Denney, Lisa
+Hendricks, and I (Matt Fidler), recently gave a invited seminar to the
+FDA quantitative clinical pharmacology reviewers to discuss nlmixr2
+and how open, community-built modeling tools can be helpful in
+regulatory settings. The conversation was constructive and
+forward-looking, and a clear theme emerged: anything that lets
+regulatory reviewers trust, reproduce, and exchange models across
+tools would be very useful.</p>
+<p>As we go through these reflections, I must add that these are my
+takeaways and are not necessarily the views of the FDA, nor are they
+necessarily the views of the companies or individuals represented by
+the nlmixr2 working group, or the R Consortium.</p>
+<p>Now that the disclaimers are out of the way, here are some highlights
+from the discussion.</p>
+<p>Participants emphasized that FDA is tool-agnostic where submissions
+are concerned and have accepted several based on work done in nlmixr2
+(as well as many other tools). This standpoint, however, necessitates
+a lot of cross-conversion between tools, since not all common tools
+are available for regulators to use.</p>
+<p>The following specific points came up:</p>
+<p>Participants were excited about model interchange and what it could
+unlock for reviewers and sponsors.</p>
+<p>Interest was expressed in the eventual ability to interchange between
+any model format (including NONMEM (<code>nonmem2rx</code>), Monolix (<code>monolix2rx</code>),
+Campsis, dMod, mrgsolve, Pumas, Phoenix, PKsim, SimBiology, Ubiquity
+and many many others). While the <code>nlmixr2</code> dev team has no immediate
+plans to support additional formats currently, we understand the gap,
+and would love to have this kind of functionality available. <code>nlmixr2</code>
+is open source, so if anyone wants to add this, we invite you to have
+at it. We look forward to your contributions!</p>
+<p>Interoperability, transparency, and reviewer-friendly workflows are
+crucially important. One of our primary focuses moving forward is to
+strengthen <code>nlmixr2</code>s regulatory readiness through clear validation
+signals, smooth model format interchange, and providing better
+training resources.</p>
+<p>So, then:</p>
+<div id="what-does-regulatory-readiness-mean-for-nlmixr2" class="section level3">
+<h3>What does “regulatory readiness” mean for nlmixr2?</h3>
+<p>It means our tools and workflows support reproducible results, clear documentation, and reviewer-friendly outputs, so regulators can confidently follow what was done and why, without ambiguity.</p>
+</div>
+<div id="has-nlmixr2-been-used-in-regulatory-submissions" class="section level3">
+<h3>Has nlmixr2 been used in regulatory submissions?</h3>
+<p>Yes, and no issues were raised about its use.</p>
+</div>
+<div id="does-the-fda-require-any-specific-modeling-tools" class="section level3">
+<h3>Does the FDA require any specific modeling tools?</h3>
+<p>No. A key point, emphasized repeatedly, was that the FDA is
+tool-agnostic. The emphasis is on scientific validity, clarity, and
+reproducibility - so fitness for purpose, not branding. While the
+common wisdom in industry is that certain tools are approved by the
+FDA, being tool agnostic has in fact long been the agency’s position.</p>
+</div>
+<div id="what-is-model-exchange-or-model-interchange-and-why-is-it-important" class="section level3">
+<h3>What is “model exchange” (or model interchange), and why is it important?</h3>
+<p>Model interchange is the ability to move a model between tools without
+losing meaning or correctness. This is important, because:</p>
+<ul>
+<li>Make reviews more consistent</li>
+<li>Reduce translation errors</li>
+<li>Support reviewers’ ability to work in the tools they know best</li>
+</ul>
+</div>
+<div id="why-does-full-model-export-matter" class="section level3">
+<h3>Why does “full model export” matter?</h3>
+<p>Reviewers need to see the complete, self-contained model
+definition. Relying on separate libraries or implicit dependencies can
+make it harder to validate and/or compare what was actually run,
+especially if reviewers are not familiar with specific tools.</p>
+</div>
+<div id="summing-up" class="section level2">
+<h2>Summing up</h2>
+<p>Overall the <code>nlmixr2</code> team enjoyed the conversation and appreciated the
+feedback from the colleagues at the FDA, and we are looking forward to
+continued interaction with the FDA.</p>
+<p>By the way, the slides shared with the FDA are found in our
+<a href="../../courses">courses</a>.</p>
+</div>
