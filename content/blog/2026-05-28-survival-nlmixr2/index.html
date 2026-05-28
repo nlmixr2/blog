@@ -1,0 +1,431 @@
+---
+title: "Survival Analysis with nlmixr2"
+author: "Justin Wilkins and the nlmixr2 Development Team"
+date: '2026-05-28'
+slug: []
+categories: [nlmixr2]
+tags: [time-to-event, survival, tutorial]
+output:
+  blogdown::html_page:
+    toc: false
+---
+
+
+
+<div id="introduction" class="section level1">
+<h1>Introduction</h1>
+<p>Survival or time-to-event (TTE) analysis models <em>when</em> something happens, not just whether it happens. The endpoint might be time to tumour progression, time to an adverse event, or time to treatment discontinuation, for instance. In this post we’ll illustrate how to fit parametric TTE models in <code>nlmixr2</code> using its custom log-likelihood interface.</p>
+<p>For the purposes of this post, we’re going to simulate a two-arm randomised trial from a known Gompertz model, then recover the parameters with <code>nlmixr2</code>. This is cheating, obviously, but since we’ll know what the truth is, we’ll be able to directly assess how well the model does in recovering the parameters.</p>
+<p>It’s worth mentioning that the kind of analysis we show here can be performed using other R packages, like <a href="https://chjackson.github.io/flexsurv/"><code>flexsurv</code></a>, probably in a more straightforward way, but where things get interesting is with more complex models. We only show the basics here, but the potential is endless…</p>
+<div id="simulated-dataset" class="section level2">
+<h2>Simulated Dataset</h2>
+<p>We are going to generate 300 patients (150 per arm) from a Gompertz proportional-hazards model with increasing hazard (<span class="math inline">\(\gamma &gt; 0\)</span>) and a 50% drug-induced hazard reduction (HR = 0.5).</p>
+<p><span class="math display">\[h(t \mid \text{test\_trt}) =
+  \underbrace{\alpha \, e^{\gamma t}}_{\text{baseline Gompertz}}
+  \cdot \exp(\beta \cdot \text{test\_trt})\]</span></p>
+<table>
+<colgroup>
+<col width="28%" />
+<col width="28%" />
+<col width="42%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>True value</th>
+<th>Interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(\alpha\)</span></td>
+<td>0.002 /day</td>
+<td>Initial hazard (placebo)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\gamma\)</span></td>
+<td>0.005 /day</td>
+<td>Hazard growth rate; <span class="math inline">\(\gamma&gt;0\)</span> → increasing risk</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(\beta\)</span></td>
+<td><span class="math inline">\(\log(0.5) \approx -0.693\)</span></td>
+<td>Log hazard ratio, drug vs. placebo</td>
+</tr>
+</tbody>
+</table>
+<p>We’ll use a universal cutoff at 365 days. We can use the
+closed-form Gompertz inverse-CDF for simulation:</p>
+<pre class="r"><code>n_arm       &lt;- 150
+true_alpha  &lt;- 0.002
+true_gamma  &lt;- 0.005
+true_log_hr &lt;- log(0.5)
+maxt        &lt;- 365
+
+n_total  &lt;- 2L * n_arm
+test_trt &lt;- rep(0L:1L, each = n_arm)   # 0 = placebo, 1 = drug
+
+u       &lt;- runif(n_total)
+hr_vec  &lt;- exp(true_log_hr * test_trt)
+# Gompertz inverse-CDF: t = log(1 + gamma*(-log U)/(alpha*hr)) / gamma
+t_event &lt;- log(1 + true_gamma * (-log(u)) / (true_alpha * hr_vec)) / true_gamma
+
+tte_sim &lt;- data.frame(
+  id       = seq_len(n_total),
+  time     = pmin(t_event, maxt),
+  event    = as.integer(t_event &lt;= maxt),
+  test_trt = test_trt,
+  dv       = pmin(t_event, maxt),
+  evid     = 0L
+)
+
+cat(sprintf(
+  &quot;%d patients | Placebo: %d events (%.0f%%) | Drug: %d events (%.0f%%)\n&quot;,
+  nrow(tte_sim),
+  sum(tte_sim$event[tte_sim$test_trt == 0]),
+  100 * mean(tte_sim$event[tte_sim$test_trt == 0]),
+  sum(tte_sim$event[tte_sim$test_trt == 1]),
+  100 * mean(tte_sim$event[tte_sim$test_trt == 1])
+))</code></pre>
+<pre><code>## 300 patients | Placebo: 134 events (89%) | Drug: 91 events (61%)</code></pre>
+<p>The increasing hazard means events become more frequent late in follow-up. The drug-treatment arm retains more survivors throughout.</p>
+</div>
+<div id="exploratory-analysis" class="section level2">
+<h2>Exploratory Analysis</h2>
+<p>Plotting the data is something everyone should always do first.</p>
+<pre class="r"><code>tte_sim$trt_label &lt;- factor(tte_sim$test_trt, levels = 0:1,
+                             labels = c(&quot;Placebo&quot;, &quot;Drug&quot;))
+km_fit &lt;- survfit(Surv(time, event) ~ trt_label, data = tte_sim)
+
+ggsurvplot(
+  km_fit, data = tte_sim,
+  palette      = c(&quot;steelblue&quot;, &quot;firebrick&quot;),
+  legend.labs  = c(&quot;Placebo&quot;, &quot;Drug&quot;),
+  legend.title = &quot;Arm&quot;,
+  xlab = &quot;Days&quot;, ylab = &quot;Survival probability&quot;,
+  title   = &quot;Kaplan-Meier curves by treatment arm (simulated Gompertz data)&quot;,
+  conf.int = TRUE, ggtheme = theme_bw()
+)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/km-plot-1.png" alt="" width="672" /></p>
+<p>The two arms separate clearly (by design, of course). Note the acceleration
+in event rate late in follow-up — a signature of the increasing (<span class="math inline">\(\gamma &gt; 0\)</span>)
+Gompertz hazard that a typical exponential model cannot capture accurately.</p>
+<div id="hazard-shape-exploration" class="section level3">
+<h3>Hazard shape exploration</h3>
+<p>Before choosing a parametric form, we overlay several distributions against a
+kernel density hazard estimate and compare AICs. The <code>plot_hazard</code> helper below
+fits six standard distributions and two cubic-spline models via <code>flexsurv</code>.</p>
+<pre class="r"><code>plot_hazard(dat = tte_sim, stime = &quot;time&quot;, evt = &quot;event&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/hazard-plot-1.png" alt="" width="768" /></p>
+<p>The Gompertz panel tracks the kernel density closely, as expected from a
+correctly-specified model. The exponential panel (constant hazard) clearly doesn’t work here, although some of the other alternatives do reasonably well.</p>
+</div>
+</div>
+<div id="model-1-exponential-constant-hazard" class="section level2">
+<h2>Model 1 — Exponential (Constant Hazard)</h2>
+<p>The exponential model assumes constant hazard over time. We know this is the wrong model, but it’s a handy baseline for comparison. The drug effect is represented by <span class="math inline">\(trt_i\)</span>, which is 0 (placebo) or 1 (treatment):</p>
+<p><span class="math display">\[h_i(t) = h_0 \exp(\beta \cdot trt_i)\]</span></p>
+<p>The log-likelihood contribution per patient is:</p>
+<p><span class="math display">\[\ell_i = \delta_i \log h_i - H_i(t_i) = \delta_i \log h_i - h_i \, t_i\]</span></p>
+<p>where <span class="math inline">\(\delta_i = 1\)</span> for an event and <span class="math inline">\(0\)</span> for a censored observation.
+In <code>nlmixr2</code> we can write this via the <code>ll()</code> interface:</p>
+<pre class="r"><code>exp_model &lt;- function() {
+  ini({
+    log_h0      &lt;- log(0.004)
+    test_log_hr &lt;- -0.1
+  })
+  model({
+    log_h  &lt;- log_h0 + test_log_hr * test_trt
+    h      &lt;- exp(log_h)
+    H      &lt;- h * time
+    tte_ll &lt;- event * log_h - H
+    ll(tte) ~ tte_ll
+  })
+}
+
+fit_exp &lt;- nlmixr(exp_model, tte_sim, est = &quot;bobyqa&quot;,
+                  control = bobyqaControl(print = 0))</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
+<pre><code>## |-----+---------------+-----------+-----------|</code></pre>
+<pre class="r"><code>fit_exp$parFixedDf</code></pre>
+<pre><code>##               Estimate        SE      %RSE Back-transformed  CI Lower
+## log_h0      -5.4143350 0.1727737  3.191042       -5.4143350 -5.752965
+## test_log_hr -0.6717797 0.2716741 40.440951       -0.6717797 -1.204251
+##               CI Upper BSV(SD) Shrink(SD)%
+## log_h0      -5.0757048      NA          NA
+## test_log_hr -0.1393082      NA          NA</code></pre>
+<p>So far so good.</p>
+</div>
+<div id="model-2-gompertz-increasing-hazard" class="section level2">
+<h2>Model 2 — Gompertz (Increasing Hazard)</h2>
+<p>The Gompertz model adds a shape parameter <span class="math inline">\(\gamma\)</span> governing the rate of
+hazard change. With <span class="math inline">\(\gamma &gt; 0\)</span> the hazard increases exponentially, as we saw in the plot comparing hazard functions above.</p>
+<p><span class="math display">\[h_i(t) = \alpha \, e^{\gamma t} \exp(\beta \cdot trt_i)
+\qquad
+H_i(t) = \frac{\alpha}{\gamma}\bigl(e^{\gamma t}-1\bigr)
+         \exp(\beta \cdot trt_i)\]</span></p>
+<p>Important: both <span class="math inline">\(\alpha\)</span> and <span class="math inline">\(\gamma\)</span> are log-transformed in the <code>ini()</code> block so that
+all three estimated parameters live on a similar numerical scale. This avoids
+potential conditioning problems that arise when the <code>bobyqa</code> estimation method has to simultaneously adjust parameters of magnitude <span class="math inline">\(\sim\!10^{-3}\)</span> and <span class="math inline">\(\sim\!10^{0}\)</span>, which can lead to the model getting stuck in local minima.</p>
+<p>In the model below, we’ve added a drug effect using <code>test_log_hr</code>.</p>
+<pre class="r"><code>gompertz_model &lt;- function() {
+  ini({
+    log_alpha   &lt;- log(0.003)
+    log_gamma   &lt;- log(0.003)   # gamma = exp(log_gamma) &gt; 0 enforced
+    test_log_hr &lt;- -0.5         # informed by KM: ~40-50% separation visible
+  })
+  model({
+    alpha  &lt;- exp(log_alpha)
+    gamma  &lt;- exp(log_gamma)
+    h      &lt;- alpha * exp(gamma * time) * exp(test_log_hr * test_trt)
+    H      &lt;- (alpha / gamma) * (exp(gamma * time) - 1) * exp(test_log_hr * test_trt)
+    tte_ll &lt;- event * log(h) - H
+    ll(tte) ~ tte_ll
+  })
+}
+
+fit_gompertz &lt;- nlmixr(gompertz_model, tte_sim, est = &quot;bobyqa&quot;,
+                       control = bobyqaControl(print = 0))</code></pre>
+<pre><code>## |-----+---------------+-----------+-----------+-----------|</code></pre>
+<pre class="r"><code>fit_gompertz$parFixedDf</code></pre>
+<pre><code>##               Estimate        SE      %RSE Back-transformed     CI Lower
+## log_alpha   -6.1731625 0.2951631  4.781392      0.002084633  0.001168924
+## log_gamma   -5.3212965 0.2744153  5.156925      0.004886414  0.002853695
+## test_log_hr -0.7986951 0.2743202 34.346044     -0.798695075 -1.336352718
+##                 CI Upper BSV(SD) Shrink(SD)%
+## log_alpha    0.003717687      NA          NA
+## log_gamma    0.008367062      NA          NA
+## test_log_hr -0.261037432      NA          NA</code></pre>
+<pre class="r"><code>theta_g &lt;- fit_gompertz$theta
+kable(
+  data.frame(
+    Parameter   = c(&quot;alpha (/day)&quot;, &quot;gamma (/day)&quot;, &quot;HR (drug vs. placebo)&quot;),
+    True        = c(true_alpha, true_gamma, exp(true_log_hr)),
+    Estimated   = round(c(exp(theta_g[&quot;log_alpha&quot;]),
+                          exp(theta_g[&quot;log_gamma&quot;]),
+                          exp(theta_g[&quot;test_log_hr&quot;])), 4),
+    Interpretation = c(
+      &quot;Initial hazard at t = 0, placebo arm&quot;,
+      &quot;Hazard growth rate; &gt;0 confirms increasing risk&quot;,
+      &quot;Instantaneous hazard ratio, drug vs. placebo&quot;
+    )
+  ),
+  digits = 4,
+  caption = &quot;Gompertz parameter recovery: true vs. estimated values&quot;
+)</code></pre>
+<table>
+<caption><span id="tab:gompertz-table">Table 1: </span>Gompertz parameter recovery: true vs. estimated values</caption>
+<colgroup>
+<col width="12%" />
+<col width="22%" />
+<col width="6%" />
+<col width="10%" />
+<col width="48%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="left">Parameter</th>
+<th align="right">True</th>
+<th align="right">Estimated</th>
+<th align="left">Interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">log_alpha</td>
+<td align="left">alpha (/day)</td>
+<td align="right">0.002</td>
+<td align="right">0.0021</td>
+<td align="left">Initial hazard at t = 0, placebo arm</td>
+</tr>
+<tr class="even">
+<td align="left">log_gamma</td>
+<td align="left">gamma (/day)</td>
+<td align="right">0.005</td>
+<td align="right">0.0049</td>
+<td align="left">Hazard growth rate; &gt;0 confirms increasing risk</td>
+</tr>
+<tr class="odd">
+<td align="left">test_log_hr</td>
+<td align="left">HR (drug vs. placebo)</td>
+<td align="right">0.500</td>
+<td align="right">0.4499</td>
+<td align="left">Instantaneous hazard ratio, drug vs. placebo</td>
+</tr>
+</tbody>
+</table>
+<p>The model recovers <span class="math inline">\(\alpha\)</span> and <span class="math inline">\(\gamma\)</span> closely. The estimated HR is in the
+right direction and magnitude; there’s a bit of deviation from the true 0.5, reflecting the limitations of this kind of data.</p>
+<p>As we alluded to above, starting estimates matter. <code>bobyqa</code> is a trust-region optimizer with no built-in multi-start, so it can get stuck if the initial values are far from the truth. If the parameter estimates look suspicious, try perturbing the <code>ini()</code> values, or increase <code>npt</code> in <code>bobyqaControl()</code> — e.g. <code>npt = 7</code> (Powell’s recommended <span class="math inline">\(2n+1\)</span> for <span class="math inline">\(n = 3\)</span> parameters) gives the quadratic approximation more
+interpolation points and a better chance of finding the global optimum. For
+difficult problems, running from a small grid of starting values and keeping
+the fit with the lowest objective function value is probably the most robust approach.</p>
+</div>
+<div id="model-comparison" class="section level2">
+<h2>Model Comparison</h2>
+<pre class="r"><code>aic_table &lt;- AIC(fit_exp, fit_gompertz) %&gt;%
+  as.data.frame() %&gt;%
+  tibble::rownames_to_column(&quot;Model&quot;) %&gt;%
+  mutate(
+    Model = c(&quot;Exponential&quot;, &quot;Gompertz&quot;),
+    m2LL  = round(c(-2 * logLik(fit_exp), -2 * logLik(fit_gompertz)), 2)
+  )
+
+kable(aic_table, digits = 2,
+      caption = &quot;AIC and -2 log-likelihood: exponential vs. Gompertz&quot;)</code></pre>
+<table>
+<caption><span id="tab:aic-table">Table 2: </span>AIC and -2 log-likelihood: exponential vs. Gompertz</caption>
+<thead>
+<tr class="header">
+<th align="left">Model</th>
+<th align="right">df</th>
+<th align="right">AIC</th>
+<th align="right">m2LL</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Exponential</td>
+<td align="right">2</td>
+<td align="right">3012.71</td>
+<td align="right">3008.71</td>
+</tr>
+<tr class="even">
+<td align="left">Gompertz</td>
+<td align="right">3</td>
+<td align="right">2961.64</td>
+<td align="right">2955.64</td>
+</tr>
+</tbody>
+</table>
+<p>The Gompertz fit is unambiguously the best. Since this is a simulated example, it would be weird if it wasn’t!</p>
+<pre class="r"><code>theta_e &lt;- fit_exp$theta
+h0_exp  &lt;- exp(theta_e[&quot;log_h0&quot;])
+alpha_g &lt;- exp(theta_g[&quot;log_alpha&quot;])
+gamma_g &lt;- exp(theta_g[&quot;log_gamma&quot;])
+
+t_grid &lt;- seq(0, maxt, length.out = 400)
+
+exp_surv      &lt;- function(t)     exp(-h0_exp * t)
+gompertz_surv &lt;- function(t, hr) exp(-(alpha_g / gamma_g) * (exp(gamma_g * t) - 1) * hr)
+
+model_pred_df &lt;- bind_rows(
+  data.frame(time = t_grid, survival = exp_surv(t_grid),         model = &quot;Exponential&quot;),
+  data.frame(time = t_grid, survival = gompertz_surv(t_grid, 1), model = &quot;Gompertz&quot;)
+)
+
+km_plac    &lt;- survfit(Surv(time, event) ~ 1, data = filter(tte_sim, test_trt == 0))
+km_plac_df &lt;- data.frame(time     = c(0, km_plac$time),
+                          survival = c(1, km_plac$surv),
+                          model    = &quot;Kaplan-Meier&quot;)
+
+ggplot() +
+  geom_step(data = km_plac_df,    aes(time, survival, color = model), linewidth = 0.8) +
+  geom_line(data = model_pred_df, aes(time, survival, color = model), linewidth = 1) +
+  scale_color_manual(values = c(&quot;Kaplan-Meier&quot; = &quot;black&quot;,
+                                &quot;Exponential&quot;  = &quot;steelblue&quot;,
+                                &quot;Gompertz&quot;     = &quot;firebrick&quot;)) +
+  labs(x = &quot;Days&quot;, y = &quot;Survival probability&quot;,
+       title = &quot;Exponential vs. Gompertz model fit (placebo arm)&quot;, color = NULL) +
+  coord_cartesian(ylim = c(0, 1)) +
+  theme_bw() + theme(legend.position = &quot;bottom&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/model-plot-1.png" alt="" width="672" /></p>
+<p>The ΔAIC of ~71 units and the plot make the same point: the exponential model
+starts too high early and ends too high late, because it cannot accommodate
+the accelerating risk. The Gompertz curve, by contrast, is much close to the Kaplan-Meier curve.</p>
+</div>
+<div id="predicted-survival-curves-vs.-observed-km" class="section level2">
+<h2>Predicted Survival Curves vs. Observed KM</h2>
+<pre class="r"><code>hr_drug &lt;- exp(theta_g[&quot;test_log_hr&quot;])
+
+pred_df &lt;- bind_rows(
+  data.frame(time = t_grid, survival = gompertz_surv(t_grid, 1),       arm = &quot;Placebo (predicted)&quot;),
+  data.frame(time = t_grid, survival = gompertz_surv(t_grid, hr_drug), arm = &quot;Drug (predicted)&quot;)
+)
+
+km_arms &lt;- lapply(c(0, 1), function(d) {
+  label &lt;- if (d == 0) &quot;Placebo&quot; else &quot;Drug&quot;
+  fit   &lt;- survfit(Surv(time, event) ~ 1, data = filter(tte_sim, test_trt == d))
+  data.frame(time = c(0, fit$time), survival = c(1, fit$surv),
+             arm = paste0(label, &quot; (KM)&quot;))
+})
+km_df2 &lt;- bind_rows(km_arms)
+
+cols &lt;- c(&quot;Placebo (KM)&quot;      = &quot;steelblue&quot;, &quot;Placebo (predicted)&quot; = &quot;steelblue&quot;,
+          &quot;Drug (KM)&quot;         = &quot;firebrick&quot;, &quot;Drug (predicted)&quot;    = &quot;firebrick&quot;)
+
+ggplot() +
+  geom_step(data = km_df2,  aes(time, survival, color = arm), linewidth = 0.8) +
+  geom_line(data = pred_df, aes(time, survival, color = arm),
+            linewidth = 1, linetype = &quot;dashed&quot;) +
+  scale_color_manual(values = cols) +
+  labs(x = &quot;Days&quot;, y = &quot;Survival probability&quot;,
+       title = &quot;Gompertz model vs. Kaplan-Meier by arm (simulated data)&quot;,
+       color = NULL) +
+  coord_cartesian(ylim = c(0, 1)) +
+  theme_bw() + theme(legend.position = &quot;bottom&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/surv-plot-1.png" alt="" width="672" /></p>
+<p>Dashed lines are Gompertz predictions; solid steps are the Kaplan-Meier
+estimates. The predicted curves track both arms closely across the full
+follow-up period.</p>
+</div>
+<div id="a-tte-vpc" class="section level2">
+<h2>A TTE VPC</h2>
+<p>We can use the <code>vpc</code> package to generate a TTE visual predictive check (VPC)…</p>
+<pre class="r"><code>n_vpc_sim &lt;- 200
+set.seed(8675)
+
+vpc_obs &lt;- tte_sim %&gt;%
+  transmute(id = id, t = time, dv = event, trt = trt_label)
+
+vpc_sim &lt;- bind_rows(
+  lapply(seq_len(n_vpc_sim), function(s) {
+    u      &lt;- runif(nrow(tte_sim))
+    hr_vec &lt;- exp(theta_g[&quot;test_log_hr&quot;] * tte_sim$test_trt)
+    t_evt  &lt;- log(1 + gamma_g * (-log(u)) / (alpha_g * hr_vec)) / gamma_g
+    data.frame(
+      sim = s,
+      id  = tte_sim$id,
+      t   = pmin(t_evt, maxt),
+      dv  = as.integer(t_evt &lt;= maxt),
+      trt = tte_sim$trt_label
+    )
+  })
+)
+
+suppressMessages(suppressWarnings(
+  vpc::vpc_tte(
+    obs      = vpc_obs,
+    sim      = vpc_sim,
+    obs_cols = list(id = &quot;id&quot;, idv = &quot;t&quot;, dv = &quot;dv&quot;),
+    sim_cols = list(id = &quot;id&quot;, idv = &quot;t&quot;, dv = &quot;dv&quot;, sim = &quot;sim&quot;),
+    stratify = &quot;trt&quot;,
+    plot     = FALSE,
+    as_percentage = FALSE,
+    xlab  = &quot;Days&quot;,
+    ylab  = &quot;Survival probability&quot;,
+    title = &quot;Gompertz TTE VPC by treatment arm&quot;
+  )
+))</code></pre>
+<pre><code>## ================================================================================</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/tte-vpc-1.png" alt="" width="672" /></p>
+<p>The shaded band is the 95% prediction interval of the simulated survival curves
+across the 200 replicates, while the solid line is the observed
+Kaplan-Meier for placebo and active treatment arms. Both arms sit within their bands throughout follow-up, confirming that the fitted model is adequately reproducing the observed data.</p>
+</div>
+<div id="wrapping-it-up" class="section level2">
+<h2>Wrapping it up</h2>
+<p>So that’s how to fit parametric TTE models in <code>nlmixr2</code> using
+the custom log-likelihood interface (<code>ll(tte) ~ tte_ll</code>). To recap, the workflow is:</p>
+<ol style="list-style-type: decimal">
+<li>Wrangle data into <code>id / time / dv / evid / event</code> format.</li>
+<li>Define hazard <span class="math inline">\(h\)</span> and cumulative hazard <span class="math inline">\(H\)</span> in the <code>model()</code> block.</li>
+<li>Fit with <code>nlmixr()</code> using <code>bobyqa</code> (no symbolic gradients required).</li>
+<li>Log-transform shape parameters with potentially small values to keep all
+parameters on a comparable scale for the optimizer.</li>
+</ol>
+<p>The Gompertz model recovered the known simulation parameters closely in this synthetic example. We can extend the same structure naturally to exposure-driven TTE models and repeated time-to-event endpoints. Watch this space!</p>
+</div>
+</div>
