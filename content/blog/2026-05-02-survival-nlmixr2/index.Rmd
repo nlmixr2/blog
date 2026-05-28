@@ -1,7 +1,7 @@
 ---
 title: "Survival Analysis with nlmixr2"
 author: "Justin Wilkins and the nlmixr2 Development Team"
-date: '2026-05-02'
+date: '2026-05-28'
 slug: []
 categories: [nlmixr2]
 tags: [time-to-event, survival, tutorial]
@@ -22,7 +22,7 @@ library(dplyr)
 library(ggplot2)
 library(knitr)
 
-set.seed(2601)
+set.seed(260528)
 ```
 
 # Introduction
@@ -30,6 +30,8 @@ set.seed(2601)
 Survival or time-to-event (TTE) analysis models *when* something happens, not just whether it happens. The endpoint might be time to tumour progression, time to an adverse event, or time to treatment discontinuation, for instance. In this post we'll illustrate how to fit parametric TTE models in `nlmixr2` using its custom log-likelihood interface.
 
 For the purposes of this post, we're going to simulate a two-arm randomised trial from a known Gompertz model, then recover the parameters with `nlmixr2`. This is cheating, obviously, but since we'll know what the truth is, we'll be able to directly assess how well the model does in recovering the parameters.
+
+It's worth mentioning that the kind of analysis we show here can be performed using other R packages, like [`flexsurv`](https://chjackson.github.io/flexsurv/), probably in a more straightforward way, but where things get interesting is with more complex models. We only show the basics here, but the potential is endless...
 
 ## Simulated Dataset
 
