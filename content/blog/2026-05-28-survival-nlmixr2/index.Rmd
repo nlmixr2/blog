@@ -388,7 +388,7 @@ follow-up period.
 
 ## A TTE VPC
 
-We can use the `vpc` package to generate a TTE visuzal predictive check (VPC)... 
+We can use the `vpc` package to generate a TTE visual predictive check (VPC)... 
 
 ```{r tte-vpc, message=FALSE, warning=FALSE, fig.width=7, fig.height=6}
 n_vpc_sim <- 200
@@ -430,7 +430,7 @@ suppressMessages(suppressWarnings(
 
 The shaded band is the 95% prediction interval of the simulated survival curves
 across the `r n_vpc_sim` replicates, while the solid line is the observed
-Kaplan-Meier for placebo and active treatment arms. Both arms sit within their bands throughout follow-up, confirming that the fitted model is adquately reproducing the observed data.
+Kaplan-Meier for placebo and active treatment arms. Both arms sit within their bands throughout follow-up, confirming that the fitted model is adequately reproducing the observed data.
 
 ## Wrapping it up
 

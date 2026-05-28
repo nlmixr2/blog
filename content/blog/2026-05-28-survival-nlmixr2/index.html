@@ -1,7 +1,7 @@
 ---
 title: "Survival Analysis with nlmixr2"
 author: "Justin Wilkins and the nlmixr2 Development Team"
-date: '2026-05-02'
+date: '2026-05-28'
 slug: []
 categories: [nlmixr2]
 tags: [time-to-event, survival, tutorial]
@@ -16,6 +16,7 @@ output:
 <h1>Introduction</h1>
 <p>Survival or time-to-event (TTE) analysis models <em>when</em> something happens, not just whether it happens. The endpoint might be time to tumour progression, time to an adverse event, or time to treatment discontinuation, for instance. In this post we’ll illustrate how to fit parametric TTE models in <code>nlmixr2</code> using its custom log-likelihood interface.</p>
 <p>For the purposes of this post, we’re going to simulate a two-arm randomised trial from a known Gompertz model, then recover the parameters with <code>nlmixr2</code>. This is cheating, obviously, but since we’ll know what the truth is, we’ll be able to directly assess how well the model does in recovering the parameters.</p>
+<p>It’s worth mentioning that the kind of analysis we show here can be performed using other R packages, like <a href="https://chjackson.github.io/flexsurv/"><code>flexsurv</code></a>, probably in a more straightforward way, but where things get interesting is with more complex models. We only show the basics here, but the potential is endless…</p>
 <div id="simulated-dataset" class="section level2">
 <h2>Simulated Dataset</h2>
 <p>We are going to generate 300 patients (150 per arm) from a Gompertz proportional-hazards model with increasing hazard (<span class="math inline">\(\gamma &gt; 0\)</span>) and a 50% drug-induced hazard reduction (HR = 0.5).</p>
@@ -86,7 +87,7 @@ cat(sprintf(
   sum(tte_sim$event[tte_sim$test_trt == 1]),
   100 * mean(tte_sim$event[tte_sim$test_trt == 1])
 ))</code></pre>
-<pre><code>## 300 patients | Placebo: 138 events (92%) | Drug: 99 events (66%)</code></pre>
+<pre><code>## 300 patients | Placebo: 134 events (89%) | Drug: 91 events (61%)</code></pre>
 <p>The increasing hazard means events become more frequent late in follow-up. The drug-treatment arm retains more survivors throughout.</p>
 </div>
 <div id="exploratory-analysis" class="section level2">
@@ -147,17 +148,13 @@ fit_exp &lt;- nlmixr(exp_model, tte_sim, est = &quot;bobyqa&quot;,
 <pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre><code>## |-----+---------------+-----------+-----------|</code></pre>
-<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
-<pre><code>## [====|====|====|====|====|====|====|====|====|====
-## =|====|====|====|====|====|====|====] 0:00:00</code></pre>
-<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre class="r"><code>fit_exp$parFixedDf</code></pre>
 <pre><code>##               Estimate        SE      %RSE Back-transformed  CI Lower
-## log_h0      -5.3474952 0.1702513  3.183758       -5.3474952 -5.681182
-## test_log_hr -0.6371551 0.2634190 41.342991       -0.6371551 -1.153447
+## log_h0      -5.4143350 0.1727737  3.191042       -5.4143350 -5.752965
+## test_log_hr -0.6717797 0.2716741 40.440951       -0.6717797 -1.204251
 ##               CI Upper BSV(SD) Shrink(SD)%
-## log_h0      -5.0138088      NA          NA
-## test_log_hr -0.1208634      NA          NA</code></pre>
+## log_h0      -5.0757048      NA          NA
+## test_log_hr -0.1393082      NA          NA</code></pre>
 <p>So far so good.</p>
 </div>
 <div id="model-2-gompertz-increasing-hazard" class="section level2">
@@ -190,22 +187,16 @@ potential conditioning problems that arise when the <code>bobyqa</code> estimati
 
 fit_gompertz &lt;- nlmixr(gompertz_model, tte_sim, est = &quot;bobyqa&quot;,
                        control = bobyqaControl(print = 0))</code></pre>
-<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
-<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre><code>## |-----+---------------+-----------+-----------+-----------|</code></pre>
-<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
-<pre><code>## [====|====|====|====|====|====|====|====|====|====
-## ====|====|====|====|====|====|====] 0:00:00</code></pre>
-<pre><code>## [====|====|====|====|====|====|====|====|====|====] 0:00:00</code></pre>
 <pre class="r"><code>fit_gompertz$parFixedDf</code></pre>
 <pre><code>##               Estimate        SE      %RSE Back-transformed     CI Lower
-## log_alpha   -6.1983074 0.2885735  4.655682      0.002032869  0.001154716
-## log_gamma   -5.1723567 0.2337411  4.519044      0.005671188  0.003586850
-## test_log_hr -0.8280953 0.2679623 32.358876     -0.828095297 -1.353291809
+## log_alpha   -6.1731625 0.2951631  4.781392      0.002084633  0.001168924
+## log_gamma   -5.3212965 0.2744153  5.156925      0.004886414  0.002853695
+## test_log_hr -0.7986951 0.2743202 34.346044     -0.798695075 -1.336352718
 ##                 CI Upper BSV(SD) Shrink(SD)%
-## log_alpha    0.003578850      NA          NA
-## log_gamma    0.008966745      NA          NA
-## test_log_hr -0.302898786      NA          NA</code></pre>
+## log_alpha    0.003717687      NA          NA
+## log_gamma    0.008367062      NA          NA
+## test_log_hr -0.261037432      NA          NA</code></pre>
 <pre class="r"><code>theta_g &lt;- fit_gompertz$theta
 kable(
   data.frame(
@@ -246,21 +237,21 @@ kable(
 <td align="left">log_alpha</td>
 <td align="left">alpha (/day)</td>
 <td align="right">0.002</td>
-<td align="right">0.0020</td>
+<td align="right">0.0021</td>
 <td align="left">Initial hazard at t = 0, placebo arm</td>
 </tr>
 <tr class="even">
 <td align="left">log_gamma</td>
 <td align="left">gamma (/day)</td>
 <td align="right">0.005</td>
-<td align="right">0.0057</td>
+<td align="right">0.0049</td>
 <td align="left">Hazard growth rate; &gt;0 confirms increasing risk</td>
 </tr>
 <tr class="odd">
 <td align="left">test_log_hr</td>
 <td align="left">HR (drug vs. placebo)</td>
 <td align="right">0.500</td>
-<td align="right">0.4369</td>
+<td align="right">0.4499</td>
 <td align="left">Instantaneous hazard ratio, drug vs. placebo</td>
 </tr>
 </tbody>
@@ -298,14 +289,14 @@ kable(aic_table, digits = 2,
 <tr class="odd">
 <td align="left">Exponential</td>
 <td align="right">2</td>
-<td align="right">3138.87</td>
-<td align="right">3134.87</td>
+<td align="right">3012.71</td>
+<td align="right">3008.71</td>
 </tr>
 <tr class="even">
 <td align="left">Gompertz</td>
 <td align="right">3</td>
-<td align="right">3067.84</td>
-<td align="right">3061.84</td>
+<td align="right">2961.64</td>
+<td align="right">2955.64</td>
 </tr>
 </tbody>
 </table>
@@ -382,7 +373,7 @@ follow-up period.</p>
 </div>
 <div id="a-tte-vpc" class="section level2">
 <h2>A TTE VPC</h2>
-<p>We can use the <code>vpc</code> package to generate a TTE visuzal predictive check (VPC)…</p>
+<p>We can use the <code>vpc</code> package to generate a TTE visual predictive check (VPC)…</p>
 <pre class="r"><code>n_vpc_sim &lt;- 200
 set.seed(8675)
 
@@ -422,7 +413,7 @@ suppressMessages(suppressWarnings(
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/tte-vpc-1.png" alt="" width="672" /></p>
 <p>The shaded band is the 95% prediction interval of the simulated survival curves
 across the 200 replicates, while the solid line is the observed
-Kaplan-Meier for placebo and active treatment arms. Both arms sit within their bands throughout follow-up, confirming that the fitted model is adquately reproducing the observed data.</p>
+Kaplan-Meier for placebo and active treatment arms. Both arms sit within their bands throughout follow-up, confirming that the fitted model is adequately reproducing the observed data.</p>
 </div>
 <div id="wrapping-it-up" class="section level2">
 <h2>Wrapping it up</h2>
