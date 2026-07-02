@@ -1,0 +1,282 @@
+---
+title: "Fitting PK/PD models to published data with admixr2"
+author: H. van de Beek
+date: '2026-07-03'
+slug: []
+categories: [nlmixr2]
+tags: [meta-analysis, MBMA, aggregate-data]
+output:
+  blogdown::html_page:
+    toc: false
+---
+
+
+
+<p>Usually, pharmacometric modelling starts with a dataset with individual patient data: one row per observation, in a software-ready format. To model these data, you would first need to get access to the data, which means data-sharing agreements, trial access, or in-house studies. This process is often slow or even not possible due to privacy or competition. However, researchers do publish their model and sometimes summary metrics.</p>
+<p>The published reports <em>do</em> contain useful information. A publication of a PK study often contains mean concentration-time profiles with standard deviations, and the PK model structure and estimates. None of these data are individual patient data - but they can still be used for modelling, using aggregate data modelling.</p>
+<p><a href="https://leidenpharmacology.github.io/admixr2"><strong>admixr2</strong></a> is an R package that fits pharmacometric models directly to these aggregate summaries or published models. The package integrates the methodology directly into the nlmixr2/rxode2 ecosystem: you write models using familiar syntax: <code>ini()</code> / <code>model()</code>. To use this method, you call <code>nlmixr2()</code> with <code>est = "adfo"</code>, <code>est = "admc"</code>, <code>est = "adgh"</code>, or <code>est = "adirmc"</code>.</p>
+<p>This post covers the two main ways published data can be modelled using admixr2, and shows how to combine multiple sets of summary data in a single joint fit.</p>
+<div id="what-admixr2-fits-to" class="section level2">
+<h2>What admixr2 fits to</h2>
+<p>admixr2 can be used to model aggregate data, either from published time-profiles or from published models. However, both are based on two quantities per study:</p>
+<ul>
+<li><strong>E</strong> - the observed mean drug concentration vector at the measurement times, <span class="math inline">\(\bar{y} \in \mathbb{R}^T\)</span>.</li>
+<li><strong>V</strong> - the observed (co)variance matrix, <span class="math inline">\(S \in \mathbb{R}^{T \times T}\)</span>.</li>
+</ul>
+<p>Given a mixed-effects model predicting population mean <span class="math inline">\(\mu\)</span> and covariance <span class="math inline">\(V_\text{pred}\)</span>, we can calculate the aggregate log-likelihood incorporating the study sample size <span class="math inline">\(n\)</span>. The result is the likelihood for the sample mean and covariance: it rewards a model whose predicted population distribution matches both the average profile <em>and</em> the spread and correlation structure in the data.</p>
+<p>So for modelling aggregate data, you specify E, V, times and n once per study and then call <code>nlmixr2()</code> exactly as you would for individual-level fitting. The rest - optimizer, standard errors, AIC, diagnostic plots - works similar to nlmixr2.</p>
+</div>
+<div id="usecase-1-digitized-mean-sd-from-the-literature" class="section level2">
+<h2>Usecase 1: digitized mean ± SD from the literature</h2>
+<p>Say you found two published studies of a hypothetical intravenous compound. One used a 100 mg dose in 40 subjects, the other 200 mg in 35 subjects. Both report mean concentrations and standard deviations at five time points, either in a table or in figures that you digitized with a <a href="https://plotdigitizer.com/">plotdigitizer</a>.</p>
+<p>You have means and SDs - not the full covariance matrix. admixr2 handles this using <code>method = "var"</code>, which uses only the diagonal of V (the marginal variances) in the likelihood. Just pass a diagonal matrix or a variance vector:</p>
+<pre class="r"><code>library(rxode2)
+library(nlmixr2)
+library(admixr2)
+library(ggplot2)
+
+times_measured &lt;- c(0.5, 1, 2, 4, 8)
+
+# Study A: 100 mg IV bolus, n = 40
+# Values represent typical digitized output (mean, SD) -&gt; SD^2 on the diagonal
+study_a &lt;- list(
+  E     = c(2.33, 1.84, 1.23, 0.51, 0.09),   # mg/L
+  V     = diag(c(0.341, 0.212, 0.095, 0.016, 0.0005)),  # SD^2
+  n     = 40L,
+  times = times_measured,
+  ev    = et(amt = 100)
+)
+
+# Study B: 200 mg IV bolus, n = 35
+study_b &lt;- list(
+  E     = c(4.57, 3.77, 2.41, 1.04, 0.18),
+  V     = diag(c(1.009, 0.688, 0.281, 0.052, 0.0016)),
+  n     = 35L,
+  times = times_measured,
+  ev    = et(amt = 200)
+)</code></pre>
+<p>Plotting the two digitized profiles shows the summary data we are working with - a mean curve and a marginal spread at each timepoint, with no access to the underlying individual trajectories:</p>
+<div class="figure"><span style="display:block;" id="fig:lit-plot"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/lit-plot-1.png" alt="Digitized mean ± 1 SD for the two published IV studies." width="672" />
+<p class="caption">
+Figure 1: Digitized mean ± 1 SD for the two published IV studies.
+</p>
+</div>
+<p>The analysis model is a standard one-compartment IV model written in nlmixr2 syntax:</p>
+<pre class="r"><code>pk_1cmt_iv &lt;- function() {
+  ini({
+    tcl    &lt;- log(10)       # log CL (L/h) -- starting value
+    tv     &lt;- log(40)       # log V (L)
+    eta.cl ~ 0.12
+    eta.v  ~ 0.06
+    add.err &lt;- c(0, 0.15)
+  })
+  model({
+    cl &lt;- exp(tcl + eta.cl)
+    v  &lt;- exp(tv  + eta.v)
+    d/dt(centr) &lt;- -(cl / v) * centr
+    cp &lt;- centr / v
+    cp ~ add(add.err)
+  })
+}</code></pre>
+<p>Fitting is a single <code>nlmixr2()</code> call with for example <code>est = "admc"</code>, the estimator that uses simulation to estimate the IIV distribution. The <code>studies</code> argument names the two studies; <code>admData()</code> is a placeholder dataset required by nlmixr2 in the background, but it carries no actual observations:</p>
+<pre class="r"><code>fit_lit &lt;- nlmixr2(
+  pk_1cmt_iv, admData(), est = &quot;admc&quot;,
+  control = admControl(
+    studies   = list(study_a = study_a, study_b = study_b),
+    n_sim     = 2000L,
+    covMethod = &quot;r&quot;
+  )
+)</code></pre>
+<p>Printing the fit gives the standard nlmixr2 summary - objective function, information criteria, and the population parameters with their estimates back-transformed to the natural scale (here CL and V):</p>
+<pre class="r"><code>print(fit_lit)</code></pre>
+<PRE class="fansi fansi-output"><CODE>## <span style='font-weight: bold;'>── </span><span style='color: #0000BB; font-weight: bold;'>nlmix</span><span style='color: #BB0000; font-weight: bold;'>r²</span><span style='font-weight: bold;'> </span><span style='color: #BBBB00; font-weight: bold;'>admc</span><span style='font-weight: bold;'> ──</span>
+## 
+##           OBJF       AIC      BIC Log-likelihood
+## admc -484.4386 -474.4386 -454.804       242.2193
+## 
+## <span style='font-weight: bold;'>── Time (sec </span><span style='color: #BBBB00; font-weight: bold;'>fit_lit</span><span style='color: #0000BB; font-weight: bold;'>$time</span><span style='font-weight: bold;'>): ──</span>
+## 
+##   optimize covariance elapsed
+## 1    12.24       5.22   17.46
+## 
+## <span style='font-weight: bold;'>── Population Parameters (</span><span style='color: #BBBB00; font-weight: bold;'>fit_lit</span><span style='color: #0000BB; font-weight: bold;'>$parFixed</span><span style='font-weight: bold;'> or </span><span style='color: #BBBB00; font-weight: bold;'>fit_lit</span><span style='color: #0000BB; font-weight: bold;'>$parFixedDf</span><span style='font-weight: bold;'>): ──</span>
+## 
+##            <span style='font-weight: bold;'>Est.</span>      <span style='font-weight: bold;'>SE</span>   <span style='font-weight: bold;'>%RSE</span> <span style='font-weight: bold;'>Back-transformed(95%CI)</span> <span style='font-weight: bold;'>BSV(CV%)</span> <span style='font-weight: bold;'>Shrink(SD)%</span>
+## <span style='font-weight: bold;'>tcl</span>       2.717 0.01449 0.5332    15.14 (14.71, 15.57)    18.93            
+## <span style='font-weight: bold;'>tv</span>         3.49 0.02289 0.6559     32.79 (31.35, 34.3)    30.21            
+## <span style='font-weight: bold;'>add.err</span> 0.01231                                0.01231                     
+##  
+##   Covariance Type (<span style='color: #BBBB00;'>fit_lit</span><span style='color: #0000BB; font-weight: bold;'>$covMethod</span>): <span style='font-weight: bold;'>r</span>
+##   No correlations in between subject variability (BSV) matrix
+##   Full BSV covariance (<span style='color: #BBBB00;'>fit_lit</span><span style='color: #0000BB; font-weight: bold;'>$omega</span>) 
+##     or correlation (<span style='color: #BBBB00;'>fit_lit</span><span style='color: #0000BB; font-weight: bold;'>$omegaR</span>; diagonals=SDs)
+##   Distribution stats (mean/skewness/kurtosis/p-value) available in <span style='color: #0000BB; font-weight: bold;'>$shrink</span> 
+##   Censoring (<span style='color: #BBBB00;'>fit_lit</span><span style='color: #0000BB; font-weight: bold;'>$censInformation</span>): No censoring
+##   Minimization message (<span style='color: #BBBB00;'>fit_lit</span><span style='color: #0000BB; font-weight: bold;'>$message</span>):  
+##     NLOPT_XTOL_REACHED: Optimization stopped because xtol_rel or xtol_abs (above) was reached.
+</CODE></PRE>
+<p>The resulting <code>fit_lit</code> is a standard nlmixr2 fit object: <code>AIC(fit_lit)</code>, <code>logLik(fit_lit)</code>, <code>plot(fit_lit)</code> all work as expected.</p>
+<p>The <code>plot()</code> method also takes a <code>which</code> argument to select diagnostics - <code>"mean"</code>, <code>"cov"</code>, <code>"nll"</code>, or <code>"par"</code>. With <code>which = "mean"</code> it overlays the fitted population mean (with predicted spread) on the observed mean ± SD for each study, alongside the residuals, so you can check directly that the model reproduces the digitized profiles:</p>
+<pre class="r"><code>plot(fit_lit, which = &quot;mean&quot;)</code></pre>
+<div class="figure"><span style="display:block;" id="fig:lit-diag-1"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/lit-diag-1.png" alt="Observed vs predicted mean concentration (top) and residuals (bottom) for each study." width="672" />
+<p class="caption">
+Figure 2: Observed vs predicted mean concentration (top) and residuals (bottom) for each study.
+</p>
+</div>
+<div class="figure"><span style="display:block;" id="fig:lit-diag-2"></span>
+<img src="{{< blogdown/postref >}}index_files/figure-html/lit-diag-2.png" alt="Observed vs predicted mean concentration (top) and residuals (bottom) for each study." width="672" />
+<p class="caption">
+Figure 3: Observed vs predicted mean concentration (top) and residuals (bottom) for each study.
+</p>
+</div>
+<div id="when-only-variances-are-available" class="section level3">
+<h3>When only variances are available</h3>
+<p>When V is diagonal (as in the above example), admixr2 automatically sets <code>method = "var"</code> and uses only the marginal variances in the likelihood. If you have the full covariance matrix - for example if the original authors shared it, or if you derived it from a published model - pass a full symmetric matrix and admixr2 will use <code>method = "cov"</code> automatically.</p>
+</div>
+</div>
+<div id="usecase-2-published-nlme-models-as-data-source" class="section level2">
+<h2>Usecase 2: published NLME models as data source</h2>
+<p>Sometimes you do not have the (digitized) PK summary, but you do have published pharmacometric models - papers or submissions with fixed-effect estimates, IIV, and residual error. Each published model implicitly defines a probability distribution over concentration-time profiles; <code>datagen()</code> makes that distribution explicit by sampling it and computing the population mean and full covariance matrix.</p>
+<p>A key advantage of using the model as a starting point over (digitized) summary data: the full <strong>V</strong> matrix can be estimated, which also captures the within-subject correlation across time points. A variance-only summary discards this structure; a published model can be used to recover it.</p>
+<p>In practice, different publications often used different structural models for the same compound, usually because they sampled differently. admixr2 can be used to make a model based on models with different structures as well.</p>
+<p>Here we present an example with two toy studies: the first study sampled at steady state, taking only a peak and a trough each interval - a sparse design that characterises exposure but never shows the shape of the decline, so a one-compartment model was all it could support. The second study was a richly sampled single-dose study that followed the concentration well into the terminal tail, and that long tail exposed a clear distribution phase, which was fit using a two-compartment model. The original authors’ choices are fixed - but you can choose any model as analysis model. <code>datagen()</code> supports per-study <code>model</code> elements so that the simulated aggregate data reflects the study design of the published model.</p>
+<pre class="r"><code># Study 1 sampled at steady state, peak and trough only; study 2 followed a
+# single dose out to the long terminal tail
+times_1 &lt;- c(1.5, 8)
+times_2 &lt;- c(0.5, 1, 2, 4, 8, 12, 24, 48)
+
+# Study 1: 1-cmt oral model, 150 mg q8h, n = 80 (steady-state peak/trough)
+model_study1 &lt;- function() {
+  ini({
+    tcl     &lt;- log(15)
+    tv      &lt;- log(58)
+    tka     &lt;- log(1.2)
+    prop.sd &lt;- c(0, 0.20)
+    eta.cl  ~ 0.09
+    eta.v   ~ 0.04
+    eta.ka  ~ 0.04
+  })
+  model({
+    cl &lt;- exp(tcl + eta.cl)
+    v  &lt;- exp(tv  + eta.v)
+    ka &lt;- exp(tka + eta.ka)
+    d/dt(depot)   &lt;- -ka * depot
+    d/dt(central) &lt;-  ka * depot - (cl / v) * central
+    cp &lt;- central / v
+    cp ~ prop(prop.sd)
+  })
+}
+
+# Study 2: 2-cmt oral model, 300 mg, n = 200 (long terminal sampling)
+model_study2 &lt;- function() {
+  ini({
+    tcl     &lt;- log(14)
+    tv1     &lt;- log(40)
+    tv2     &lt;- log(25)
+    tq      &lt;- log(8)
+    tka     &lt;- log(1.0)
+    prop.sd &lt;- c(0, 0.18)
+    eta.cl  ~ 0.09
+    eta.v1  ~ 0.04
+    eta.ka  ~ 0.04
+  })
+  model({
+    cl &lt;- exp(tcl + eta.cl)
+    v1 &lt;- exp(tv1 + eta.v1)
+    v2 &lt;- exp(tv2)
+    q  &lt;- exp(tq)
+    ka &lt;- exp(tka + eta.ka)
+    d/dt(depot)      &lt;- -ka * depot
+    d/dt(central)    &lt;-  ka * depot - (cl + q) / v1 * central + q / v2 * peripheral
+    d/dt(peripheral) &lt;-  q / v1 * central - q / v2 * peripheral
+    cp &lt;- central / v1
+    cp ~ prop(prop.sd)
+  })
+}</code></pre>
+<p>Each study carries its own <code>model</code> element, and <code>datagen()</code> simulates that study from it.</p>
+<pre class="r"><code>published_data &lt;- datagen(
+  studies = list(
+    study1 = list(
+      model = model_study1,
+      times = times_1,
+      ev    = et(amt = 150, ii = 8, ss = 1),
+      n     = 80L
+    ),
+    study2 = list(
+      model = model_study2,
+      times = times_2,
+      ev    = et(amt = 300),
+      n     = 200L
+    )
+  ),
+  control = datagenControl(n_sim = 10000L)
+)</code></pre>
+<p>Now fit <em>your own</em> analysis model jointly to both studies. Your model does not need to match either published structure - here we use a one-compartment model to find the CL and V that best reconcile both datasets:</p>
+<pre class="r"><code>analysis_oral &lt;- function() {
+  ini({
+    tcl     &lt;- log(12)
+    tv      &lt;- log(50)
+    tka     &lt;- log(1.5)
+    prop.sd &lt;- c(0, 0.25)
+    eta.cl  ~ 0.12
+    eta.v   ~ 0.06
+    eta.ka  ~ 0.06
+  })
+  model({
+    cl &lt;- exp(tcl + eta.cl)
+    v  &lt;- exp(tv  + eta.v)
+    ka &lt;- exp(tka + eta.ka)
+    d/dt(depot)   &lt;- -ka * depot
+    d/dt(central) &lt;-  ka * depot - (cl / v) * central
+    cp &lt;- central / v
+    cp ~ prop(prop.sd)
+  })
+}</code></pre>
+<pre class="r"><code>fit_mbma &lt;- nlmixr2(
+  analysis_oral, admData(), est = &quot;admc&quot;,
+  control = admControl(
+    studies   = published_data,   # study1 and study2
+    n_sim     = 2000L,
+    covMethod = &quot;r&quot;,
+    cores     = 10
+  )
+)</code></pre>
+<p>The aggregate likelihood sums across both studies, each weighted by its own sample size <span class="math inline">\(n\)</span>, so study 2 (n = 200) contributes more than study 1 (n = 80).</p>
+<p>A one-compartment analysis model cannot perfectly reproduce a two-compartment covariance, so the result is a compromise between the two parameterisations rather than an exact reconciliation; the full V from study 2 still contributes, because its between-time correlation enters the likelihood rather than being discarded.</p>
+<hr />
+</div>
+<div id="combining-both-approaches" class="section level2">
+<h2>Combining both approaches</h2>
+<p>A combination of observed and model-derived data can be estimated in a single model fit. Both produce the same needed inputs (E, V, n), so the estimator treats them identically:</p>
+<pre class="r"><code># IV digitized studies + oral MBMA studies in one call
+# (requires a model that handles both routes; simplified here for illustration)
+all_studies &lt;- c(
+  list(study_a = study_a, study_b = study_b),
+  published_data   # adds study1 and study2
+)
+
+fit_joint &lt;- nlmixr2(
+  analysis_oral, admData(), est = &quot;admc&quot;,
+  control = admControl(
+    studies   = all_studies,
+    n_sim     = 2000L,
+    covMethod = &quot;r&quot;,
+    cores = 10
+  )
+)</code></pre>
+<p>This is where aggregate data modelling becomes most powerful: the full published literature - digitized IV profiles, model-derived oral studies, competitor models - all contribute to a single model with parameter estimates, and you get proper uncertainty quantification from the combined likelihood.</p>
+</div>
+<div id="getting-started" class="section level2">
+<h2>Getting started</h2>
+<p>admixr2 is on CRAN:</p>
+<pre class="r"><code>install.packages(&quot;admixr2&quot;)</code></pre>
+<p>but we recommend to install the stable development version from GitHub, currently v0.2.0, which includes the latest features and bug fixes:</p>
+<pre class="r"><code>pak::pak(&quot;LeidenPharmacology/admixr2@v0.2.0&quot;)</code></pre>
+<p>The package documentation at <a href="https://leidenpharmacology.github.io/admixr2" class="uri">https://leidenpharmacology.github.io/admixr2</a> includes vignettes on all four estimators, the <code>datagen()</code> workflow, multi-study fitting, and diagnostic plots. The mathematical foundations - the aggregate likelihood, the CRN analytical gradient, and the IRMC algorithm - are described in detail in the <a href="https://leidenpharmacology.github.io/admixr2/articles/introducing-admixr2.html"><em>Mathematics of aggregate data modelling</em></a> article.</p>
+</div>
+<div id="acknowledgements" class="section level2">
+<h2>Acknowledgements</h2>
+<p>admixr2 builds on the aggregate data likelihood first described by <a href="https://doi.org/10.1007/s10928-021-09760-1">Välitalo et al. (2021)</a> and implemented in admr by <a href="https://doi.org/10.1007/s10928-025-10011-w">van de Beek et al. (2025)</a>. We want to thank the nlmixr2 development team for the rxode2 and nlmixr2est infrastructure that admixr2 is built on.</p>
+</div>
