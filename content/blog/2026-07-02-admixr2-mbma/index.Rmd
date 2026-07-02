@@ -1,7 +1,7 @@
 ---
 title: "Fitting PK/PD models to published data with admixr2"
 author: H. van de Beek
-date: '2026-07-03'
+date: '2026-07-02'
 slug: []
 categories: [nlmixr2]
 tags: [meta-analysis, MBMA, aggregate-data]
