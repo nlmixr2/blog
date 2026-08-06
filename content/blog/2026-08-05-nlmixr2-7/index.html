@@ -13,7 +13,7 @@ tags: []
 <div id="nlmixr2-7.0" class="section level2">
 <h2>nlmixr2 7.0</h2>
 <p>This is the release where <code>focei</code> finally solves in parallel on all
-OpenMP enabled platforms. Along with that, a few defaults changed,
+OpenMP-enabled platforms. Along with that, a few defaults changed,
 which means that by default <code>focei</code> will <em>not</em> give you the same
 numbers it gave you in <code>nlmixr2</code> 6. This is a deliberate change and
 we will talk about the motivation in this post (and how to get the old
@@ -22,59 +22,81 @@ behavior back if you need it).</p>
 more extensible in the future.</p>
 <p>There are quite a few other things in this release (new estimation
 methods, many new ODE solvers, new model features); those are
-mentioned at the end and I will take about them in the future.</p>
+mentioned at the end and I will talk about them in the future.</p>
+<p>All of the examples below use the same one compartment theophylline
+model:</p>
+<pre class="r"><code>library(nlmixr2)
+
+one.cmt &lt;- function() {
+  ini({
+    tka &lt;- 0.45; label(&quot;log Ka&quot;)
+    tcl &lt;- log(c(0, 2.7, 100)); label(&quot;log Cl&quot;)
+    tv &lt;- 3.45; label(&quot;log V&quot;)
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+    add.sd &lt;- 0.7
+  })
+  model({
+    ka &lt;- exp(tka + eta.ka)
+    cl &lt;- exp(tcl + eta.cl)
+    v &lt;- exp(tv + eta.v)
+    linCmt() ~ add(add.sd)
+  })
+}</code></pre>
 </div>
 <div id="parallel-solving-in-focei-and-most-every-nlmixr2-estimation-method" class="section level2">
 <h2>Parallel solving in <code>focei</code> and most every nlmixr2 estimation method</h2>
 <p>Historically <code>focei</code> was the single-threaded method in <code>nlmixr2</code> (see
-the the <a href="/blog/2025-07-16-nlmixr2-4/">4.0 post</a> post). Now it solves
-in parallel. The first piece of work that was done by Bill, AI agents,
-and I (Matt Fidler), was setting the pieces up so each individual can
-be solved and optimized in parallel.</p>
-<p>The AI fixes were changed and reviewed and integrated over many months
-and also had to be hand edited or rejected before they were submitted
-to CRAN.</p>
-<p>Once on CRAN, we found that the OpenMP did not work with rxode2 &amp;
-nlmixr2est in windows and simply crashed R. This was fixed by Bill
+the <a href="/blog/2025-07-16-nlmixr2-4/">4.0 post</a>). Now it solves in
+parallel. The first piece of work, done by Bill, AI agents, and me
+(Matt Fidler), was setting things up so each individual can be solved
+and optimized in parallel.</p>
+<p>The AI fixes were reviewed, hand-edited and in some cases rejected over
+many months before they were submitted to CRAN.</p>
+<p>Once on CRAN, we found that OpenMP did not work with rxode2 &amp;
+nlmixr2est on Windows and simply crashed R. This was fixed by Bill
 (with AI help).</p>
-<p>We released this just before the CRAN August shutdown (and
-have not tested some of the more experimental features as much as we
+<p>We released this just before the CRAN August shutdown (and have not
+tested some of the more experimental features as much as we would
 like).</p>
 </div>
 <div id="new-estimation-method-in-focei-the-fast-variants" class="section level2">
 <h2>New estimation method in <code>focei</code>, the “<code>fast</code>” variants</h2>
 <p>In addition to the new parallel solving, we (Hidde &amp; I) have
-implemented analytical gradients in <code>focei</code>/<code>foce</code> is calculated
-analytically from the Almquist (2015) sensitivity equations where all
+implemented analytical population gradients in <code>focei</code>/<code>foce</code> by
+using the Almquist (2015) sensitivity equations. For this solve, all
 subjects are solved together in <strong>one parallel (threaded) <code>rxode2</code>
 solve</strong>.</p>
 <p>Two things fall out of that:</p>
 <ul>
-<li><p>It is one augmented solve instead of one extra solve per parameter.</p></li>
+<li><p>It is one augmented solve instead of one extra solve per parameter
+and subject.</p></li>
 <li><p>The gradient is exact instead of a difference approximation, so the
 outer optimizer is no longer working against solver noise.</p></li>
 </ul>
 <p>This means that the default for these methods is to optimize the
-population parameters (i.e. outer problem) with <code>lbfgsb3c</code> – a
-gradient based method that takes advantage of the analytical gradients.</p>
+population parameters (i.e. the outer problem) with <code>lbfgsb3c</code> – a
+gradient-based method that takes advantage of the analytical
+gradients.</p>
 <p>The analytic gradient is turned on with <code>foceiControl(fast=TRUE)</code>.
 Because typing that every time gets old, each method gained an <code>f</code>
 sibling that is simply the method with <code>fast=TRUE</code> as its default:</p>
 <pre class="r"><code>fit &lt;- nlmixr2(one.cmt, theo_sd, est=&quot;foceif&quot;)
 
 print(fit)</code></pre>
-<p>One of the interesting things that Almquist’s derivation talked about
-is how to get the best individual MAP estimate faster. This is done by
-using the projected <code>eta</code> for the next step (Almquist’s Eq. 48). By
-default in these fast methods, the warm-start the search for the best
-eta for the next step with the projected eta (<code>mceta=-2</code>) rather than
-the last known best eta (which still happens when <code>fast=FALSE</code>).</p>
+<p>One of the interesting things that Almquist’s derivation covers is how
+to get the best individual MAP estimate faster. This is done by using
+the projected <code>eta</code> for the next step (Almquist’s Eq. 48). By default
+these fast methods warm-start the search for the best eta with the
+projected eta (<code>mceta=-2</code>) rather than the last known best eta (which
+is what still happens when <code>fast=FALSE</code>).</p>
 <p>This required rethinking how we use the individual’s curvature
-(i.e. hessian) to pre-inform the <code>n1qn1</code> optimizer (better prior
-information=faster and better fits). When the eta changes positions
-it longer makes sense to pass the old curvature to the new best guess
-of the individual’s EBE. So now, we used the curvature calculated by
-focei at every optimization step.</p>
+(i.e. Hessian) to pre-inform the <code>n1qn1</code> optimizer (better prior
+information means faster and better fits). When the eta changes
+positions, it no longer makes sense to pass the old curvature to the
+new best guess of the individual’s EBE. So now we use the curvature
+calculated by <code>focei</code> at every optimization step.</p>
 <p>Interestingly, this made some of our tests arrive at a <em>better</em>
 solution than before and take less time to get there (so now it is on
 by default).</p>
@@ -87,13 +109,13 @@ earlier round. The classic self-initialized Hessian is still there
 with <code>warm="save"</code>.</p>
 <div id="a-note-on-the-name" class="section level3">
 <h3>A note on the name</h3>
-<p>Why call it the “fast” variant – it may be faster when you know the
-gradient (though this is not guaranteed); it also matches NONMEM’s
+<p>Why call it the “fast” variant? It may be faster when you know the
+gradient (though this is not guaranteed), and it matches NONMEM’s
 convention for the same sort of estimator.</p>
-<p>I must also hasten to add, our implementation is likely not to be the
-same implementation as NONMEM since they require mu-referencing for
-the FAST estimation method and we do not, so properties of the NONMEM
-FAST estimation engine are likely not applicable here.</p>
+<p>I must also hasten to add that our implementation is likely not the
+same as NONMEM’s; they require mu-referencing for the FAST estimation
+method and we do not. Properties of the NONMEM FAST estimation engine
+are therefore likely not applicable here.</p>
 <p>I also need to mention that this is a new method and we are more
 likely to find bugs in the code. For this reason, this version is
 also likely to change more in the next few months.</p>
@@ -101,36 +123,36 @@ also likely to change more in the next few months.</p>
 </div>
 <div id="new-defaults-to-standard-focei" class="section level2">
 <h2>New defaults to standard <code>focei</code></h2>
-<p>With the new default warm start changing the standard <code>"focei"</code>
-minimization, and new pure gradient <code>foceif</code> method, it is a good time
-to change the default optimization for <code>focei</code></p>
-<p>Since a finite difference gradient method causes many issues in
-optimization, I thought it would be better to change the default non
-fast method (or standard <code>focei</code>) to use a non-gradient optimizer –
-<code>bobyqa</code>. I have long found it to be an excellent optimizer and now
-that there are better ways to integrate with gradient-based optimizer,
-this makes a natural division between <code>focei</code> and <code>foceif</code>.</p>
-<p>To be clear, the method to find the MAP estimate on each problem is
-still gradient based (with exact gradients), it is just finding the
-population problem that will be performed without the exact gradient
-being calculated.</p>
+<p>With the new default warm start changing the standard <code>focei</code>
+minimization, and the new pure-gradient <code>foceif</code> method, it is a good
+time to change the default optimization for <code>focei</code>.</p>
+<p>Since a finite-difference gradient method causes many issues in
+optimization, I thought it would be better to change the default
+non-fast method (or standard <code>focei</code>) to use a non-gradient optimizer
+– <code>bobyqa</code>. I have long found it to be an excellent optimizer, and
+now that there is a better way to work with a gradient-based
+optimizer, this makes a natural division between <code>focei</code> and <code>foceif</code>.</p>
+<p>To be clear, the individual MAP estimates are still found with a
+gradient-based method (using exact gradients); it is only the
+population problem that is now solved without calculating the exact
+gradient.</p>
 <div id="what-about-the-old-optimizer-nlminb" class="section level3">
 <h3>What about the old optimizer <code>nlminb</code></h3>
-<p>In the old system, there was alot of work done to get as accurate
-gradients in the optimization. These gradients were very expensive in
-general and the optimizer <code>nlminb</code> split between calculating gradients
-and evaluating points and made a great choice for speed when you did
-not want to evaluate a gradient at every step. This is the reason why
-we chose it originally for the default. It was faster and often
-arrived at a similar solution as <code>lbfgsb3c</code>.</p>
+<p>In the old system, there was a lot of work done to get gradients as
+accurate as possible in the optimization. These gradients were very
+expensive in general, and <code>nlminb</code> splits its work between calculating
+gradients and evaluating points, which made it a great choice for
+speed when you did not want to evaluate a gradient at every step.
+This is the reason why we chose it originally for the default. It was
+faster and often arrived at a similar solution as <code>lbfgsb3c</code>.</p>
 <p>If you want the pre-7.0 outer optimizer, ask for it:</p>
 <pre class="r"><code>fit &lt;- nlmixr2(one.cmt, theo_sd, est=&quot;focei&quot;,
                foceiControl(outerOpt=&quot;nlminb&quot;))</code></pre>
-<p>Remember, however, you still calculate gradients using finite
-differences and nlminb can still have the “false convergence”, which I
-have often found to be misleading and not really indicative of any
-convergence issues (Discussed here
-<a href="https://stats.stackexchange.com/questions/101265/nlme-convergence-error-code-1" class="uri">https://stats.stackexchange.com/questions/101265/nlme-convergence-error-code-1</a>
+<p>Remember, however, that you still calculate gradients using finite
+differences, and <code>nlminb</code> can still give a “false convergence”
+message, which I have often found to be misleading and not really
+indicative of any convergence issues (discussed
+<a href="https://stats.stackexchange.com/questions/101265/nlme-convergence-error-code-1">here</a>,
 and affecting <code>nlme</code> too).</p>
 </div>
 <div id="getting-close-to-the-old-behavior" class="section level3">
@@ -142,11 +164,11 @@ and affecting <code>nlme</code> too).</p>
                             sigdig=4,
                             resetThetaP=0.05,
                             resetThetaFinalP=0.15))</code></pre>
-<p>That will get you close, but not bit-for-bit; the objective function
-reproducible and it is not supposed to be.</p>
-<p>But it highlights a few other things; the sigdig has been aligned with
-other open source tools like SciPy and octave defaulting to <code>sigdig=3</code>
-giving <code>rtol=1e-3</code> and <code>atol=1e-5</code></p>
+<p>That will get you close, but it will not be bit-for-bit, and it is not
+meant to be.</p>
+<p>But it highlights a few other things; the <code>sigdig</code> default has been
+aligned with other open source tools like SciPy and Octave, defaulting
+to <code>sigdig=3</code> and giving <code>rtol=1e-3</code> and <code>atol=1e-6</code>.</p>
 </div>
 </div>
 <div id="saem-is-more-robust" class="section level2">
@@ -159,7 +181,7 @@ old behavior is <code>saemControl(type="nelder-mead")</code>.</p></li>
 <li><p>A population <code>theta</code> with no random effect on it (the SAEM <code>phi0</code>
 fixed effects) is now estimated directly as a regressor each
 iteration, with a bounded <code>bobyqa</code> that honors that parameter’s
-<code>ini()</code> block bounds — <code>saemControl(nonMuTheta="regress")</code>, the new
+<code>ini()</code> block bounds – <code>saemControl(nonMuTheta="regress")</code>, the new
 default. Previously these were stochastic <code>phi0</code> draws with a
 shrinking variance. On a simulated model with three no-eta thetas
 (<code>ka</code>, <code>V</code> and a Hill power) this recovered them far more accurately;
@@ -171,7 +193,7 @@ old handling is <code>saemControl(nonMuTheta="eta")</code>.</p></li>
 fit &lt;- nlmixr2(one.cmt, theo_sd, est=&quot;saem&quot;)
 
 # the nlmixr2 6 behavior; note there is a different random number
-# generator so you still cannot cannot get the same numbers
+# generator so you still cannot get the same numbers
 # as a 6.x fit
 
 fit &lt;- nlmixr2(one.cmt, theo_sd, est=&quot;saem&quot;,
@@ -186,11 +208,11 @@ a <code>saem</code> fit will <strong>not</strong> reproduce a pre-7.0 run number
 even with the same seed.</p>
 <p>I did not do this for its own sake. Getting the sampling stream
 cleanly separated from everything else the fit does is what makes the
-next round of refinements possible — the one I want most is being
+next round of refinements possible – the one I want most is being
 able to restart at the end of the stochastic approximation (SA) step
 with a larger number of SA iterations, instead of throwing the fit away
-and re-running the whole thing from the beginning to buy a longer burn
-in. That only works if the chain state at the end of the SA phase is a
+and re-running the whole thing from the beginning to buy a longer
+burn-in. That only works if the chain state at the end of the SA phase is a
 well-defined thing you can pick back up.</p>
 </div>
 </div>
@@ -198,13 +220,13 @@ well-defined thing you can pick back up.</p>
 <h2>New experimental estimation engines</h2>
 <p>There are a number of new estimation methods in this release:</p>
 <ul>
-<li><p><code>est="imp"</code>, <code>est="impmap"</code> and <code>est="qrpem"</code> — importance sampling
+<li><p><code>est="imp"</code>, <code>est="impmap"</code> and <code>est="qrpem"</code> – importance sampling
 EM in the style of <code>NONMEM</code> <code>METHOD=IMP</code>, with quasi-random (Sobol)
 sampling and SIR acceleration available.</p></li>
-<li><p><code>est="npag"</code> and <code>est="npb"</code> — nonparametric adaptive grid, and
+<li><p><code>est="npag"</code> and <code>est="npb"</code> – nonparametric adaptive grid, and
 nonparametric Bayes (a truncated stick-breaking Dirichlet process
 mixture; probably needs the most refinement).</p></li>
-<li><p><code>est="emvi"</code> and <code>est="fbvi"</code> — variational inference in the style
+<li><p><code>est="emvi"</code> and <code>est="fbvi"</code> – variational inference in the style
 of Kucukelbir et al. (2017). Note that neither of these is the
 published ADVI algorithm and neither is named for it; the gradient
 comes from the <code>focei</code> forward sensitivities rather than automatic
@@ -216,8 +238,8 @@ optimizer.</p></li>
 </ul>
 <p><strong>These are research methods.</strong> They are not validated to the standard
 of the established estimation methods, their results should not be
-relied on without independent checking, and — this is the part worth
-underlining — their interface and defaults may change or be withdrawn
+relied on without independent checking, and – this is the part worth
+underlining – their interface and defaults may change or be withdrawn
 in a future release without a deprecation cycle. A change to one of
 these will not earn a major version bump the way the <code>focei</code> changes
 above did.</p>
@@ -247,17 +269,18 @@ and more on this here later.</p>
 <div id="even-more" class="section level2">
 <h2>Even more</h2>
 <p>There are even more experimental features, including mixture models,
-auto-regressive residuals and delay differential equations and even
-more. I will talk through some of the new features in future blog
+auto-regressive residuals and delay differential equations. I will
+talk through some of the new features in future blog
 posts (and try to release more frequently to catch up with what is
 currently available).</p>
-<p>This is one of the first releases where I (and others in the team)
+<p>This is one of the first releases where I (and others on the team)
 have been leaning into AI to help the development process. There are
 some frustrations and interesting things I have found when looking at
-LLM-assisted development. Sometimes it helps, sometimes it doesn’t
-but it definitely helps prototype and explore methods that you may not
-explore in the same amount of time. So it both takes both more and less
-time depending on the task but overall it is a net gain for me.</p>
+LLM-assisted development. Sometimes it helps and sometimes it
+doesn’t, but it definitely helps prototype and explore methods that
+you may not get to in the same amount of time. So it takes both more
+and less time depending on the task, but overall it is a net gain for
+me.</p>
 </div>
 <div id="looking-forward" class="section level2">
 <h2>Looking forward</h2>
@@ -265,7 +288,7 @@ time depending on the task but overall it is a net gain for me.</p>
 comfortable to fit. A model that took an afternoon of finite
 differences is a different model to work with when the gradient is
 exact and threaded, and I expect that to show up first in the places
-where people quietly avoided <code>focei</code> — larger datasets, more etas,
+where people quietly avoided <code>focei</code> – larger datasets, more etas,
 models where the covariance step was the thing you gave up on.</p>
 <p>The experimental engines are subject to change. They are in the
 release so that people can try them and tell us where they break; they
