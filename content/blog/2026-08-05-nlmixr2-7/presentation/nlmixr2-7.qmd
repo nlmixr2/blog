@@ -74,9 +74,24 @@ format:
 </figure>
 :::
 
+::: {.notes}
+Hi, I'm here to talk about nlmixr2 7.0, where FOCEI now solves in parallel.
+This release covers five main updates:
+
+1. FOCEI solving in parallel.
+2. FOCEI fast getting an exact population gradient.
+3. Changes to FOCEI defaults.
+4. A more robust SAEM.
+5. Additional experimental engines and ODE solvers.
+:::
+
 ## 1. Solving in parallel {.sectionbreak}
 
 ![](images/sec-parallel.png){.nostretch}
+
+::: {.notes}
+First, Bill Denney, Hidde, and I worked on parallelizing FOCEI.
+:::
 
 ## In [nlmixr^2^]{.nlmixr} 6 every subject waited its turn; now they solve together
 
@@ -141,14 +156,19 @@ format:
 ```
 
 ::: {.notes}
-The first piece of work -- Bill, the AI agents and me -- was setting things up
-so each individual can be solved and optimized independently.  Once it was on
-CRAN we found OpenMP crashed R on Windows; Bill fixed that.
+In nlmixr2 versions 5 and 6, every subject waited its turn.  Now, they all
+solve together for FOCEI and most of our other estimation algorithms.  This
+means if you have a multi-core computer, your solving speed will be
+significantly faster.
 :::
 
 ## 2. Exact gradients, and the `fast` variants {.sectionbreak}
 
 ![](images/sec-fast.jpg){.nostretch}
+
+::: {.notes}
+Next, we introduced an exact gradient in the fast variants.
+:::
 
 ## The old outer gradient paid for one extra solve per parameter, per subject
 
@@ -216,6 +236,20 @@ CRAN we found OpenMP crashed R on Windows; Bill fixed that.
 </svg>
 ```
 
+::: {.notes}
+Previously, calculating the outer gradient -- the part of the optimization
+problem focused on getting the best population values and residual parameters
+-- required taking your base model and optimizing every individual to get the
+best empirical Bayesian estimates.  Then, you had to perform finite differences
+for each population parameter (adding $h \times \theta$) and redo the full
+optimization for every subject.  This resulted in $(p+1) \times n$ total
+optimizations.
+
+Our new analytic method allows you to skip those redundant optimizations to get
+the population gradients.  Based on the Almquist 2015 sensitivity equations,
+this exact gradient means you are no longer fighting optimization noise.
+:::
+
 ## The gradient you have decides the optimizer you want
 
 ```{=html}
@@ -277,8 +311,14 @@ CRAN we found OpenMP crashed R on Windows; Bill fixed that.
 ```
 
 ::: {.notes}
-Both lanes still find the individual MAP estimates with a gradient-based method
-using exact gradients.  It is only the population problem that changes.
+The gradient dictates the optimizer you want to use.  Standard FOCEI still uses
+finite differences for the population values, which results in a noisy gradient.
+Because of this, the default has changed to a derivative-free method called
+BOBYQA.  However, individual optimizations still use exact gradients with
+n1qn1.
+
+Our fast method uses these exact sensitivity equations and gradients, so we rely
+on a Quasi-Newton optimization type -- specifically, L-BFGS-B3c.
 :::
 
 ## `foceif` starts each individual search from where the last step says the eta went
@@ -322,6 +362,12 @@ using exact gradients.  It is only the population problem that changes.
   <text class="sm grn" x="560" y="112">few steps</text>
 </svg>
 ```
+
+::: {.notes}
+Because FOCEI fast starts its individual search by projecting where the $\eta$
+should be for the next optimization, it takes fewer steps to find the right
+empirical Bayesian estimate at a new $\theta$.
+:::
 
 ## Once the eta moves, the old curvature is the wrong curvature to hand `n1qn1`
 
@@ -368,14 +414,20 @@ using exact gradients.  It is only the population problem that changes.
 ```
 
 ::: {.notes}
-This is the change that surprised me.  Recalculating the Hessian every outer
-step costs something, and it still came out ahead on both the answer and the
-clock, so it is on by default.
+This efficiency made us rethink what data we need to save between steps.
+Previously, we saved the old curvature and sent it to the n1qn1 optimizer.
+However, if that curvature was wrong for the new $\theta$, it would take longer
+to zig-zag to the minimum.  Now, by recalculating the curvature (a warm start),
+we find the gradient and the minimum much faster.
 :::
 
 ## 3. New defaults for standard `focei` {.sectionbreak}
 
 ![](images/sec-defaults.jpg){.nostretch}
+
+::: {.notes}
+Because of these updates, we have new defaults in standard FOCEI.
+:::
 
 ## Standard `focei` still differences its gradient, so it now optimizes with `bobyqa`
 
@@ -416,6 +468,12 @@ clock, so it is on by default.
 </svg>
 ```
 
+::: {.notes}
+We use BOBYQA to fit a quadratic curve through spread-out samples, which
+naturally follows the minimization trend instead of getting stuck in the noise.
+This is especially useful for hard or complex surfaces.
+:::
+
 ## The old optimizer is one control argument away
 
 ::: {.smaller}
@@ -444,9 +502,7 @@ fit <- nlmixr2(one.cmt, theo_sd, est="focei",
 ```
 
 ::: {.notes}
-`nlminb` split its work between calculating gradients and evaluating points,
-which is why we chose it originally.  It can still give a "false convergence"
-message that I have often found misleading.
+If you prefer the old behavior, nlminb is still available.
 :::
 
 ## Four defaults moved, which is why `focei` will not reproduce a 6.x fit
@@ -510,9 +566,19 @@ message that I have often found misleading.
 </svg>
 ```
 
+::: {.notes}
+We also changed the tolerance from sigdig=4 to sigdig=3 to better match
+open-source tools like SciPy and Octave, and we removed the $\eta$ drift
+reset.
+:::
+
 ## 4. Making `saem` more robust {.sectionbreak}
 
 ![](images/sec-saem.jpg){.nostretch}
+
+::: {.notes}
+We also made SAEM significantly more robust.
+:::
 
 ## `saem` estimates a no-eta parameter directly instead of sampling it
 
@@ -563,9 +629,12 @@ message that I have often found misleading.
 ```
 
 ::: {.notes}
-It does cost some runtime, because the objective re-solves the ODE.  The
-inner optimization also moved from Nelder-Mead to `newuoa`; the old behavior
-is `saemControl(type="nelder-mead", nonMuTheta="eta")`.
+In the previous release, population parameters with no random effect on them
+(the stochastic phi0 draws) were continuously sampled until the variance shrank
+at the end.  While this usually
+settled, it could become biased if it didn't settle exactly where the parameter
+was.  If we use a regression bounded by the initial estimates -- in this case,
+BOBYQA -- it honors the exact location and drops the RMSE by 16-fold.
 :::
 
 ## A separated random stream is what makes restarting the SA phase possible
@@ -611,14 +680,62 @@ is `saemControl(type="nelder-mead", nonMuTheta="eta")`.
 ```
 
 ::: {.notes}
-I did not change the generator for its own sake.  The dashed box is a future
-release, not this one -- but it only works if the chain state at the end of the
-SA phase is something you can pick back up.
+We also changed how random number streams function.  By using thread-safe
+random streams, every single point in the optimization can be reproduced, and
+every independent draw is completely independent.  This allows you to safely extend
+the chain rather than throwing away previous SAEM fits.
 :::
 
 ## 5. New engines, and many new ODE solvers {.sectionbreak}
 
 ![](images/sec-engines.jpg){.nostretch}
+
+::: {.notes}
+Finally, we've added more experimental ODE solvers.
+:::
+
+## AutoSwitch reaches for the stiff solver only when the problem turns stiff
+
+```{=html}
+<svg class="dg" viewBox="0 0 1000 400" role="img"
+     aria-label="A solution curve with a stiff region in the middle. The solver band underneath shows dop853 running, a stiffness detection flag, ros4 taking over the stiff stretch, and dop853 resuming.">
+  <!-- solution curve -->
+  <path d="M70,150 C150,120 210,118 260,138 C300,154 320,176 340,196
+           C356,212 368,60 384,196 C398,214 410,64 424,196 C440,214 452,66 468,198
+           C500,222 540,214 600,204 C700,188 820,176 940,170"
+        fill="none" stroke="#1f497d" stroke-width="2.5"/>
+  <text class="sm blue" x="70" y="108">solution</text>
+  <text class="sm" x="426" y="46" text-anchor="middle">stiff stretch</text>
+  <line x1="426" y1="54" x2="426" y2="72" stroke="#8f9db0" stroke-width="1.5"/>
+
+  <!-- solver band -->
+  <rect x="70"  y="256" width="270" height="48" rx="4" fill="#dce6f1" stroke="#4f81bd" stroke-width="1.5"/>
+  <text class="mono blue" x="205" y="286" text-anchor="middle">dop853</text>
+  <rect x="340" y="256" width="150" height="48" rx="4" fill="#f3dede" stroke="#b40000" stroke-width="1.5"/>
+  <text class="mono red" x="415" y="286" text-anchor="middle">ros4</text>
+  <rect x="490" y="256" width="450" height="48" rx="4" fill="#dce6f1" stroke="#4f81bd" stroke-width="1.5"/>
+  <text class="mono blue" x="715" y="286" text-anchor="middle">dop853</text>
+
+  <!-- detection flags -->
+  <line x1="340" y1="226" x2="340" y2="252" stroke="#b40000" stroke-width="2"/>
+  <polygon points="340,252 335,242 345,242" fill="#b40000"/>
+  <text class="sm red" x="332" y="243" text-anchor="end">stiffness detected</text>
+  <line x1="490" y1="226" x2="490" y2="252" stroke="#4f81bd" stroke-width="2"/>
+  <polygon points="490,252 485,242 495,242" fill="#4f81bd"/>
+  <text class="sm blue" x="500" y="243">back to non-stiff</text>
+
+  <!-- axis -->
+  <line x1="70" y1="322" x2="940" y2="322" stroke="#0f243e" stroke-width="1.5"/>
+  <text class="sm" x="70" y="344">time</text>
+
+  <text class="mono" x="70" y="384">rxSolve(model, ev, method="dop853+ros4")</text>
+</svg>
+```
+
+::: {.notes}
+You can now combine stiff and non-stiff solvers -- similar to lsoda -- using
+methods like DOP853 and Rosenbrock4.
+:::
 
 ## The new engines are research code and may change without a deprecation cycle
 
@@ -665,48 +782,9 @@ SA phase is something you can pick back up.
 </svg>
 ```
 
-## AutoSwitch reaches for the stiff solver only when the problem turns stiff
-
-```{=html}
-<svg class="dg" viewBox="0 0 1000 400" role="img"
-     aria-label="A solution curve with a stiff region in the middle. The solver band underneath shows dop853 running, a stiffness detection flag, ros4 taking over the stiff stretch, and dop853 resuming.">
-  <!-- solution curve -->
-  <path d="M70,150 C150,120 210,118 260,138 C300,154 320,176 340,196
-           C356,212 368,60 384,196 C398,214 410,64 424,196 C440,214 452,66 468,198
-           C500,222 540,214 600,204 C700,188 820,176 940,170"
-        fill="none" stroke="#1f497d" stroke-width="2.5"/>
-  <text class="sm blue" x="70" y="108">solution</text>
-  <text class="sm" x="426" y="46" text-anchor="middle">stiff stretch</text>
-  <line x1="426" y1="54" x2="426" y2="72" stroke="#8f9db0" stroke-width="1.5"/>
-
-  <!-- solver band -->
-  <rect x="70"  y="256" width="270" height="48" rx="4" fill="#dce6f1" stroke="#4f81bd" stroke-width="1.5"/>
-  <text class="mono blue" x="205" y="286" text-anchor="middle">dop853</text>
-  <rect x="340" y="256" width="150" height="48" rx="4" fill="#f3dede" stroke="#b40000" stroke-width="1.5"/>
-  <text class="mono red" x="415" y="286" text-anchor="middle">ros4</text>
-  <rect x="490" y="256" width="450" height="48" rx="4" fill="#dce6f1" stroke="#4f81bd" stroke-width="1.5"/>
-  <text class="mono blue" x="715" y="286" text-anchor="middle">dop853</text>
-
-  <!-- detection flags -->
-  <line x1="340" y1="226" x2="340" y2="252" stroke="#b40000" stroke-width="2"/>
-  <polygon points="340,252 335,242 345,242" fill="#b40000"/>
-  <text class="sm red" x="332" y="243" text-anchor="end">stiffness detected</text>
-  <line x1="490" y1="226" x2="490" y2="252" stroke="#4f81bd" stroke-width="2"/>
-  <polygon points="490,252 485,242 495,242" fill="#4f81bd"/>
-  <text class="sm blue" x="500" y="243">back to non-stiff</text>
-
-  <!-- axis -->
-  <line x1="70" y1="322" x2="940" y2="322" stroke="#0f243e" stroke-width="1.5"/>
-  <text class="sm" x="70" y="344">time</text>
-
-  <text class="mono" x="70" y="384">rxSolve(model, ev, method="dop853+ros4")</text>
-</svg>
-```
-
 ::: {.notes}
-Alongside this there is a large suite of new tableaus, Rosenbrock and implicit
-Runge-Kutta methods, SUNDIALS CVODE and LSODE.  There is an "ODE solvers"
-article in rxode2 covering all of them.
+We've also introduced new experimental optimization methods like IMP, QRPEM, and
+new FOCEI variants.
 :::
 
 ## Where this lands
@@ -727,4 +805,15 @@ article in rxode2 covering all of them.
 :::
 ::::
 
+::: {.notes}
+To summarize: FOCEI solves in parallel on every OpenMP-enabled platform, FOCEI
+fast utilizes an exact population gradient, our defaults have moved to BOBYQA
+for better accuracy on noisy parameters, SAEM is more robust, and we have many
+new ODE solvers to test.
+:::
+
 ## Thank you {.thanks}
+
+::: {.notes}
+Thank you for letting me share this release with you!
+:::
