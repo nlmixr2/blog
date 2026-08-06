@@ -125,7 +125,7 @@ by default).
 If you need to tweak this setting, `foceiControl(warm=)` controls how
 the `n1qn1` inner problem is seeded with the curvature.  The default
 is now `warm="calc"`, which calculates the eta Hessian at the current
-`theta` and warm-starts `n1qn1` with it.  Since `theta` moves between
+parameters and warm-starts `n1qn1` with it.  Since `theta` moves between
 outer evaluations, it is always recalculated and never reused from an
 earlier round.  The classic self-initialized Hessian is still there
 with `warm="save"`.
