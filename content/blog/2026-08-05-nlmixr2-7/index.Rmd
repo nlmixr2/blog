@@ -205,7 +205,8 @@ meant to be.
 
 But it highlights a few other things; the `sigdig` default has been
 aligned with other open source tools like SciPy and Octave, defaulting
-to `sigdig=3` and giving `rtol=1e-3` and `atol=1e-6`.
+to `sigdig=3` and giving `rtol=1e-3` and `atol=1e-6` and theta reset
+is now turned off by default.
 
 ## `saem` is more robust
 
