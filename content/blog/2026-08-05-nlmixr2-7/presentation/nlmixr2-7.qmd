@@ -70,7 +70,7 @@ format:
 </figure>
 <figure>
 <img src="images/sec-engines.jpg">
-<figcaption><b>5.</b> New engines, and many new ODE solvers</figcaption>
+<figcaption><b>5.</b> Many new ODE solvers, and new engines</figcaption>
 </figure>
 :::
 
@@ -686,7 +686,7 @@ every independent draw is completely independent.  This allows you to safely ext
 the chain rather than throwing away previous SAEM fits.
 :::
 
-## 5. New engines, and many new ODE solvers {.sectionbreak}
+## 5. Many new ODE solvers, and new engines {.sectionbreak}
 
 ![](images/sec-engines.jpg){.nostretch}
 
