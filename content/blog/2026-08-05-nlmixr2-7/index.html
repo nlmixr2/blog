@@ -63,12 +63,12 @@ sibling that is simply the method with <code>fast=TRUE</code> as its default:</p
 <pre class="r"><code>fit &lt;- nlmixr2(one.cmt, theo_sd, est=&quot;foceif&quot;)
 
 print(fit)</code></pre>
-<p>One of the interesting things that Almquist’s derivation talked is how
-to get the best individual MAP estimate faster by using the projected
-<code>eta</code> for the next step (Almquist’s Eq. 48). By default in these fast
-methods, the warm-start the search for the best eta for the next step
-with the projected eta (<code>mceta=-2</code>) rather than the last known best
-eta (which still happens when <code>fast=FALSE</code>).</p>
+<p>One of the interesting things that Almquist’s derivation talked about
+is how to get the best individual MAP estimate faster. This is done by
+using the projected <code>eta</code> for the next step (Almquist’s Eq. 48). By
+default in these fast methods, the warm-start the search for the best
+eta for the next step with the projected eta (<code>mceta=-2</code>) rather than
+the last known best eta (which still happens when <code>fast=FALSE</code>).</p>
 <p>This required rethinking how we use the individual’s curvature
 (i.e. hessian) to pre-inform the <code>n1qn1</code> optimizer (better prior
 information=faster and better fits). When the eta changes positions

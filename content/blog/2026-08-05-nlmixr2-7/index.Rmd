@@ -78,12 +78,12 @@ fit <- nlmixr2(one.cmt, theo_sd, est="foceif")
 print(fit)
 ```
 
-One of the interesting things that Almquist's derivation talked is how
-to get the best individual MAP estimate faster by using the projected
-`eta` for the next step (Almquist's Eq. 48).  By default in these fast
-methods, the warm-start the search for the best eta for the next step
-with the projected eta (`mceta=-2`) rather than the last known best
-eta (which still happens when `fast=FALSE`).
+One of the interesting things that Almquist's derivation talked about
+is how to get the best individual MAP estimate faster. This is done by
+using the projected `eta` for the next step (Almquist's Eq. 48).  By
+default in these fast methods, the warm-start the search for the best
+eta for the next step with the projected eta (`mceta=-2`) rather than
+the last known best eta (which still happens when `fast=FALSE`).
 
 This required rethinking how we use the individual's curvature
 (i.e. hessian) to pre-inform the `n1qn1` optimizer (better prior
