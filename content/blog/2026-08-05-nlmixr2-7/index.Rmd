@@ -11,6 +11,8 @@ tags: []
 knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
 ```
 
+![](nlmixr2-7-wide.png)
+
 ## nlmixr2 7.0
 
 This is the release where `focei` finally solves in parallel on all
@@ -289,6 +291,22 @@ delay models default to `"dop853+ros4"` for exactly this reason.
 There is a new "ODE solvers" article in `rxode2` covering all of them,
 and more on this here later.
 
+## Even more
+
+There are even more experimental features, including mixture models,
+auto-regressive residuals and delay differential equations and even
+more.  I will talk through some of the new features in future blog
+posts (and try to release more frequently to catch up with what is
+currently available).
+
+This is one of the first releases where I (and others in the team)
+have been leaning into AI to help the development process.  There are
+some frustrations and interesting things I have found when looking at
+LLM-assisted development.  Sometimes it helps, sometimes it doesn't
+but it definitely helps prototype and explore methods that you may not
+explore in the same amount of time.  So it both takes both more and less
+time depending on the task but overall it is a net gain for me.
+
 ## Looking forward
 
 The parallel outer gradient is the piece that changes what is
@@ -298,10 +316,10 @@ exact and threaded, and I expect that to show up first in the places
 where people quietly avoided `focei` --- larger datasets, more etas,
 models where the covariance step was the thing you gave up on.
 
-The experimental engines are where the next year of work is.  They are
-in the release so that people can try them and tell us where they
-break; they are labeled experimental so that we can fix them without
-breaking anyone.
+The experimental engines are subject to change.  They are in the
+release so that people can try them and tell us where they break; they
+are labeled experimental so that we can fix them without breaking
+anyone.
 
 ## References
 
