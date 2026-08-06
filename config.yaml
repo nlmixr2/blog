@@ -16,6 +16,7 @@ ignoreFiles:
   - _cache$
   - \.knit\.md$
   - \.utf8\.md$
+  - "\\.#.*"
 enableEmoji: yes
 markup:
   defaultMarkdownHandler: goldmark
