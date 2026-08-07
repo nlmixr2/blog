@@ -644,7 +644,7 @@ Matthew Fidler
   <text class="sm grn" x="612" y="306">and lands on the trend, not on a wiggle</text>
 </svg>
 <aside class="notes">
-<p>It fits a quadratic curve through spread-out samples, which naturally follows the minimization trend instead of getting stuck in the noise. This is especially useful for hard or complex surfaces.</p>
+<p>Our standard method now optimizes using a quadratic curve through spread-out samples. This naturally follows the minimization trend instead of getting stuck in the noise. This is especially useful for hard or complex surfaces.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -828,7 +828,7 @@ Matthew Fidler
   <text class="sm grn" x="540" y="368">on three no-eta thetas, the absorption RMSE dropped ~16x</text>
 </svg>
 <aside class="notes">
-<p>In the previous release, population parameters with no random effect on them (the stochastic phi0 draws) were continuously sampled until the variance shrank at the end. While this usually settled, it could become biased if it didn’t settle exactly where the parameter was. If we use a bounded regression – it honors the exact location and drops the error measured by RMSE by 16-fold.</p>
+<p>In the previous release, population parameters with no random effect on them were continuously sampled until the variance shrank at the end. While this usually settled, it could become biased if it didn’t settle exactly where it needed to. If we use a bounded regression – it honors the exact location and drops the error measured by RMSE by 16-fold.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -896,7 +896,7 @@ Matthew Fidler
 <h2>5. Many new ODE solvers, and new engines</h2>
 <p><img data-src="images/sec-engines.jpg" class=""></p>
 <aside class="notes">
-<p>Finally, we’ve added more experimental ODE solvers.</p>
+<p>Finally, we’ve added more experimental ODE solvers and Nonlinear mixed effect estimation methods</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -1447,6 +1447,32 @@ Matthew Fidler
         }
       });
       </script>
+    <script>
+    (function () {
+      function arm() {
+        if (document.getElementById('audio-start')) return;
+        var d = document.createElement('div');
+        d.id = 'audio-start';
+        d.innerHTML = '<button style="font: 600 22px/1 Calibri, sans-serif;' +
+          'color:#fff;background:#b40000;border:0;border-radius:6px;' +
+          'padding:18px 30px;cursor:pointer">&#9654;&nbsp; Play with narration</button>' +
+          '<div style="margin-top:14px;font:16px Calibri,sans-serif;color:#17375d">' +
+          'your browser needs one click before it will play audio</div>';
+        d.style.cssText = 'position:fixed;inset:0;z-index:60;display:flex;' +
+          'flex-direction:column;align-items:center;justify-content:center;' +
+          'background:rgba(255,255,255,.92);text-align:center';
+        d.addEventListener('click', function () {
+          var a = document.querySelector('audio[id^="audioplayer-"]');
+          if (a) { var pr = a.play(); if (pr && pr.catch) pr.catch(function () {}); }
+          d.remove();
+        });
+        document.body.appendChild(d);
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', arm);
+      } else { arm(); }
+    })();
+    </script>
     
 
 </body></html>

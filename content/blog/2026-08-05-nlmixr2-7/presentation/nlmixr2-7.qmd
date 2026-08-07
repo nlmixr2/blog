@@ -12,6 +12,39 @@ title-slide-attributes:
 # _extensions/audio-slideshow/_extension.yml.
 revealjs-plugins:
   - audio-slideshow
+# Browsers refuse to start audio until the page has had a real user gesture
+# (Chrome: "NotAllowedError: play() failed because the user didn't interact
+# with the document first"), so autoplay:true alone leaves the deck silent on
+# slide 1.  No plugin setting can override it.  This overlay takes one click
+# and starts playback; from then on the plugin advances by itself.
+include-after-body:
+  text: |
+    <script>
+    (function () {
+      function arm() {
+        if (document.getElementById('audio-start')) return;
+        var d = document.createElement('div');
+        d.id = 'audio-start';
+        d.innerHTML = '<button style="font: 600 22px/1 Calibri, sans-serif;' +
+          'color:#fff;background:#b40000;border:0;border-radius:6px;' +
+          'padding:18px 30px;cursor:pointer">&#9654;&nbsp; Play with narration</button>' +
+          '<div style="margin-top:14px;font:16px Calibri,sans-serif;color:#17375d">' +
+          'your browser needs one click before it will play audio</div>';
+        d.style.cssText = 'position:fixed;inset:0;z-index:60;display:flex;' +
+          'flex-direction:column;align-items:center;justify-content:center;' +
+          'background:rgba(255,255,255,.92);text-align:center';
+        d.addEventListener('click', function () {
+          var a = document.querySelector('audio[id^="audioplayer-"]');
+          if (a) { var pr = a.play(); if (pr && pr.catch) pr.catch(function () {}); }
+          d.remove();
+        });
+        document.body.appendChild(d);
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', arm);
+      } else { arm(); }
+    })();
+    </script>
 format:
   nlmixr2-revealjs:
     embed-resources: false
@@ -490,9 +523,10 @@ Because of these updates, we have new defaults in the standard method.
 ```
 
 ::: {.notes}
-It fits a quadratic curve through spread-out samples, which
-naturally follows the minimization trend instead of getting stuck in the noise.
-This is especially useful for hard or complex surfaces.
+Our standard method now optimizes using a quadratic curve through
+spread-out samples. This naturally follows the minimization trend
+instead of getting stuck in the noise.  This is especially useful for
+hard or complex surfaces.
 :::
 
 ## The old optimizer is one control argument away
@@ -658,11 +692,11 @@ We also made SAEM significantly more robust.
 
 ::: {.notes}
 In the previous release, population parameters with no random effect
-on them (the stochastic phi0 draws) were continuously sampled until
-the variance shrank at the end.  While this usually settled, it could
-become biased if it didn't settle exactly where the parameter was.  If
-we use a bounded regression -- it honors the exact location and drops the error measured by
-RMSE by 16-fold.
+on them were continuously sampled until the variance shrank at the
+end.  While this usually settled, it could become biased if it didn't
+settle exactly where it needed to.  If we use a bounded
+regression -- it honors the exact location and drops the error
+measured by RMSE by 16-fold.
 :::
 
 ## A separated random stream is what makes restarting the SA phase possible
@@ -719,7 +753,7 @@ to safely extend the chain rather than throwing away previous fits.
 ![](images/sec-engines.jpg){.nostretch}
 
 ::: {.notes}
-Finally, we've added more experimental ODE solvers.
+Finally, we've added more experimental ODE solvers and Nonlinear mixed effect estimation methods
 :::
 
 ## AutoSwitch reaches for the stiff solver only when the problem turns stiff

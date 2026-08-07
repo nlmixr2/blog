@@ -211,6 +211,60 @@ def spoken(text: str) -> str:
     return re.sub(r"\s+", " ", " ".join(parts)).strip()
 
 
+# Disfluencies the model invents that are not in the notes ("...ODE solvers
+# and, uh, nonlinear mixed effect estimation methods").  Cut out of the audio
+# rather than hoping a regeneration comes back clean.
+FILLERS = r"uh|um|uhm|erm|hmm|mmm"
+
+
+def remove_fillers(path, key):
+    """Excise invented filler words from a finished clip.
+
+    Uses Scribe word timings on the rendered audio, and cuts from the end of
+    the preceding word to the start of the following one, so the filler AND the
+    hesitation around it both go.
+    """
+    import subprocess, tempfile
+    r = requests.post("https://api.elevenlabs.io/v1/speech-to-text",
+                      headers={"xi-api-key": key}, data={"model_id": "scribe_v1"},
+                      files={"file": open(path, "rb")}, timeout=180)
+    if r.status_code != 200:
+        return 0
+    ws = r.json().get("words", [])
+    words = [w for w in ws if w.get("type") == "word"]
+    cuts = []
+    for i, w in enumerate(words):
+        if re.fullmatch(FILLERS, w["text"].strip(" ,."), re.I):
+            a = words[i - 1]["end"] if i else max(0.0, w["start"] - 0.05)
+            b = words[i + 1]["start"] if i + 1 < len(words) else w["end"]
+            cuts.append((a, b))
+    if not cuts:
+        return 0
+    total = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries",
+                                  "format=duration", "-of", "default=nw=1:nk=1",
+                                  str(path)], capture_output=True, text=True).stdout)
+    with tempfile.TemporaryDirectory() as td:
+        td = pathlib.Path(td); parts = []; cur = 0.0; n = 0
+        def keep(a, b):
+            nonlocal n
+            if b - a < 0.02:
+                return
+            out = td / f"{n:03d}.wav"; n += 1
+            subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-ss", f"{a:.3f}",
+                            "-to", f"{b:.3f}", "-i", str(path), "-ar", "44100",
+                            "-ac", "1", str(out)], check=True)
+            parts.append(out)
+        for a, b in cuts:
+            keep(cur, a); cur = b
+        keep(cur, total)
+        lst = td / "list.txt"
+        lst.write_text("".join(f"file '{q}'\n" for q in parts))
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe",
+                        "0", "-i", str(lst), "-c:a", "libmp3lame", "-b:a", "192k",
+                        str(path)], check=True)
+    return len(cuts)
+
+
 def speed_up_terms(path, key):
     """Re-time just the technical terms inside one finished clip.
 
@@ -492,9 +546,11 @@ def single_take(slides, key):
                 cmd += ["-af", ",".join(af)]
             cmd += ["-c:a", "libmp3lame", "-b:a", "192k", str(dest)]
             subprocess.run(cmd, check=True)
+            nfill = remove_fillers(dest, key)
             nterms = speed_up_terms(dest, key)
             print(f"slide{s['h']}.0  {t0:7.2f}-{t1:7.2f}s  "
                   f"{t1 - t0:5.1f}s  {dest.stat().st_size:>7} bytes"
+                  f"{f'  ({nfill} filler cut)' if nfill else ''}"
                   f"{f'  ({nterms} terms re-timed)' if nterms else ''}")
     print(f"\ncut {len(slides)} clips from one {total:.1f}s take")
 
