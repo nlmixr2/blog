@@ -60,3 +60,6 @@ eta-samples/
 __pycache__/
 pronunciation-samples/
 term-speed-samples/
+
+# Rendered presentation video -- uploaded to YouTube, not stored here
+**/presentation/*.mp4

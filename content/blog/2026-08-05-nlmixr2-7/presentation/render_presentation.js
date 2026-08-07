@@ -107,10 +107,16 @@ function duration(file) {
     await page.waitForFunction(() => window.Reveal && Reveal.isReady(),
                                { timeout: 120000 });
 
-    // The audio plugin paints a player over the deck and would auto-advance
-    // mid-capture; neither belongs in a screenshot.
-    await page.addStyleTag({ content: '.audio-controls{display:none !important}' });
+    // Anything painted OVER the deck has to go before capturing.  Two things
+    // qualify: the audio plugin's player, and the click-to-start overlay the
+    // deck shows so browsers will allow autoplay -- that one is
+    // position:fixed;inset:0, is never dismissed headless, and so covers every
+    // single screenshot.
+    await page.addStyleTag({ content:
+      '.audio-controls,#audio-start{display:none !important}' });
     await page.evaluate(() => {
+      const o = document.getElementById('audio-start');
+      if (o) o.remove();
       document.querySelectorAll('audio').forEach(a => { a.pause(); a.autoplay = false; });
       Reveal.configure({ autoSlide: 0, loop: false, transition: 'none' });
     });
