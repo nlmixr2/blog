@@ -405,7 +405,7 @@ Matthew Fidler
   <text class="sm" x="520" y="368">exact, so the optimizer is not fighting solver noise</text>
 </svg>
 <aside class="notes">
-<p>Previously, calculating the outer gradient – the part of the optimization problem focused on getting the best population values and residual parameters – required taking your base model and optimizing every individual to get the best empirical Bayesian estimates. Then, you had to perform finite differences for each population parameter and redo the full optimization for every subject. This resulted in p plus one, times n total optimizations.</p>
+<p>Previously, calculating the outer gradient – the part of the optimization problem focused on getting the best population values and residual parameters – required taking your base model and optimizing every individual to get the best individual estimates. Then, you had to perform finite differences for each population parameter and redo the full optimization for every subject. This resulted in p plus one, times n total optimizations.</p>
 <p>Our new analytic method allows you to skip those redundant optimizations to get the population gradients. Based on the Almquist 2015 sensitivity equations, this exact gradient means you are no longer fighting optimization and solver noise.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
@@ -526,7 +526,7 @@ Matthew Fidler
   <text class="sm grn" x="560" y="112">few steps</text>
 </svg>
 <aside class="notes">
-<p>Because the fast method starts its individual search by projecting where the individual estimate should be for the next optimization, it takes fewer steps to find the right empirical Bayesian estimate at a new theta.</p>
+<p>Because the fast method starts its individual search by projecting where the individual estimate should be for the next optimization, it takes fewer steps to find the right individual estimate at a new theta.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;

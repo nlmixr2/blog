@@ -260,7 +260,7 @@ Next, Hidde and I introduced an exact gradient in the fast variants.
 Previously, calculating the outer gradient -- the part of the
 optimization problem focused on getting the best population values and
 residual parameters -- required taking your base model and optimizing
-every individual to get the best empirical Bayesian estimates.  Then,
+every individual to get the best individual estimates.  Then,
 you had to perform finite differences for each population parameter
 and redo the full optimization for every subject.  This resulted in
 p plus one, times n total optimizations.
@@ -387,7 +387,7 @@ on a Quasi-Newton optimization type -- specifically, L-BFGS-B3c.
 ::: {.notes}
 Because the fast method starts its individual search by projecting where the individual estimate
 should be for the next optimization, it takes fewer steps to find the right
-empirical Bayesian estimate at a new theta.
+individual estimate at a new theta.
 :::
 
 ## Once the eta moves, the old curvature is the wrong curvature to hand `n1qn1`
