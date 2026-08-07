@@ -25,12 +25,12 @@ TAG    = ""
 # Continuity across slides comes from recording ONE take (see single_take()),
 # so stability can be lower here and let more expression through; style is what
 # gives the read its smile.
-VOICE_SETTINGS = {"stability": 0.40, "similarity_boost": 0.75,
+VOICE_SETTINGS = {"stability": 0.35, "similarity_boost": 0.75,
                   "style": 0.55, "use_speaker_boost": True,
-                  # Brisker than default; past ~1.2 the spelled-out method
-                  # names start slurring (1.18 turned FOCEI into "FOCEA").
-                  # Further pace is added in post via TEMPO below.
-                  "speed": 1.12}
+                  # Past ~1.2 the spelled-out method names slur (1.18 turned
+                  # FOCEI into "FOCEA").  Further pace is added in post via
+                  # TEMPO below, which is free to retune with --recut.
+                  "speed": 1.06}
 
 # Pitch shifting made it sound less like the real voice, so it is off.
 PITCH = 1.0
