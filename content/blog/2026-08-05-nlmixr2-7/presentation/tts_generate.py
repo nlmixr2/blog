@@ -48,16 +48,26 @@ TERM_TEMPO = 1.226   # fallback ratio for terms with no target below
 # same length however the model happened to say it.  Values are seconds, set
 # near the fastest instance the model produces naturally.
 TERM_TARGETS = [
-    (r"F-?O-?C-?E-?I",        0.62),   # 0.58 over-compressed the longest instances into "FOCE I"
-    (r"S-?A-?E-?M",           0.55),
-    (r"N-?L-?M-?I-?N-?B",     0.70),
-    (r"B-?O-?B-?Y-?Q-?A",     0.75),
-    (r"Rx?-?ODE\s*2",         0.62),
-    (r"NL\s*Mixer\s*2",      0.75),
-    (r"D-?O-?P-?\s*853",      0.70),
+    (r"F-?O-?C-?E-?I",        0.68),   # 0.58 split one into "FOCE I"; 0.62 still clipped
+    (r"S-?A-?E-?M",           0.60),
+    (r"N-?L-?M-?I-?N-?B",     0.74),
+    (r"B-?O-?B-?Y-?Q-?A",     0.86),   # 6 letters -- 0.75 rushed it
+    (r"Rx?-?ODE\s*2",         0.66),
+    (r"NL\s*Mixer\s*2",      0.78),
+    (r"D-?O-?P-?\s*853",      0.74),
 ]
-# never slow a term down, and never compress past intelligibility
-TERM_TEMPO_MIN, TERM_TEMPO_MAX = 1.0, 1.8
+
+# Terms must be allowed to SLOW DOWN as well as speed up.  With the floor at
+# 1.0 only the long instances were ever touched, so the naturally-fast ones
+# stayed clipped -- which is why some sounded rushed and robotic while others
+# were fine.
+TERM_TEMPO_MIN, TERM_TEMPO_MAX = 0.80, 1.45
+
+# How hard to pull toward the target.  1.0 makes every instance exactly the
+# same length, which is itself unnatural -- real speech varies a term's length
+# with position and emphasis.  0.7 removes the extremes but keeps some of that
+# variation.
+TERM_STRENGTH = 0.7
 
 # Word sequences to speed up, as they appear in a Scribe TRANSCRIPT (not as
 # they are spelled in SAY).  Matched case-insensitively against runs of 1-3
@@ -224,7 +234,8 @@ def speed_up_terms(path, key):
             tempo = TERM_TEMPO
             for pat, target in TERM_TARGETS:
                 if re.fullmatch(pat, joined, re.I):
-                    tempo = (b - a) / target
+                    full = (b - a) / target
+                    tempo = 1.0 + TERM_STRENGTH * (full - 1.0)   # partial pull
                     break
             tempo = max(TERM_TEMPO_MIN, min(TERM_TEMPO_MAX, tempo))
             spans.append((a, b, tempo)); i += n
