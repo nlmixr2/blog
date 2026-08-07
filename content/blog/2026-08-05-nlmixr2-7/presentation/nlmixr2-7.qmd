@@ -2,9 +2,29 @@
 title: "[nlmixr^2^]{.nlmixr} 7.0: `focei` solves in parallel"
 author: "Matthew Fidler"
 institute: "On behalf of the [nlmixr2]{.nlmixr} team"
+# The title slide is generated from the YAML, so a ::: {.notes} div cannot be
+# attached to it in markdown -- one placed before the first heading becomes a
+# separate blank slide.  reveal reads speaker notes from data-notes as well.
+title-slide-attributes:
+  data-notes: "Hi, I'm here to talk about nlmixr2 7.0, where FOCEI now solves in parallel."
+# Narration.  One clip per slide in audio/, bound and auto-advanced by the
+# vendored audio-slideshow plugin; its options live in
+# _extensions/audio-slideshow/_extension.yml.
+revealjs-plugins:
+  - audio-slideshow
 format:
   nlmixr2-revealjs:
     embed-resources: false
+    # MathJax stays enabled -- math is fine in the SLIDE BODIES.
+    #
+    # Keep math OUT OF THE ::: {.notes} blocks, though.  The notes are the
+    # spoken script: they are read aloud in the speaker view and fed to
+    # text-to-speech, and a `$\theta$` there is pronounced as backslash-theta.
+    # Write the spoken form instead -- "theta", "p plus one, times n".
+    #
+    # MathJax also injects its MJX_Assistive_MathML stylesheet into the notes
+    # markup, so anything scraping a transcript out of <aside class="notes">
+    # must strip <style> and <script> before taking the text.
     include-in-header:
       text: |
         <style>
@@ -75,7 +95,6 @@ format:
 :::
 
 ::: {.notes}
-Hi, I'm here to talk about nlmixr2 7.0, where FOCEI now solves in parallel.
 This release covers five main updates:
 
 1. FOCEI solving in parallel.
@@ -90,7 +109,7 @@ This release covers five main updates:
 ![](images/sec-parallel.png){.nostretch}
 
 ::: {.notes}
-First, Bill Denney, Hidde, and I worked on parallelizing FOCEI.
+First, Bill, Hidde, and I worked on parallelizing FOCEI.
 :::
 
 ## In [nlmixr^2^]{.nlmixr} 6 every subject waited its turn; now they solve together
@@ -156,10 +175,10 @@ First, Bill Denney, Hidde, and I worked on parallelizing FOCEI.
 ```
 
 ::: {.notes}
-In nlmixr2 versions 5 and 6, every subject waited its turn.  Now, they all
-solve together for FOCEI and most of our other estimation algorithms.  This
-means if you have a multi-core computer, your solving speed will be
-significantly faster.
+In nlmixr2 versions 5 and 6, every subject waited its turn.  Now, they
+all solve and optimize together for FOCEI and most of our other
+estimation algorithms.  This means if you have a multi-core computer,
+your solving speed will be significantly faster.
 :::
 
 ## 2. Exact gradients, and the `fast` variants {.sectionbreak}
@@ -167,7 +186,7 @@ significantly faster.
 ![](images/sec-fast.jpg){.nostretch}
 
 ::: {.notes}
-Next, we introduced an exact gradient in the fast variants.
+Next, Hidde and I introduced an exact gradient in the fast variants.
 :::
 
 ## The old outer gradient paid for one extra solve per parameter, per subject
@@ -207,7 +226,7 @@ Next, we introduced an exact gradient in the fast variants.
   <text class="sm" x="38" y="110" text-anchor="end">id 1</text>
   <text class="sm" x="38" y="280" text-anchor="end">id n</text>
   <text class="t"  x="30" y="322">(p + 1) &#215; n solves</text>
-  <text class="sm" x="30" y="346">every column is a whole pass over the data</text>
+  <text class="sm" x="30" y="346">every column is a whole optimization over the data</text>
   <text class="sm" x="30" y="368">the difference approximates what the solve already knows</text>
 
   <!-- divider -->
@@ -237,17 +256,17 @@ Next, we introduced an exact gradient in the fast variants.
 ```
 
 ::: {.notes}
-Previously, calculating the outer gradient -- the part of the optimization
-problem focused on getting the best population values and residual parameters
--- required taking your base model and optimizing every individual to get the
-best empirical Bayesian estimates.  Then, you had to perform finite differences
-for each population parameter (adding $h \times \theta$) and redo the full
-optimization for every subject.  This resulted in $(p+1) \times n$ total
-optimizations.
+Previously, calculating the outer gradient -- the part of the
+optimization problem focused on getting the best population values and
+residual parameters -- required taking your base model and optimizing
+every individual to get the best empirical Bayesian estimates.  Then,
+you had to perform finite differences for each population parameter
+and redo the full optimization for every subject.  This resulted in
+p plus one, times n total optimizations.
 
 Our new analytic method allows you to skip those redundant optimizations to get
 the population gradients.  Based on the Almquist 2015 sensitivity equations,
-this exact gradient means you are no longer fighting optimization noise.
+this exact gradient means you are no longer fighting optimization and solver noise.
 :::
 
 ## The gradient you have decides the optimizer you want
@@ -311,11 +330,12 @@ this exact gradient means you are no longer fighting optimization noise.
 ```
 
 ::: {.notes}
-The gradient dictates the optimizer you want to use.  Standard FOCEI still uses
-finite differences for the population values, which results in a noisy gradient.
-Because of this, the default has changed to a derivative-free method called
-BOBYQA.  However, individual optimizations still use exact gradients with
-n1qn1.
+The gradient dictates the optimizer you want to use.  Standard FOCEI
+still uses finite differences for the population values, which results
+in a noisy gradient.  Because of this, the default has changed to a
+derivative-free method called BOBYQA. Since a gradient is never
+calculated, no finite differences are ever used with BOBYQA.  However,
+individual optimizations still use exact gradients with n1qn1.
 
 Our fast method uses these exact sensitivity equations and gradients, so we rely
 on a Quasi-Newton optimization type -- specifically, L-BFGS-B3c.
@@ -364,9 +384,9 @@ on a Quasi-Newton optimization type -- specifically, L-BFGS-B3c.
 ```
 
 ::: {.notes}
-Because FOCEI fast starts its individual search by projecting where the $\eta$
+Because FOCEI fast starts its individual search by projecting where the eta
 should be for the next optimization, it takes fewer steps to find the right
-empirical Bayesian estimate at a new $\theta$.
+empirical Bayesian estimate at a new theta.
 :::
 
 ## Once the eta moves, the old curvature is the wrong curvature to hand `n1qn1`
@@ -416,8 +436,8 @@ empirical Bayesian estimate at a new $\theta$.
 ::: {.notes}
 This efficiency made us rethink what data we need to save between steps.
 Previously, we saved the old curvature and sent it to the n1qn1 optimizer.
-However, if that curvature was wrong for the new $\theta$, it would take longer
-to zig-zag to the minimum.  Now, by recalculating the curvature (a warm start),
+However, if that curvature was wrong for the new theta, it would take longer
+to zig-zag to the minimum.  Now, by recalculating the curvature -- a warm start --
 we find the gradient and the minimum much faster.
 :::
 
@@ -567,9 +587,16 @@ If you prefer the old behavior, nlminb is still available.
 ```
 
 ::: {.notes}
-We also changed the tolerance from sigdig=4 to sigdig=3 to better match
-open-source tools like SciPy and Octave, and we removed the $\eta$ drift
-reset.
+You can see from this slide an overview of the changes we made.
+
+1. the default population optimizer was changed
+
+2. the curvature, or Hessian, was calculated before every optimization
+
+3. resetting of thetas to the centered value when etas drift is turned off
+
+4. we changed the default to sigdig=3 to better match open-source tools like SciPy.
+
 :::
 
 ## 4. Making `saem` more robust {.sectionbreak}
@@ -629,12 +656,13 @@ We also made SAEM significantly more robust.
 ```
 
 ::: {.notes}
-In the previous release, population parameters with no random effect on them
-(the stochastic phi0 draws) were continuously sampled until the variance shrank
-at the end.  While this usually
-settled, it could become biased if it didn't settle exactly where the parameter
-was.  If we use a regression bounded by the initial estimates -- in this case,
-BOBYQA -- it honors the exact location and drops the RMSE by 16-fold.
+In the previous release, population parameters with no random effect
+on them (the stochastic phi0 draws) were continuously sampled until
+the variance shrank at the end.  While this usually settled, it could
+become biased if it didn't settle exactly where the parameter was.  If
+we use a regression bounded by the initial estimates -- in this case,
+BOBYQA -- it honors the exact location and drops the error measured by
+RMSE by 16-fold.
 :::
 
 ## A separated random stream is what makes restarting the SA phase possible
@@ -733,8 +761,10 @@ Finally, we've added more experimental ODE solvers.
 ```
 
 ::: {.notes}
-You can now combine stiff and non-stiff solvers -- similar to lsoda -- using
-methods like DOP853 and Rosenbrock4.
+You can now combine stiff and non-stiff solvers -- similar to lsoda --
+using methods like DOP853 and Rosenbrock4. Rosenbrock4 is new, and
+there are many new ODE solving methods available for nlmixr2 and
+rxode2.
 :::
 
 ## The new engines are research code and may change without a deprecation cycle
@@ -793,14 +823,13 @@ new FOCEI variants.
 ::: {.column width="52%"}
 - `focei` solves in parallel on every OpenMP-enabled platform
 - `foceif` gets an exact population gradient from one augmented solve
-- The defaults moved, deliberately, so 6.x numbers will not come back
+- The defaults moved, deliberately, based on speed and accuracy of
+  optimization. Unfortunately this means 6.x numbers will not come back in this release.
 - `saem` is more accurate on parameters without a random effect
 :::
 
 ::: {.column width="48%" .checks}
-- Larger datasets are worth trying again
-- More etas are worth trying again
-- The covariance step you gave up on is worth trying again
+- The covariance step you gave up on is worth trying again (especially with analytic)
 - Tell us where the experimental engines break
 :::
 ::::

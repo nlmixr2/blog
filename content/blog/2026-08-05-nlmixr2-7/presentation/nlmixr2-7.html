@@ -166,7 +166,7 @@
   <div class="reveal">
     <div class="slides">
 
-<section id="title-slide" class="quarto-title-block center">
+<section id="title-slide" data-notes="Hi, I’m here to talk about nlmixr2 7.0, where FOCEI now solves in parallel." class="quarto-title-block center">
   <h1 class="title"><span class="nlmixr">nlmixr<sup>2</sup></span> 7.0: <code>focei</code> solves in parallel</h1>
 
 <div class="quarto-title-authors">
@@ -216,7 +216,7 @@ Matthew Fidler
 </figure>
 </div>
 <aside class="notes">
-<p>Hi, I’m here to talk about nlmixr2 7.0, where FOCEI now solves in parallel. This release covers five main updates:</p>
+<p>This release covers five main updates:</p>
 <ol type="1">
 <li>FOCEI solving in parallel.</li>
 <li>FOCEI fast getting an exact population gradient.</li>
@@ -240,7 +240,7 @@ Matthew Fidler
 <h2>1. Solving in parallel</h2>
 <p><img data-src="images/sec-parallel.png" class=""></p>
 <aside class="notes">
-<p>First, Bill Denney, Hidde, and I worked on parallelizing FOCEI.</p>
+<p>First, Bill, Hidde, and I worked on parallelizing FOCEI.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -312,7 +312,7 @@ Matthew Fidler
   <text class="sm" x="791" y="352" fill="#b40000">6.x done</text>
 </svg>
 <aside class="notes">
-<p>In nlmixr2 versions 5 and 6, every subject waited its turn. Now, they all solve together for FOCEI and most of our other estimation algorithms. This means if you have a multi-core computer, your solving speed will be significantly faster.</p>
+<p>In nlmixr2 versions 5 and 6, every subject waited its turn. Now, they all solve and optimize together for FOCEI and most of our other estimation algorithms. This means if you have a multi-core computer, your solving speed will be significantly faster.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -329,7 +329,7 @@ Matthew Fidler
 <h2>2. Exact gradients, and the <code>fast</code> variants</h2>
 <p><img data-src="images/sec-fast.jpg" class=""></p>
 <aside class="notes">
-<p>Next, we introduced an exact gradient in the fast variants.</p>
+<p>Next, Hidde and I introduced an exact gradient in the fast variants.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -377,7 +377,7 @@ Matthew Fidler
   <text class="sm" x="38" y="110" text-anchor="end">id 1</text>
   <text class="sm" x="38" y="280" text-anchor="end">id n</text>
   <text class="t" x="30" y="322">(p + 1) × n solves</text>
-  <text class="sm" x="30" y="346">every column is a whole pass over the data</text>
+  <text class="sm" x="30" y="346">every column is a whole optimization over the data</text>
   <text class="sm" x="30" y="368">the difference approximates what the solve already knows</text>
 
   <!-- divider -->
@@ -405,8 +405,8 @@ Matthew Fidler
   <text class="sm" x="520" y="368">exact, so the optimizer is not fighting solver noise</text>
 </svg>
 <aside class="notes">
-<p>Previously, calculating the outer gradient – the part of the optimization problem focused on getting the best population values and residual parameters – required taking your base model and optimizing every individual to get the best empirical Bayesian estimates. Then, you had to perform finite differences for each population parameter (adding <span class="math inline">\(h \times \theta\)</span>) and redo the full optimization for every subject. This resulted in <span class="math inline">\((p+1) \times n\)</span> total optimizations.</p>
-<p>Our new analytic method allows you to skip those redundant optimizations to get the population gradients. Based on the Almquist 2015 sensitivity equations, this exact gradient means you are no longer fighting optimization noise.</p>
+<p>Previously, calculating the outer gradient – the part of the optimization problem focused on getting the best population values and residual parameters – required taking your base model and optimizing every individual to get the best empirical Bayesian estimates. Then, you had to perform finite differences for each population parameter and redo the full optimization for every subject. This resulted in p plus one, times n total optimizations.</p>
+<p>Our new analytic method allows you to skip those redundant optimizations to get the population gradients. Based on the Almquist 2015 sensitivity equations, this exact gradient means you are no longer fighting optimization and solver noise.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -475,7 +475,7 @@ Matthew Fidler
   <text class="sm" x="20" y="372">pairing fast=TRUE with a derivative-free outerOpt reverts to fast=FALSE</text>
 </svg>
 <aside class="notes">
-<p>The gradient dictates the optimizer you want to use. Standard FOCEI still uses finite differences for the population values, which results in a noisy gradient. Because of this, the default has changed to a derivative-free method called BOBYQA. However, individual optimizations still use exact gradients with n1qn1.</p>
+<p>The gradient dictates the optimizer you want to use. Standard FOCEI still uses finite differences for the population values, which results in a noisy gradient. Because of this, the default has changed to a derivative-free method called BOBYQA. Since a gradient is never calculated, no finite differences are ever used with BOBYQA. However, individual optimizations still use exact gradients with n1qn1.</p>
 <p>Our fast method uses these exact sensitivity equations and gradients, so we rely on a Quasi-Newton optimization type – specifically, L-BFGS-B3c.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
@@ -526,7 +526,7 @@ Matthew Fidler
   <text class="sm grn" x="560" y="112">few steps</text>
 </svg>
 <aside class="notes">
-<p>Because FOCEI fast starts its individual search by projecting where the <span class="math inline">\(\eta\)</span> should be for the next optimization, it takes fewer steps to find the right empirical Bayesian estimate at a new <span class="math inline">\(\theta\)</span>.</p>
+<p>Because FOCEI fast starts its individual search by projecting where the eta should be for the next optimization, it takes fewer steps to find the right empirical Bayesian estimate at a new theta.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -579,7 +579,7 @@ Matthew Fidler
   <text class="sm grn" x="540" y="374">same or better solutions, in less time</text>
 </svg>
 <aside class="notes">
-<p>This efficiency made us rethink what data we need to save between steps. Previously, we saved the old curvature and sent it to the n1qn1 optimizer. However, if that curvature was wrong for the new <span class="math inline">\(\theta\)</span>, it would take longer to zig-zag to the minimum. Now, by recalculating the curvature (a warm start), we find the gradient and the minimum much faster.</p>
+<p>This efficiency made us rethink what data we need to save between steps. Previously, we saved the old curvature and sent it to the n1qn1 optimizer. However, if that curvature was wrong for the new theta, it would take longer to zig-zag to the minimum. Now, by recalculating the curvature – a warm start – we find the gradient and the minimum much faster.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -748,7 +748,13 @@ Matthew Fidler
   <text class="sm" x="20" y="358">sigdig now lines up with other open-source tools like SciPy and Octave</text>
 </svg>
 <aside class="notes">
-<p>We also changed the tolerance from sigdig=4 to sigdig=3 to better match open-source tools like SciPy and Octave, and we removed the <span class="math inline">\(\eta\)</span> drift reset.</p>
+<p>You can see from this slide an overview of the changes we made.</p>
+<ol type="1">
+<li><p>the default population optimizer was changed</p></li>
+<li><p>the curvature, or Hessian, was calculated before every optimization</p></li>
+<li><p>resetting of thetas to the centered value when etas drift is turned off</p></li>
+<li><p>we changed the default to sigdig=3 to better match open-source tools like SciPy.</p></li>
+</ol>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -822,7 +828,7 @@ Matthew Fidler
   <text class="sm grn" x="540" y="368">on three no-eta thetas, the absorption RMSE dropped ~16x</text>
 </svg>
 <aside class="notes">
-<p>In the previous release, population parameters with no random effect on them (the stochastic phi0 draws) were continuously sampled until the variance shrank at the end. While this usually settled, it could become biased if it didn’t settle exactly where the parameter was. If we use a regression bounded by the initial estimates – in this case, BOBYQA – it honors the exact location and drops the RMSE by 16-fold.</p>
+<p>In the previous release, population parameters with no random effect on them (the stochastic phi0 draws) were continuously sampled until the variance shrank at the end. While this usually settled, it could become biased if it didn’t settle exactly where the parameter was. If we use a regression bounded by the initial estimates – in this case, BOBYQA – it honors the exact location and drops the error measured by RMSE by 16-fold.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -937,7 +943,7 @@ Matthew Fidler
   <text class="mono" x="70" y="384">rxSolve(model, ev, method="dop853+ros4")</text>
 </svg>
 <aside class="notes">
-<p>You can now combine stiff and non-stiff solvers – similar to lsoda – using methods like DOP853 and Rosenbrock4.</p>
+<p>You can now combine stiff and non-stiff solvers – similar to lsoda – using methods like DOP853 and Rosenbrock4. Rosenbrock4 is new, and there are many new ODE solving methods available for nlmixr2 and rxode2.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -1011,14 +1017,12 @@ Matthew Fidler
 <ul>
 <li><code>focei</code> solves in parallel on every OpenMP-enabled platform</li>
 <li><code>foceif</code> gets an exact population gradient from one augmented solve</li>
-<li>The defaults moved, deliberately, so 6.x numbers will not come back</li>
+<li>The defaults moved, deliberately, based on speed and accuracy of optimization. Unfortunately this means 6.x numbers will not come back in this release.</li>
 <li><code>saem</code> is more accurate on parameters without a random effect</li>
 </ul>
 </div><div class="column checks" style="width:48%;">
 <ul>
-<li>Larger datasets are worth trying again</li>
-<li>More etas are worth trying again</li>
-<li>The covariance step you gave up on is worth trying again</li>
+<li>The covariance step you gave up on is worth trying again (especially with analytic)</li>
 <li>Tell us where the experimental engines break</li>
 </ul>
 </div></div>
@@ -1067,6 +1071,7 @@ Matthew Fidler
   <script src="nlmixr2-7_files/libs/revealjs/plugin/pdf-export/pdfexport.js"></script>
   <script src="nlmixr2-7_files/libs/revealjs/plugin/reveal-menu/menu.js"></script>
   <script src="nlmixr2-7_files/libs/revealjs/plugin/reveal-menu/quarto-menu.js"></script>
+  <script src="nlmixr2-7_files/libs/revealjs/plugin/reveal-audio-slideshow/plugin.js"></script>
   <script src="nlmixr2-7_files/libs/revealjs/plugin/quarto-support/support.js"></script>
   
 
@@ -1089,6 +1094,7 @@ Matthew Fidler
 'autoAnimateUnmatched': true,
 'jumpToSlide': true,
 'menu': {"side":"left","useTextContentForMissingTitles":true,"markers":false,"loadIcons":false,"custom":[{"title":"Tools","icon":"<i class=\"fas fa-gear\"></i>","content":"<ul class=\"slide-menu-items\">\n<li class=\"slide-tool-item active\" data-item=\"0\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.fullscreen(event)\"><kbd>f</kbd> Fullscreen</a></li>\n<li class=\"slide-tool-item\" data-item=\"1\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.speakerMode(event)\"><kbd>s</kbd> Speaker View</a></li>\n<li class=\"slide-tool-item\" data-item=\"2\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.overview(event)\"><kbd>o</kbd> Slide Overview</a></li>\n<li class=\"slide-tool-item\" data-item=\"3\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.togglePdfExport(event)\"><kbd>e</kbd> PDF Export Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"4\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleScrollView(event)\"><kbd>r</kbd> Scroll View Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"5\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.keyboardHelp(event)\"><kbd>?</kbd> Keyboard Help</a></li>\n</ul>"}],"openButton":true},
+'audio': {"prefix":"audio/slide","suffix":".mp3","autoplay":true,"advance":0,"defaultNotes":false,"defaultText":false,"defaultAudios":true,"playerOpacity":0.05},
 'smaller': false,
  
         // Display controls in the bottom right corner
@@ -1259,7 +1265,7 @@ Matthew Fidler
         },
 
         // reveal.js plugins
-        plugins: [QuartoLineHighlight, PdfExport, RevealMenu, QuartoSupport,
+        plugins: [QuartoLineHighlight, PdfExport, RevealMenu, RevealAudioSlideshow, QuartoSupport,
 
           RevealMath,
           RevealNotes,
