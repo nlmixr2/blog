@@ -88,15 +88,19 @@ TERM_TRANSCRIPTS = [
 
 # Extra pace applied in post, on top of the model's own `speed`.  atempo keeps
 # the pitch where it is, so this brightens the delivery without altering timbre.
-TEMPO = 1.02
+TEMPO = 1.0   # 1.0 = no post time-stretch; pace comes from the model
 
-# The take carries room tone at about -47 dB, while the renderer pads each
-# slide with DIGITAL silence at -91 dB.  That 45 dB step is what makes the gap
-# between slides audible -- the hiss vanishes rather than continuing.  Two
-# things fix it: pull the floor down (highpass removes rumble, afftdn the
-# broadband hiss), and fade the last fraction of a second so what noise is left
-# ramps out instead of being cut off.
-DENOISE  = "highpass=f=70,afftdn=nf=-40"
+# DO NOT re-enable spectral denoising on the voice.  afftdn cleaned up the room
+# tone, but it also strips breath and the low-level detail that makes speech
+# sound human -- with it and the post atempo both running, the whole read went
+# robotic.  Nothing now processes the voice itself; the only filters left are
+# the short edge fades, which just ramp the noise floor at the cut points.
+#
+# The original problem it solved -- a -47 dB room tone dropping to -91 dB
+# digital silence between slides -- is handled by the fades instead.  If the
+# gaps ever sound abrupt again, fill them with low-level room tone in the
+# renderer rather than by processing the voice.
+DENOISE  = ""   # OFF -- see below
 FADE_IN  = 0.05
 FADE_OUT = 0.20
 DRY    = "--dry-run" in sys.argv
@@ -287,6 +291,52 @@ def speed_up_terms(path, key):
     return len(spans)
 
 
+def refine_bounds(full, slides, bounds, key):
+    """Move each slide boundary onto the first word that slide actually says.
+
+    Neither of the earlier signals is dependable on its own: the TTS character
+    alignment drifts, and silence-snapping needs a silence to exist -- when the
+    model ran "...FOCEI variants." straight into "To summarize," there was no
+    gap, and slide 19 lost its opening words to slide 18.
+
+    Scribe's word timings are measured on the rendered audio, so matching each
+    slide's opening words against them puts the cut in the right place whether
+    or not anyone paused.
+    """
+    import requests as rq
+    r = rq.post("https://api.elevenlabs.io/v1/speech-to-text",
+                headers={"xi-api-key": key}, data={"model_id": "scribe_v1"},
+                files={"file": open(full, "rb")}, timeout=600)
+    if r.status_code != 200:
+        print(f"  (boundary refine skipped: STT HTTP {r.status_code})")
+        return bounds
+    words = [w for w in r.json().get("words", []) if w.get("type") == "word"]
+    norm = lambda x: re.sub(r"[^a-z0-9]", "", x.lower())
+    heard = [norm(w["text"]) for w in words]
+
+    out, cursor = list(bounds), 0
+    for k in range(1, len(slides)):
+        want = [norm(x) for x in slides[k]["say"].split()[:3] if norm(x)]
+        if len(want) < 2:
+            continue
+        best, bd = None, 12.0            # only look near the existing estimate
+        for j in range(cursor, len(heard) - len(want)):
+            if heard[j] != want[0]:
+                continue
+            hits = sum(1 for a, b in zip(heard[j:j + len(want)], want) if a == b)
+            if hits < max(2, len(want) - 1):
+                continue
+            d = abs(words[j]["start"] - bounds[k])
+            if d < bd:
+                best, bd = j, d
+        if best is not None:
+            out[k] = max(out[k - 1] + 0.30, words[best]["start"] - 0.18)
+            cursor = best
+    moved = sum(1 for a, b in zip(bounds, out) if abs(a - b) > 0.05)
+    print(f"  boundary refine: {moved} of {len(slides) - 1} moved onto the spoken word")
+    return out
+
+
 def api_key() -> str:
     for line in (pathlib.Path.home() / ".bashrc").read_text().splitlines():
         if line.startswith("export ELEVENLABS_API_KEY="):
@@ -379,6 +429,15 @@ def single_take(slides, key):
             boundary skipped a sentence-internal pause and swallowed "To
             summarize," off the front of a slide.
             """
+            # Prefer a gap at or BEFORE the hint.  Cutting early only carries a
+            # little trailing silence into the previous clip; cutting late
+            # steals the next slide's opening words -- slide 19 once lost
+            # "To summarize," to the end of slide 18.
+            early = [(abs((g0 + g1) / 2 - t), (g0 + g1) / 2)
+                     for g0, g1 in gaps
+                     if (g0 + g1) / 2 <= t + 0.15 and abs((g0 + g1) / 2 - t) < window]
+            if early:
+                return min(early)[1]
             best, bd = t, window
             for g0, g1 in gaps:
                 mid = (g0 + g1) / 2
@@ -399,6 +458,7 @@ def single_take(slides, key):
             if bounds and b <= bounds[-1] + 0.30:
                 b = max(h, bounds[-1] + 0.30)
             bounds.append(min(max(b, 0.0), total - 0.05))
+        bounds = refine_bounds(full, slides, bounds, key)
         bounds.append(total)
         assert all(bounds[i] < bounds[i + 1] for i in range(len(bounds) - 1)), \
             f"non-monotonic cut boundaries: {bounds}"
