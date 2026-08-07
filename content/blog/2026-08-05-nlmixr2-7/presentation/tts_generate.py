@@ -36,9 +36,28 @@ VOICE_SETTINGS = {"stability": 0.35, "similarity_boost": 0.75,
 PITCH = 1.0
 # The technical terms drag at the slower global `speed`, while the prose reads
 # well.  The API has no per-word speed, so they are sped back up in post:
-# TERM_TEMPO is the ratio that restores the old pace (1.12 / 1.06) for those
-# words only.  Set to 1.0 to disable.
-TERM_TEMPO = 1.12 / 1.06
+# TERM_TEMPO is the ratio applied to those words only.  Set to 1.0 to disable.
+# Returns flatten past ~1.23: at 1.32 FOCEI gains only another 0.04s and starts
+# to sound clipped.
+TERM_TEMPO = 1.226   # fallback ratio for terms with no target below
+
+# A FIXED ratio leaves the variance intact: the model said FOCEI anywhere from
+# 0.58s to 0.86s in one take, and scaling them all equally keeps that 0.28s
+# spread -- which is what reads as inconsistent and robotic.  Normalise each
+# occurrence to a TARGET LENGTH instead, so every instance of a term is the
+# same length however the model happened to say it.  Values are seconds, set
+# near the fastest instance the model produces naturally.
+TERM_TARGETS = [
+    (r"F-?O-?C-?E-?I",        0.62),   # 0.58 over-compressed the longest instances into "FOCE I"
+    (r"S-?A-?E-?M",           0.55),
+    (r"N-?L-?M-?I-?N-?B",     0.70),
+    (r"B-?O-?B-?Y-?Q-?A",     0.75),
+    (r"Rx?-?ODE\s*2",         0.62),
+    (r"NL\s*Mixer\s*2",      0.75),
+    (r"D-?O-?P-?\s*853",      0.70),
+]
+# never slow a term down, and never compress past intelligibility
+TERM_TEMPO_MIN, TERM_TEMPO_MAX = 1.0, 1.8
 
 # Word sequences to speed up, as they appear in a Scribe TRANSCRIPT (not as
 # they are spelled in SAY).  Matched case-insensitively against runs of 1-3
@@ -200,7 +219,15 @@ def speed_up_terms(path, key):
                 hit = (words[i]["start"], words[i + n - 1]["end"], n)
                 break
         if hit:
-            spans.append((hit[0], hit[1])); i += hit[2]
+            a, b, n = hit
+            joined = " ".join(w["text"] for w in words[i:i + n])
+            tempo = TERM_TEMPO
+            for pat, target in TERM_TARGETS:
+                if re.fullmatch(pat, joined, re.I):
+                    tempo = (b - a) / target
+                    break
+            tempo = max(TERM_TEMPO_MIN, min(TERM_TEMPO_MAX, tempo))
+            spans.append((a, b, tempo)); i += n
         else:
             i += 1
     if not spans:
@@ -211,7 +238,7 @@ def speed_up_terms(path, key):
                                   str(path)], capture_output=True, text=True).stdout)
     # widen each span into the surrounding gap so the cut is in silence
     PAD = 0.02
-    spans = [(max(0.0, a - PAD), min(total, b + PAD)) for a, b in spans]
+    spans = [(max(0.0, a - PAD), min(total, b + PAD), t) for a, b, t in spans]
 
     with tempfile.TemporaryDirectory() as td:
         td = pathlib.Path(td)
@@ -228,9 +255,9 @@ def speed_up_terms(path, key):
             cmd += ["-ar", "44100", "-ac", "1", str(out)]
             subprocess.run(cmd, check=True)
             parts.append(out)
-        for a, b in spans:
+        for a, b, tempo in spans:
             seg(cur, a, 1.0)
-            seg(a, b, TERM_TEMPO)
+            seg(a, b, tempo)
             cur = b
         seg(cur, total, 1.0)
         lst = td / "list.txt"
