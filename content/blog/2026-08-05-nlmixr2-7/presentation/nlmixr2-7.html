@@ -753,7 +753,7 @@ Matthew Fidler
 <li><p>the default population optimizer was changed</p></li>
 <li><p>the curvature, or Hessian, was calculated before every optimization</p></li>
 <li><p>resetting of thetas to the centered value when etas drift is turned off</p></li>
-<li><p>we changed the default to sigdig=3 to better match open-source tools like SciPy.</p></li>
+<li><p>we changed the default to sigdig=3 to better match many open-source tools.</p></li>
 </ol>
 <style type="text/css">
         span.MJX_Assistive_MathML {
@@ -879,7 +879,7 @@ Matthew Fidler
   <text class="sm" x="30" y="378">the cost today: a saem fit will not reproduce a pre-7.0 run, even with the same seed</text>
 </svg>
 <aside class="notes">
-<p>We also changed how random number streams function. By using thread-safe random streams, every single point in the optimization can be reproduced, and every independent draw is completely independent. This allows you to safely extend the chain rather than throwing away previous SAEM fits.</p>
+<p>We also changed how random number streams function. By using thread-safe random streams, every single point in the optimization can be reproduced while remaining completely independent. This allows you to safely extend the chain rather than throwing away previous SAEM fits.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;

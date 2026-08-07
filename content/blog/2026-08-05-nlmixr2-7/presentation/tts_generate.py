@@ -27,10 +27,18 @@ TAG    = ""
 # gives the read its smile.
 VOICE_SETTINGS = {"stability": 0.35, "similarity_boost": 0.75,
                   "style": 0.55, "use_speaker_boost": True,
-                  # Past ~1.2 the spelled-out method names slur (1.18 turned
-                  # FOCEI into "FOCEA").  Further pace is added in post via
-                  # TEMPO below, which is free to retune with --recut.
-                  "speed": 1.06}
+                  # Pace is controlled HERE and nowhere else: per-word re-timing
+                  # in post (TERM_* below) made the read sound processed AND
+                  # mispronounced FOCEI, so it is off.
+                  #
+                  # 1.13 is the practical ceiling, not a preference.  Above it
+                  # the spelled-out names break down, and a short sample will
+                  # NOT show it -- across a full 4,700-character script there
+                  # are far more chances to fail:
+                  #   1.17 -> SAEM heard as "SAM", etas as "Ada's"
+                  #   1.18 -> FOCEI heard as "FOCEA"
+                  #   1.21 -> terms not recognisable at all
+                  "speed": 1.13}
 
 # Pitch shifting made it sound less like the real voice, so it is off.
 PITCH = 1.0
@@ -39,7 +47,7 @@ PITCH = 1.0
 # TERM_TEMPO is the ratio applied to those words only.  Set to 1.0 to disable.
 # Returns flatten past ~1.23: at 1.32 FOCEI gains only another 0.04s and starts
 # to sound clipped.
-TERM_TEMPO = 1.226   # fallback ratio for terms with no target below
+TERM_TEMPO = 1.0     # 1.0 disables per-term re-timing entirely
 
 # A FIXED ratio leaves the variance intact: the model said FOCEI anywhere from
 # 0.58s to 0.86s in one take, and scaling them all equally keeps that 0.28s
@@ -67,7 +75,7 @@ TERM_TEMPO_MIN, TERM_TEMPO_MAX = 0.80, 1.45
 # same length, which is itself unnatural -- real speech varies a term's length
 # with position and emphasis.  0.7 removes the extremes but keeps some of that
 # variation.
-TERM_STRENGTH = 0.7
+TERM_STRENGTH = 0.0   # 0.0 = leave every term exactly as spoken
 
 # Word sequences to speed up, as they appear in a Scribe TRANSCRIPT (not as
 # they are spelled in SAY).  Matched case-insensitively against runs of 1-3
