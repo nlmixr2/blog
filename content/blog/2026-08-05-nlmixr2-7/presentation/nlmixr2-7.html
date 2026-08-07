@@ -579,7 +579,7 @@ Matthew Fidler
   <text class="sm grn" x="540" y="374">same or better solutions, in less time</text>
 </svg>
 <aside class="notes">
-<p>This efficiency made us rethink what data we need to save between steps. Previously, we saved the old curvature and sent it to the n1qn1 optimizer. However, if that curvature was wrong for the new theta, it would take longer to zig-zag to the minimum. Now, by recalculating the curvature – a warm start – we find the gradient and the minimum much faster.</p>
+<p>This efficiency made us rethink what data we need to save between steps. Previously, we saved the old curvature and sent it to the n1qn1 optimizer. However, if that curvature was wrong for the new theta, it would take longer to zig-zag to the minimum. Now, by recalculating the curvature we find the gradient and the minimum much faster.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -1448,8 +1448,40 @@ Matthew Fidler
       });
       </script>
     <script>
+    // Two things the audio-slideshow plugin needs help with.
+    //
+    // 1. It assigns <source>.src AFTER the <audio> is in the DOM.  Per spec
+    //    that does not start a fetch -- the browser only ever issues the
+    //    plugin's HEAD probe, never a GET, so the clip never loads
+    //    (networkState stays LOADING, duration null) and the deck is silent
+    //    or stutters.  Calling load() on the element fixes it.
+    //
+    // 2. Browsers refuse to start audio until the page has had a real user
+    //    gesture, so autoplay:true alone leaves slide 1 silent.  One click
+    //    on the overlay satisfies that; after it the plugin runs itself.
     (function () {
+      function playerFor(h, v) {
+        return document.getElementById('audioplayer-' + h + '.' + v);
+      }
+      function prime(a) {
+        if (!a) return;
+        if (a.readyState === 0) { try { a.load(); } catch (e) {} }
+      }
+      function currentPlayer() {
+        var i = (window.Reveal && Reveal.getIndices) ? Reveal.getIndices()
+                                                     : { h: 0, v: 0 };
+        return playerFor(i.h, i.v || 0);
+      }
+      function start() {
+        var a = currentPlayer();
+        prime(a);
+        if (a) { var pr = a.play(); if (pr && pr.catch) pr.catch(function () {}); }
+      }
       function arm() {
+        if (window.Reveal && Reveal.on) {
+          Reveal.on('slidechanged', function () { prime(currentPlayer()); });
+        }
+        prime(currentPlayer());
         if (document.getElementById('audio-start')) return;
         var d = document.createElement('div');
         d.id = 'audio-start';
@@ -1461,11 +1493,7 @@ Matthew Fidler
         d.style.cssText = 'position:fixed;inset:0;z-index:60;display:flex;' +
           'flex-direction:column;align-items:center;justify-content:center;' +
           'background:rgba(255,255,255,.92);text-align:center';
-        d.addEventListener('click', function () {
-          var a = document.querySelector('audio[id^="audioplayer-"]');
-          if (a) { var pr = a.play(); if (pr && pr.catch) pr.catch(function () {}); }
-          d.remove();
-        });
+        d.addEventListener('click', function () { start(); d.remove(); });
         document.body.appendChild(d);
       }
       if (document.readyState === 'loading') {
