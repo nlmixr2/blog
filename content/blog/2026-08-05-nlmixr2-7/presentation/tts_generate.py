@@ -34,6 +34,21 @@ VOICE_SETTINGS = {"stability": 0.35, "similarity_boost": 0.75,
 
 # Pitch shifting made it sound less like the real voice, so it is off.
 PITCH = 1.0
+# The technical terms drag at the slower global `speed`, while the prose reads
+# well.  The API has no per-word speed, so they are sped back up in post:
+# TERM_TEMPO is the ratio that restores the old pace (1.12 / 1.06) for those
+# words only.  Set to 1.0 to disable.
+TERM_TEMPO = 1.12 / 1.06
+
+# Word sequences to speed up, as they appear in a Scribe TRANSCRIPT (not as
+# they are spelled in SAY).  Matched case-insensitively against runs of 1-3
+# consecutive words.
+TERM_TRANSCRIPTS = [
+    r"F-?O-?C-?E-?I", r"S-?A-?E-?M", r"N-?L-?M-?I-?N-?B",
+    r"B-?O-?B-?Y-?Q-?A", r"NL\s*Mixer\s*2", r"Rx?-?ODE\s*2",
+    r"D-?O-?P-?\s*853", r"N-?L-?M-?I-?X-?R?\s*2",
+]
+
 # Extra pace applied in post, on top of the model's own `speed`.  atempo keeps
 # the pitch where it is, so this brightens the delivery without altering timbre.
 TEMPO = 1.02
@@ -153,6 +168,77 @@ def spoken(text: str) -> str:
     t = re.sub(r"\s+\.(?=\s|$)", "", t)
     parts = [p for p in re.split(r"(?<=[.!?])\s+", t) if re.search(r"\w", p)]
     return re.sub(r"\s+", " ", " ".join(parts)).strip()
+
+
+def speed_up_terms(path, key):
+    """Re-time just the technical terms inside one finished clip.
+
+    Word timings come from Scribe, i.e. from the RENDERED audio -- unlike the
+    TTS character alignment, which drifts.  The clip is split at the silences
+    BETWEEN words, so the joins land in gaps rather than mid-syllable.
+    """
+    import json, subprocess, tempfile
+    if TERM_TEMPO == 1.0:
+        return 0
+    r = requests.post("https://api.elevenlabs.io/v1/speech-to-text",
+                      headers={"xi-api-key": key}, data={"model_id": "scribe_v1"},
+                      files={"file": open(path, "rb")}, timeout=180)
+    if r.status_code != 200:
+        return 0
+    words = [w for w in r.json().get("words", []) if w.get("type") == "word"]
+    if not words:
+        return 0
+
+    spans, i = [], 0
+    while i < len(words):
+        hit = None
+        for n in (3, 2, 1):                       # longest match wins
+            if i + n > len(words):
+                continue
+            joined = " ".join(w["text"] for w in words[i:i + n])
+            if any(re.fullmatch(p, joined, re.I) for p in TERM_TRANSCRIPTS):
+                hit = (words[i]["start"], words[i + n - 1]["end"], n)
+                break
+        if hit:
+            spans.append((hit[0], hit[1])); i += hit[2]
+        else:
+            i += 1
+    if not spans:
+        return 0
+
+    total = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries",
+                                  "format=duration", "-of", "default=nw=1:nk=1",
+                                  str(path)], capture_output=True, text=True).stdout)
+    # widen each span into the surrounding gap so the cut is in silence
+    PAD = 0.02
+    spans = [(max(0.0, a - PAD), min(total, b + PAD)) for a, b in spans]
+
+    with tempfile.TemporaryDirectory() as td:
+        td = pathlib.Path(td)
+        parts, cur, n = [], 0.0, 0
+        def seg(a, b, tempo):
+            nonlocal n
+            if b - a < 0.02:
+                return
+            out = td / f"{n:03d}.wav"; n += 1
+            cmd = ["ffmpeg", "-y", "-loglevel", "error", "-ss", f"{a:.3f}",
+                   "-to", f"{b:.3f}", "-i", str(path)]
+            if tempo != 1.0:
+                cmd += ["-af", f"atempo={tempo}"]
+            cmd += ["-ar", "44100", "-ac", "1", str(out)]
+            subprocess.run(cmd, check=True)
+            parts.append(out)
+        for a, b in spans:
+            seg(cur, a, 1.0)
+            seg(a, b, TERM_TEMPO)
+            cur = b
+        seg(cur, total, 1.0)
+        lst = td / "list.txt"
+        lst.write_text("".join(f"file '{p}'\n" for p in parts))
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat",
+                        "-safe", "0", "-i", str(lst),
+                        "-c:a", "libmp3lame", "-b:a", "192k", str(path)], check=True)
+    return len(spans)
 
 
 def api_key() -> str:
@@ -300,8 +386,10 @@ def single_take(slides, key):
                 cmd += ["-af", ",".join(af)]
             cmd += ["-c:a", "libmp3lame", "-b:a", "192k", str(dest)]
             subprocess.run(cmd, check=True)
+            nterms = speed_up_terms(dest, key)
             print(f"slide{s['h']}.0  {t0:7.2f}-{t1:7.2f}s  "
-                  f"{t1 - t0:5.1f}s  {dest.stat().st_size:>7} bytes")
+                  f"{t1 - t0:5.1f}s  {dest.stat().st_size:>7} bytes"
+                  f"{f'  ({nterms} terms re-timed)' if nterms else ''}")
     print(f"\ncut {len(slides)} clips from one {total:.1f}s take")
 
 
