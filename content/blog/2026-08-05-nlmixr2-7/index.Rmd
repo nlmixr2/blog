@@ -357,10 +357,6 @@ release so that people can try them and tell us where they break; they
 are labeled experimental so that we can fix them without breaking
 anyone.
 
-## Presentation reference
-
-As a note, the companion presentation slides are available [here](presentation/nlmixr2-7.html)
-
 ## References
 
 Almquist J, Leander J, Jirstrand M.  Using sensitivity equations for
