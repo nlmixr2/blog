@@ -57,12 +57,17 @@ DRY    = "--dry-run" in sys.argv
 # kept is the one whose transcript came back as the intended word.  Re-run the
 # experiment with /tmp/probe.py if a new term needs adding.
 #
-# SPACE-SEPARATED CAPITALS are the reliable form for letter-by-letter names.
-# The two forms that failed:
-#   periods   "F.O.C.E.I."        -> heard as "FOCI"   (letters dropped)
-#             "S.A.E.M."          -> heard as "CAEM"
-#   phonetic  "eff-oh-see-ee-eye" -> heard as "FOCEA"
-#             "ess-ay-ee-em"      -> heard as "SEM"
+# HYPHEN-SEPARATED CAPITALS: every letter is sounded, with little space
+# between them, which is how these are actually said out loud.  Spaces work too
+# but the model breathes between the letters and it drags -- chosen by ear from
+# pronunciation-samples/, and confirmed by clip duration in the same carrier
+# sentence (FOCEI 4.73s spaced vs 4.13s hyphenated).
+# Forms that FAIL outright:
+#   periods   "F.O.C.E.I."  -> "FOCI"   (letters dropped)
+#   plain     "SAEM"        -> "SAM";  "NLMINB" -> "NLMNB"
+#   phonetic  "eff-oh-see-ee-eye" -> "FOCEA"
+# rxode2 is the exception: the plain token "RXODE2" is spelled out correctly
+# by itself and is the tightest of nine variants tried.
 #
 # Greek letters must NOT be left as plain words: "eta" is read as the
 # initialism E-T-A (estimated time of arrival).  Of six spellings tried in the
@@ -75,17 +80,16 @@ DRY    = "--dry-run" in sys.argv
 # "theta"/"thetas" are already correct as plain words and are left alone.
 SAY = [
     (r"\bphi0\b",            "phi zero"),
-    (r"\bFOCEI\b",           "F O C E I"),
-    (r"\bfocei\b",           "F O C E I"),
-    (r"\bSAEM\b",            "S A E M"),
-    (r"\bsaem\b",            "S A E M"),
+    (r"\bFOCEI\b",           "F-O-C-E-I"),
+    (r"\bfocei\b",           "F-O-C-E-I"),
+    (r"\bSAEM\b",            "S-A-E-M"),
+    (r"\bsaem\b",            "S-A-E-M"),
     (r"\bBOBYQA\b",          "B-O-B-Y-Q-A"),
     (r"\bbobyqa\b",          "B-O-B-Y-Q-A"),
-    (r"\bnlmixr2\b",         "NL mix R two"),    # tight, but keeps the R audible
-                                             # ("NLmixR two" dropped it: "NLMIX2")
-    (r"\brxode2\b",          "R X O D E two"),
+    (r"\bnlmixr2\b",         "N L mixer two"),
+    (r"\brxode2\b",          "RXODE2"),
     (r"\bn1qn1\b",           "N one Q N one"),
-    (r"\bnlminb\b",          "N L M I N B"),
+    (r"\bnlminb\b",          "N-L-M-I-N-B"),
     (r"L-BFGS-B3c|\blbfgsb3c\b", "L B F G S B three C"),
     (r"\bDOP853\b",          "D-O-P 853"),       # letters, not "dop"
     (r"\bOctave\b",          "Ock-tayve"),       # GNU Octave: long a
