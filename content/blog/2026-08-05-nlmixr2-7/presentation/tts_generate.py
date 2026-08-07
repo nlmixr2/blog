@@ -90,17 +90,18 @@ TERM_TRANSCRIPTS = [
 # the pitch where it is, so this brightens the delivery without altering timbre.
 TEMPO = 1.0   # 1.0 = no post time-stretch; pace comes from the model
 
-# DO NOT re-enable spectral denoising on the voice.  afftdn cleaned up the room
-# tone, but it also strips breath and the low-level detail that makes speech
-# sound human -- with it and the post atempo both running, the whole read went
-# robotic.  Nothing now processes the voice itself; the only filters left are
-# the short edge fades, which just ramp the noise floor at the cut points.
+# Denoise + edge fades.  The take carries room tone (mean floor about -36 dB)
+# while the renderer pads each slide with DIGITAL silence at -91 dB, so the
+# hiss audibly vanishes at every gap.  highpass removes rumble, afftdn the
+# broadband hiss (about 3 dB across a deck), and the fades ramp what is left
+# so it is not cut off dead.
 #
-# The original problem it solved -- a -47 dB room tone dropping to -91 dB
-# digital silence between slides -- is handled by the fades instead.  If the
-# gaps ever sound abrupt again, fill them with low-level room tone in the
-# renderer rather than by processing the voice.
-DENOISE  = ""   # OFF -- see below
+# This is safe ON ITS OWN.  What made an earlier deck sound robotic was
+# STACKING time-domain processing on top: denoise + a post atempo + per-word
+# atempo splices all at once.  Keep TEMPO and TERM_* off (they are) and this
+# is just noise reduction.  Do not push nf above about -40 -- more aggressive
+# settings start eating breath.
+DENOISE  = "highpass=f=70,afftdn=nf=-40"
 FADE_IN  = 0.05
 FADE_OUT = 0.20
 DRY    = "--dry-run" in sys.argv
