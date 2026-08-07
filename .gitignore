@@ -47,3 +47,19 @@ Thumbs.db
 
 .*\\.lock~
 .positai
+
+# Local secrets (ElevenLabs API key, etc.)
+.env
+.env.*
+!.env.example
+
+# Presentation build/scratch artifacts (regenerable)
+.take/
+eta-samples/
+**/presentation/build/
+__pycache__/
+pronunciation-samples/
+term-speed-samples/
+
+# Rendered presentation video -- uploaded to YouTube, not stored here
+**/presentation/*.mp4

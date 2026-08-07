@@ -1,0 +1,367 @@
+---
+title: nlmixr2 7.0
+author: Matthew Fidler
+date: '2026-08-05'
+slug: []
+categories: [nlmixr2]
+tags: []
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
+```
+
+<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;max-width:100%;">
+<iframe src="https://www.youtube.com/embed/xa6m9ZAxaZo"
+        title="nlmixr2 7.0: focei solves in parallel"
+        style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen></iframe>
+</div>
+
+[Watch on YouTube](https://youtu.be/xa6m9ZAxaZo)
+
+## nlmixr2 7.0
+
+This is the release where `focei` finally solves in parallel on all
+OpenMP-enabled platforms.  Along with that, a few defaults changed,
+which means that by default `focei` will *not* give you the same
+numbers it gave you in `nlmixr2` 6.  This is a deliberate change and
+we will talk about the motivation in this post (and how to get the old
+behavior back if you need it).
+
+`saem` also changed, in ways that made our test fits more accurate and
+more extensible in the future.
+
+There are quite a few other things in this release (new estimation
+methods, many new ODE solvers, new model features); those are
+mentioned at the end and I will talk about them in the future.
+
+All of the examples below use the same one compartment theophylline
+model:
+
+```{r oneCmt}
+library(nlmixr2)
+
+one.cmt <- function() {
+  ini({
+    tka <- 0.45; label("log Ka")
+    tcl <- log(c(0, 2.7, 100)); label("log Cl")
+    tv <- 3.45; label("log V")
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+    add.sd <- 0.7
+  })
+  model({
+    ka <- exp(tka + eta.ka)
+    cl <- exp(tcl + eta.cl)
+    v <- exp(tv + eta.v)
+    linCmt() ~ add(add.sd)
+  })
+}
+```
+
+## Parallel solving in `focei` and most every nlmixr2 estimation method
+
+Historically `focei` was the single-threaded method in `nlmixr2` (see
+the [4.0 post](/blog/2025-07-16-nlmixr2-4/)). Now it solves in
+parallel. The first piece of work, done by Bill, AI agents, and me
+(Matt Fidler), was setting things up so each individual can be solved
+and optimized in parallel.
+
+The AI fixes were reviewed, hand-edited and in some cases rejected over
+many months before they were submitted to CRAN.
+
+Once on CRAN, we found that OpenMP did not work with rxode2 &
+nlmixr2est on Windows and simply crashed R.  This was fixed by Bill
+(with AI help).
+
+We released this just before the CRAN August shutdown (and have not
+tested some of the more experimental features as much as we would
+like).
+
+## New estimation method in `focei`, the "`fast`" variants
+
+In addition to the new parallel solving, we (Hidde & I) have
+implemented analytical population gradients in `focei`/`foce` by
+using the Almquist (2015) sensitivity equations.  For this solve, all
+subjects are solved together in **one parallel (threaded) `rxode2`
+solve**.
+
+Two things fall out of that:
+
+- It is one augmented solve instead of one extra solve per parameter
+  and subject.
+
+- The gradient is exact instead of a difference approximation, so the
+  outer optimizer is no longer working against solver noise.
+
+This means that the default for these methods is to optimize the
+population parameters (i.e. the outer problem) with `lbfgsb3c` -- a
+gradient-based method that takes advantage of the analytical
+gradients.
+
+The analytic gradient is turned on with `foceiControl(fast=TRUE)`.
+Because typing that every time gets old, each method gained an `f`
+sibling that is simply the method with `fast=TRUE` as its default:
+
+```{r theoFast}
+fit <- nlmixr2(one.cmt, theo_sd, est="foceif")
+
+print(fit)
+```
+
+One of the interesting things that Almquist's derivation covers is how
+to get the best individual MAP estimate faster. This is done by using
+the projected `eta` for the next step (Almquist's Eq. 48).  By default
+these fast methods warm-start the search for the best eta with the
+projected eta (`mceta=-2`) rather than the last known best eta (which
+is what still happens when `fast=FALSE`).
+
+This required rethinking how we use the individual's curvature
+(i.e. Hessian) to pre-inform the `n1qn1` optimizer (better prior
+information means faster and better fits).  When the eta changes
+positions, it no longer makes sense to pass the old curvature to the
+new best guess of the individual's EBE. So now we use the curvature
+calculated by `focei` at every optimization step.
+
+Interestingly, this made some of our tests arrive at a *better*
+solution than before and take less time to get there (so now it is on
+by default).
+
+If you need to tweak this setting, `foceiControl(warm=)` controls how
+the `n1qn1` inner problem is seeded with the curvature.  The default
+is now `warm="calc"`, which calculates the eta Hessian at the current
+parameters and warm-starts `n1qn1` with it.  Since `theta` moves between
+outer evaluations, it is always recalculated and never reused from an
+earlier round.  The classic self-initialized Hessian is still there
+with `warm="save"`.
+
+### A note on the name
+
+Why call it the "fast" variant?  It may be faster when you know the
+gradient (though this is not guaranteed), and it matches NONMEM's
+convention for the same sort of estimator.
+
+I must also hasten to add that our implementation is likely not the
+same as NONMEM's; they require mu-referencing for the FAST estimation
+method and we do not.  Properties of the NONMEM FAST estimation engine
+are therefore likely not applicable here.
+
+I also need to mention that this is a new method and we are more
+likely to find bugs in the code.  For this reason, this version is
+also likely to change more in the next few months.
+
+## New defaults to standard `focei`
+
+With the new default warm start changing the standard `focei`
+minimization, and the new pure-gradient `foceif` method, it is a good
+time to change the default optimization for `focei`.
+
+Since a finite-difference gradient method causes many issues in
+optimization, I thought it would be better to change the default
+non-fast method (or standard `focei`) to use a non-gradient optimizer
+-- `bobyqa`.  I have long found it to be an excellent optimizer, and
+now that there is a better way to work with a gradient-based
+optimizer, this makes a natural division between `focei` and `foceif`.
+
+To be clear, the individual MAP estimates are still found with a
+gradient-based method (using exact gradients); it is only the
+population problem that is now solved without calculating the exact
+gradient.
+
+### What about the old optimizer `nlminb`
+
+In the old system, there was a lot of work done to get gradients as
+accurate as possible in the optimization.  These gradients were very
+expensive in general, and `nlminb` splits its work between calculating
+gradients and evaluating points, which made it a great choice for
+speed when you did not want to evaluate a gradient at every step.
+This is the reason why we chose it originally for the default.  It was
+faster and often arrived at a similar solution as `lbfgsb3c`.
+
+If you want the pre-7.0 outer optimizer, ask for it:
+
+```r
+fit <- nlmixr2(one.cmt, theo_sd, est="focei",
+               foceiControl(outerOpt="nlminb"))
+```
+
+Remember, however, that you still calculate gradients using finite
+differences, and `nlminb` can still give a "false convergence"
+message, which I have often found to be misleading and not really
+indicative of any convergence issues (discussed
+[here](https://stats.stackexchange.com/questions/101265/nlme-convergence-error-code-1),
+and affecting `nlme` too).
+
+### Getting close to the old behavior
+
+The closest we have to our old behavior is:
+
+```r
+fit <- nlmixr2(one.cmt, theo_sd, est="focei",
+               foceiControl(outerOpt="nlminb",
+                            warm="save",
+                            sigdig=4,
+                            resetThetaP=0.05,
+                            resetThetaFinalP=0.15))
+```
+
+That will get you close, but it will not be bit-for-bit, and it is not
+meant to be.
+
+But it highlights a few other things; the `sigdig` default has been
+aligned with other open source tools like SciPy and Octave, defaulting
+to `sigdig=3` and giving `rtol=1e-3` and `atol=1e-6` and theta reset
+is now turned off by default.
+
+## `saem` is more robust
+
+Two default changes here, both of which made our test fits more
+accurate:
+
+- The inner optimization now uses `newuoa` instead of Nelder-Mead.  The
+  old behavior is `saemControl(type="nelder-mead")`.
+
+- A population `theta` with no random effect on it (the SAEM `phi0`
+  fixed effects) is now estimated directly as a regressor each
+  iteration, with a bounded `bobyqa` that honors that parameter's
+  `ini()` block bounds -- `saemControl(nonMuTheta="regress")`, the new
+  default.  Previously these were stochastic `phi0` draws with a
+  shrinking variance.  On a simulated model with three no-eta thetas
+  (`ka`, `V` and a Hill power) this recovered them far more accurately;
+  the absorption theta's RMSE dropped by roughly a factor of 16.  It
+  does cost some runtime, since the objective re-solves the ODE.  The
+  old handling is `saemControl(nonMuTheta="eta")`.
+
+```r
+# 7.0 defaults
+fit <- nlmixr2(one.cmt, theo_sd, est="saem")
+
+# the nlmixr2 6 behavior; note there is a different random number
+# generator so you still cannot get the same numbers
+# as a 6.x fit
+
+fit <- nlmixr2(one.cmt, theo_sd, est="saem",
+               saemControl(type="nelder-mead",
+                           nonMuTheta="eta"))
+```
+
+`saem` also warm-starts its residual error parameters from the observed
+per-endpoint moments now (`residWarmStart=TRUE`).
+
+### The random number generator changed
+
+The random number generator `saem` draws from has changed.  This means
+a `saem` fit will **not** reproduce a pre-7.0 run number-for-number,
+even with the same seed.
+
+I did not do this for its own sake.  Getting the sampling stream
+cleanly separated from everything else the fit does is what makes the
+next round of refinements possible -- the one I want most is being
+able to restart at the end of the stochastic approximation (SA) step
+with a larger number of SA iterations, instead of throwing the fit away
+and re-running the whole thing from the beginning to buy a longer
+burn-in.  That only works if the chain state at the end of the SA phase is a
+well-defined thing you can pick back up.
+
+## New experimental estimation engines
+
+There are a number of new estimation methods in this release:
+
+- `est="imp"`, `est="impmap"` and `est="qrpem"` -- importance sampling
+  EM in the style of `NONMEM` `METHOD=IMP`, with quasi-random (Sobol)
+  sampling and SIR acceleration available.
+
+- `est="npag"` and `est="npb"` -- nonparametric adaptive grid, and
+  nonparametric Bayes (a truncated stick-breaking Dirichlet process
+  mixture; probably needs the most refinement).
+
+- `est="emvi"` and `est="fbvi"` -- variational inference in the style
+  of Kucukelbir et al. (2017).  Note that neither of these is the
+  published ADVI algorithm and neither is named for it; the gradient
+  comes from the `focei` forward sensitivities rather than automatic
+  differentiation.
+
+- `est="vae"`, and the mu-referenced `focei` family (`mfocei`,
+  `ifocei`, `mfoce`, `ifoce` and relatives), which profile the
+  mu-referenced population and covariate thetas out of the outer
+  optimizer.
+
+**These are research methods.**  They are not validated to the standard
+of the established estimation methods, their results should not be
+relied on without independent checking, and -- this is the part worth
+underlining -- their interface and defaults may change or be withdrawn
+in a future release without a deprecation cycle.  A change to one of
+these will not earn a major version bump the way the `focei` changes
+above did.
+
+Each of them deserves a post of its own, and will get one.
+
+## Many more ODE solvers
+
+On the `rxode2` side there is now a much larger set of ODE solvers to
+choose from: a suite of explicit Runge-Kutta tableaus (orders 3 through
+14), stiff Rosenbrock and implicit Runge-Kutta methods (`"ros43"`,
+`"ros6"`, `"radauiia5"`, `"gauss6"`, `"sdirk43"`, `"backwardEuler"` and
+others), symplectic steppers, SUNDIALS CVODE, and LSODE/BDF.  The
+implicit methods auto-generate an analytic Jacobian.  `rxIsStiff()`,
+`rxIsNonStiff()`, `rxIsImplicit()`, `rxIsDense()` and
+`rxIsAutoSwitch()` will tell you what a given method is.
+
+The piece I like most is the AutoSwitch composites, written
+`"primary+secondary"`:
+
+```r
+rxSolve(model, ev, method="dop853+ros4")
+```
+
+That runs a non-stiff primary (`dop853`) and reactively falls back to a
+stiff secondary (`ros4`) when the problem calls for it, rather than
+making you commit to stiff or non-stiff before you know which one your
+model is.  This works in both the standard and dense-output paths, and
+delay models default to `"dop853+ros4"` for exactly this reason.
+
+There is a new "ODE solvers" article in `rxode2` covering all of them,
+and more on this here later.
+
+## Even more
+
+There are even more experimental features, including mixture models,
+auto-regressive residuals and delay differential equations.  I will
+talk through some of the new features in future blog
+posts (and try to release more frequently to catch up with what is
+currently available).
+
+This is one of the first releases where I (and others on the team)
+have been leaning into AI to help the development process.  There are
+some frustrations and interesting things I have found when looking at
+LLM-assisted development.  Sometimes it helps and sometimes it
+doesn't, but it definitely helps prototype and explore methods that
+you may not get to in the same amount of time.  So it takes both more
+and less time depending on the task, but overall it is a net gain for
+me.
+
+## Looking forward
+
+The parallel outer gradient is the piece that changes what is
+comfortable to fit.  A model that took an afternoon of finite
+differences is a different model to work with when the gradient is
+exact and threaded, and I expect that to show up first in the places
+where people quietly avoided `focei` -- larger datasets, more etas,
+models where the covariance step was the thing you gave up on.
+
+The experimental engines are subject to change.  They are in the
+release so that people can try them and tell us where they break; they
+are labeled experimental so that we can fix them without breaking
+anyone.
+
+## References
+
+Almquist J, Leander J, Jirstrand M.  Using sensitivity equations for
+computing gradients of the FOCE and FOCEI approximations to the
+population likelihood.  *J Pharmacokinet Pharmacodyn*.  2015.
+
+Kucukelbir A, Tran D, Ranganath R, Gelman A, Blei DM.  Automatic
+differentiation variational inference.  *J Mach Learn Res*.  2017.
