@@ -218,9 +218,9 @@ Matthew Fidler
 <aside class="notes">
 <p>This release covers five main updates:</p>
 <ol type="1">
-<li>FOCEI solving in parallel.</li>
-<li>FOCEI fast getting an exact population gradient.</li>
-<li>Changes to FOCEI defaults.</li>
+<li>Solving in parallel.</li>
+<li>fast exact population gradients</li>
+<li>Changes to the defaults.</li>
 <li>A more robust SAEM.</li>
 <li>Additional experimental engines and ODE solvers.</li>
 </ol>
@@ -240,7 +240,7 @@ Matthew Fidler
 <h2>1. Solving in parallel</h2>
 <p><img data-src="images/sec-parallel.png" class=""></p>
 <aside class="notes">
-<p>First, Bill, Hidde, and I worked on parallelizing FOCEI.</p>
+<p>First, Bill, Hidde, and I worked on parallelizing the estimation.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -312,7 +312,7 @@ Matthew Fidler
   <text class="sm" x="791" y="352" fill="#b40000">6.x done</text>
 </svg>
 <aside class="notes">
-<p>In nlmixr2 versions 5 and 6, every subject waited its turn. Now, they all solve and optimize together for FOCEI and most of our other estimation algorithms. This means if you have a multi-core computer, your solving speed will be significantly faster.</p>
+<p>In the old releases every subject waited its turn. Now, they all solve and optimize together for the conditional estimation methods and most of our other estimation algorithms. This means if you have a multi-core computer, your solving speed will be significantly faster.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -475,7 +475,7 @@ Matthew Fidler
   <text class="sm" x="20" y="372">pairing fast=TRUE with a derivative-free outerOpt reverts to fast=FALSE</text>
 </svg>
 <aside class="notes">
-<p>The gradient dictates the optimizer you want to use. Standard FOCEI still uses finite differences for the population values, which results in a noisy gradient. Because of this, the default has changed to a derivative-free method called BOBYQA. Since a gradient is never calculated, no finite differences are ever used with BOBYQA. However, individual optimizations still use exact gradients with n1qn1.</p>
+<p>The gradient dictates the optimizer you want to use. The standard method still uses finite differences for the population values, which results in a noisy gradient. Because of this, the default has changed to a derivative-free method called BOBYQA. Since a gradient is never calculated, no finite differences are ever used with it. However, individual optimizations still use exact gradients with n1qn1.</p>
 <p>Our fast method uses these exact sensitivity equations and gradients, so we rely on a Quasi-Newton optimization type – specifically, L-BFGS-B3c.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
@@ -526,7 +526,7 @@ Matthew Fidler
   <text class="sm grn" x="560" y="112">few steps</text>
 </svg>
 <aside class="notes">
-<p>Because FOCEI fast starts its individual search by projecting where the eta should be for the next optimization, it takes fewer steps to find the right empirical Bayesian estimate at a new theta.</p>
+<p>Because the fast method starts its individual search by projecting where the individual estimate should be for the next optimization, it takes fewer steps to find the right empirical Bayesian estimate at a new theta.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -596,7 +596,7 @@ Matthew Fidler
 <h2>3. New defaults for standard <code>focei</code></h2>
 <p><img data-src="images/sec-defaults.jpg" class=""></p>
 <aside class="notes">
-<p>Because of these updates, we have new defaults in standard FOCEI.</p>
+<p>Because of these updates, we have new defaults in the standard method.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -644,7 +644,7 @@ Matthew Fidler
   <text class="sm grn" x="612" y="306">and lands on the trend, not on a wiggle</text>
 </svg>
 <aside class="notes">
-<p>We use BOBYQA to fit a quadratic curve through spread-out samples, which naturally follows the minimization trend instead of getting stuck in the noise. This is especially useful for hard or complex surfaces.</p>
+<p>It fits a quadratic curve through spread-out samples, which naturally follows the minimization trend instead of getting stuck in the noise. This is especially useful for hard or complex surfaces.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -828,7 +828,7 @@ Matthew Fidler
   <text class="sm grn" x="540" y="368">on three no-eta thetas, the absorption RMSE dropped ~16x</text>
 </svg>
 <aside class="notes">
-<p>In the previous release, population parameters with no random effect on them (the stochastic phi0 draws) were continuously sampled until the variance shrank at the end. While this usually settled, it could become biased if it didn’t settle exactly where the parameter was. If we use a regression bounded by the initial estimates – in this case, BOBYQA – it honors the exact location and drops the error measured by RMSE by 16-fold.</p>
+<p>In the previous release, population parameters with no random effect on them (the stochastic phi0 draws) were continuously sampled until the variance shrank at the end. While this usually settled, it could become biased if it didn’t settle exactly where the parameter was. If we use a bounded regression – it honors the exact location and drops the error measured by RMSE by 16-fold.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -879,7 +879,7 @@ Matthew Fidler
   <text class="sm" x="30" y="378">the cost today: a saem fit will not reproduce a pre-7.0 run, even with the same seed</text>
 </svg>
 <aside class="notes">
-<p>We also changed how random number streams function. By using thread-safe random streams, every single point in the optimization can be reproduced while remaining completely independent. This allows you to safely extend the chain rather than throwing away previous SAEM fits.</p>
+<p>We also changed how random number streams function. By using thread-safe random streams, every single point in the optimization can be reproduced while remaining completely independent. This allows you to safely extend the chain rather than throwing away previous fits.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -943,7 +943,7 @@ Matthew Fidler
   <text class="mono" x="70" y="384">rxSolve(model, ev, method="dop853+ros4")</text>
 </svg>
 <aside class="notes">
-<p>You can now combine stiff and non-stiff solvers – similar to lsoda – using methods like DOP853 and Rosenbrock4. Rosenbrock4 is new, and there are many new ODE solving methods available for nlmixr2 and rxode2.</p>
+<p>You can now combine stiff and non-stiff solvers – similar to lsoda – using methods like DOP853 and Rosenbrock4. Rosenbrock4 is new, and there are many new ODE solving methods available in our packages.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -997,7 +997,7 @@ Matthew Fidler
   <text class="sm" x="700" y="325" fill="#a35a12">check the results independently</text>
 </svg>
 <aside class="notes">
-<p>We’ve also introduced new experimental optimization methods like IMP, QRPEM, and new FOCEI variants.</p>
+<p>We’ve also introduced new experimental optimization methods like IMP, VAE and new conditional-estimation variants.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -1027,7 +1027,7 @@ Matthew Fidler
 </ul>
 </div></div>
 <aside class="notes">
-<p>To summarize: FOCEI solves in parallel on every OpenMP-enabled platform, FOCEI fast utilizes an exact population gradient, our defaults have moved to BOBYQA for better accuracy on noisy parameters, SAEM is more robust, and we have many new ODE solvers to test.</p>
+<p>To summarize: parallel solving works on every OpenMP-enabled platform, the fast methods utilizes an exact population gradient, our classic method defaults have moved to a derivative-free optimizer for better accuracy on noisy parameters, SAEM is more robust, and we have many new experimental ODE and estimation routines.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
