@@ -1,0 +1,575 @@
+---
+title: "What dose for a 900-gram newborn?"
+subtitle: "A hands-on introduction to pharmacometrics in R"
+author: Matthew Fidler
+date: '2026-08-11'
+slug: []
+categories: [nlmixr2]
+tags: []
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      cache = TRUE, fig.width = 7.8, fig.height = 4.6,
+                      dpi = 110, out.width = "100%")
+library(nlmixr2)
+library(dplyr)
+library(ggplot2)
+rxode2::rxSetSilentErr(1L)
+theme_set(theme_bw())
+```
+
+Consider a preterm infant with seizures -- what can we do in data
+analytics to support the right drug and dose the first time?  Too
+little and the seizures continue, too much and the infant stops
+breathing. What information do we have -- the birth weight (900 g) and
+the [APGAR
+score](https://medlineplus.gov/ency/article/003402.htm).
+
+To complicated the analysis, this was not created from a well
+controlled clinical study taking intensive (15+) blood samples from
+these pre-term infants.  They only have less than a teacup of blood in
+their entire body!  What exists is scraps of concentrations, one here
+another 3+ days later across only a few infants.  All on different
+doses, measured with different people and labs.
+
+Even with these limitations, we now know that the correct dose of a
+drug,
+[phenobarbital](https://medlineplus.gov/druginfo/meds/a682007.html),
+used to treat seizures in these infants.  It is in the drug label, a
+dose given in mg/kg.
+
+Getting a defensible dose out of that is what pharmacometrics does.
+It helps understand what the drug does to the body and what the body
+does to the drug.  It helps understand the concentrations of doses in
+individuals and populations and helps pick the right drug for the
+population and in some instances for the individual.
+
+This post works through the analysis of this dataset end to end in R with
+[nlmixr2](https://nlmixr2.org) -- from 155 scattered measurements to a defensible
+dosing label while using an open-source tool for drug-development.
+
+## If you have fit a mixed model, you have done half of this
+
+The machinery of pharmacometrics is familiar to applied statisticsians
+
+If you have fit a mixed-effects model -- per-store demand, per-player
+shooting percentage, per-school test scores -- you have analyzed the
+first part of what pharmacometrics does.  The core idea is the same:
+individuals differ, you estimate a population distribution and let
+each individual borrow and inform the overall population parameters.
+
+If you have ever solved a system of differential equations, you have
+done second part of the analysis. Pharmacometrics is what happens when
+you have to do both **at the same time**: the mean function inside the
+nonlinear mixed model that is not a line or a spline, it is the solution to
+a system of ODEs describing how drug moves through the body.
+
+While you can fit a spline to concentration-versus-time and get a
+description of the data you collected, you would not be able to answer
+the question that was actually asked. There is no inherit knowledge
+about the mechanism of the drug being eliminated or how it works.
+Rather everything is descriptive.
+
+By having the ODE parameterize the *clearance* (volume of blood
+elimited of drug per hour) and *volume of distribution* (how
+widely the drug spreads through tissue), you can use these are physiological
+quantities to inform the mechanism of how the drug works:
+
+- **They extrapolate.** Once you know clearance, you know the
+  concentration for a dose nobody in your study ever received.
+
+- **They can describe meaningful relationships.** Clearance scales with body
+  size and kidney function; volume scales with body water. This has
+  been studied by the field in models for quite awhile.  Therefore,
+  when you are using population level ways of better describing the
+  data (ie covariates), you put them on where biology says they
+  belong, not where it simply better describe the data.
+
+- **They separate the parts of a regimen.** The loading dose is
+  governed by volume; the maintenance dose is governed by clearance.
+  Estimating them separately is exactly what lets you design a regimen,
+  and it is invisible if all you have is a fitted curve.
+
+So the questions pharmacometrics answers are dosing questions: what
+dose, how often, by what route; who needs a different one (children,
+renal impairment, drug interactions, obesity etc); what happens when a dose
+is missed; how much exposure produces the effect and how much starts
+producing harm; and whether the Phase III trial is worth running at
+all, at which dose.
+
+The reach is larger than it sounds. Dosing sections of drug labels are
+built from these models. Pediatric doses are routinely approved by
+adult model extrapolation rather than and unjustified pediatric trial.
+
+
+In the clinic, these models help therapeutic drug monitoring --
+vancomycin (for MRSA infections), busulfan (for cancer), infliximab
+(Autoimmune/inflamitory) -- where the need of the drug is great and
+individual variability of effect / toxicity needs to be carefully
+balanced in each individual.  Both FDA and EMA have written guidance on
+population pharmacokinetics. It is a small field with an unusually
+direct path from a model object to what happens to a patient.
+
+## The data
+
+In this example, the dataset is real and famous: 59 preterm infants
+given phenobarbital, published by Grasela and Donn in 1985. It ships
+with nlmixr2 as `pheno_sd`, and if you have `nlme` installed you
+already have a copy of it as `nlme::Phenobarb`.
+
+```{r data-head}
+library(nlmixr2)
+head(pheno_sd, 4)
+```
+
+The columns are the pharmacometric standard: `ID`, `TIME`, `AMT`
+(amount or dose given), `DV` (dependent variable, in this case
+concentration), `EVID` (1 = dose, 0 = observation) plus covariates
+`WT` (kg) and `APGR` (Apgar score). The nlmixr2 format is very similar
+to the NONMEM format since it is prevalent across the field.
+
+One of the first things to do is do some exploration of the data:
+
+```{r data-sparsity}
+obs <- subset(pheno_sd, EVID == 0)
+
+c(infants       = length(unique(pheno_sd$ID)),
+  doses         = sum(pheno_sd$EVID == 1),
+  concentrations = nrow(obs))
+
+table(`samples per infant` = table(obs$ID))
+```
+
+Nine infants have exactly one concentration. Forty percent have two or
+fewer. There are 589 doses and only 155 measurements — the infants were
+dosed relentlessly and sampled infrequently during routine care.
+
+You can see this clearly with the following exploratory plot:
+
+```{r fig-data, fig.height = 5, echo = FALSE}
+ord  <- pheno_sd %>% group_by(ID) %>%
+  summarise(WT = first(WT), .groups = "drop") %>%
+  arrange(WT) %>% mutate(row = row_number())
+obsP  <- left_join(obs, ord, by = "ID", suffix = c("", ".o"))
+doseP <- left_join(subset(pheno_sd, EVID == 1), ord, by = "ID",
+                   suffix = c("", ".o"))
+
+ggplot() +
+  geom_point(data = doseP, aes(TIME, row), shape = 124,
+             colour = "black", size = 1.6) +
+  geom_point(data = obsP, aes(TIME, row, fill = DV), shape = 21,
+             size = 2.4, colour = "black", stroke = .3) +
+  scale_fill_viridis_c(name = "Conc.\n(mg/L)", option = "C", end = .92) +
+  scale_y_continuous(breaks = c(1, 15, 30, 45, 59),
+                     labels = function(i) sprintf("%.1f kg", ord$WT[i])) +
+  labs(x = "Time (h)", y = "59 infants, ordered by body weight",
+       subtitle = "Ticks are doses; circles are the 155 measured concentrations") +
+  theme(panel.grid.minor = element_blank())
+```
+
+
+## A first model
+
+To describe the model you can use an ordinary R function with two
+blocks -- an `ini({})` and a `model({})` block:
+
+```{r model-1}
+pheno <- function() {
+  ini({
+    tcl <- log(0.008)   # log typical clearance (L/h)
+    tv  <- log(0.6)     # log typical volume (L)
+    eta.cl ~ 1          # between-infant variability on clearance
+    eta.v  ~ 1          # between-infant variability on volume
+    prop.sd <- 0.1      # proportional residual error
+  })
+  model({
+    cl <- exp(tcl + eta.cl)
+    v  <- exp(tv  + eta.v)
+    d/dt(central) <- -(cl / v) * central
+    cp <- central / v
+    cp ~ prop(prop.sd)
+  })
+}
+```
+
+Three things are worth pointing out, because they are the whole
+language:
+
+- `ini({})` holds initial estimates. `<-` declares a fixed effect (and residual estimates)
+  `~` declares a random effect with its initial variance.
+
+- `model({})` is the model itself. `d/dt(central)` is a differential
+  equation, declared in Lebneitz notation.  This one says drug leaves
+  the central compartment at a rate proportional to how much is
+  there. Dosing is driven by the data (`AMT`/`EVID`), so doesn't
+  appears in this model code.
+
+- The last line, `cp ~ prop(prop.sd)`, says the observed concentration
+  is the predicted `cp` with proportional residual error. That is where
+  the model meets dependent variable, `DV`.
+
+Everything else is plain R. `WT` will be a column in the data;
+`exp()` is `exp()`.
+
+Fitting it:
+
+```{r fit-1, results = "hide"}
+# note here we use the := nlmixr2 save function to cache the fit
+# since nonlinear mixed effects models can take some time to run.
+fit1 := nlmixr2(pheno, pheno_sd, est = "saem",
+                control = saemControl(print = 0, seed = 42),
+                table = tableControl(cwres = TRUE, npde = TRUE))
+```
+
+You can print out the entire fit object, which is a modified
+data-frame of predictions and estimates together.  Another way to look
+at the data is simply to look at the estimate:
+
+```{r fit-1-print}
+fit1$parFixedDf[, c("Estimate", "Back-transformed", "BSV(CV%)")]
+```
+
+Typical clearance is about `r
+signif(exp(fit1$parFixedDf["tcl","Estimate"]), 3)` L/h and typical
+volume about `r signif(exp(fit1$parFixedDf["tv","Estimate"]), 3)` L.
+But look at the last column: between-infant variability of **37% on
+clearance and 47% on volume**. Two infants drawn at random from this
+population can easily differ two-fold in exposure on the same dose.
+That is the number that makes a single flat dose dangerous, and the
+next question is whether any of it is explainable.
+
+## One line, and half the variability disappears
+
+These infants weigh between 0.6 and 3.6 kg — a six-fold range in body
+size. It would be strange if that did not matter. Larger bodies have
+larger livers and kidneys and more water to distribute drug into, and
+the standard way to encode that is allometric scaling: clearance scales
+with weight to the ¾ power, volume scales linearly.
+
+The change to the model is one line each.  In nlmixr2 instead of
+having to rewrite the whole model we can change pieces of the model
+with model piping:
+
+```{r model-2}
+
+phenoWt <-  pheno |>
+  # first we modify the cl line
+  model(cl <- exp(tcl + eta.cl + cov.cl.wt*log(WT/1.3))) |>
+  # then the v line
+  model(v  <- exp(tv  + eta.v  + cov.v.wt*log(WT/1.3))) |>
+  # then we add the covariate effects to the ini block
+  ini(cov.cl.wt=0.75, cov.v.wt=1)
+
+fit2 := nlmixr2(phenoWt, pheno_sd, est = "saem",
+                control = saemControl(print = 0, seed = 42),
+                table = tableControl(cwres = TRUE, npde = TRUE))
+```
+
+```{r compare1}
+tibble(
+  model = c("Base", "+ allometric weight"),
+  OBJF  = c(fit1$objf, fit2$objf),
+  AIC   = c(AIC(fit1), AIC(fit2)),
+  `BSV CL (CV%)` = c(fit1$parFixedDf["tcl", "BSV(CV%)"],
+                     fit2$parFixedDf["tcl", "BSV(CV%)"]),
+  `BSV V (CV%)`  = c(fit1$parFixedDf["tv", "BSV(CV%)"],
+                     fit2$parFixedDf["tv", "BSV(CV%)"])
+) %>% mutate(across(where(is.numeric), ~ signif(.x, 4)))
+```
+
+The objective function drops by about `r round(fit1$objf - fit2$objf)`
+points for two estimated parameters. Between-infant variability falls
+from 37% to 17% on clearance and from 47% to 18% on volume.  This
+means more than half of the variability in these infants is just body
+weight which is why the infants are dosed by weight.
+
+## Leaning into the AI estimation methods
+
+Experimentally, as of nlmixr2 7.0, we also allow
+variable-auto-encoding method (`vae`) to automatically select covariates
+with the l0learn method from google labs.  These new nonlinear mixed
+effects routines lean into the new advancements in AI and apply them
+to this space.  Using this method we get:
+
+```{r vae}
+fit3 := nlmixr2(pheno, pheno_sd, est = "vae",
+                control=vaeControl(print=0),
+                table = tableControl(cwres = TRUE, npde = TRUE))
+```
+
+This shows a full covariate search would have picked weight throughout
+as a covariate.  You can see the full model with the covariates filled in here:
+
+```{r vaeCov}
+print(fit3$ui)
+```
+
+And the same comparison for these weight covariates are here:
+
+```{r compare2}
+tibble(
+  model = c("Base", "+ allometric weight"),
+  OBJF  = c(fit1$objf, fit3$objf),
+  AIC   = c(AIC(fit1), AIC(fit3)),
+  `BSV CL (CV%)` = c(fit1$parFixedDf["tcl", "BSV(CV%)"],
+                     fit3$parFixedDf["tcl", "BSV(CV%)"]),
+  `BSV V (CV%)`  = c(fit1$parFixedDf["tv", "BSV(CV%)"],
+                     fit3$parFixedDf["tv", "BSV(CV%)"])
+) %>% mutate(across(where(is.numeric), ~ signif(.x, 4)))
+```
+
+Further reducing the variability in volume to 14%
+
+## Does the model deserve to be believed?
+
+First, individual profiles. This is where the borrowing of strength
+becomes visible:
+
+```{r fig-augpred, fig.height = 5, echo = FALSE}
+nobs <- table(obs$ID)
+wtI  <- pheno_sd %>% group_by(ID) %>% summarise(WT = first(WT), .groups = "drop")
+sel  <- c(56, 28, 11, 2, 4, 8)
+lab  <- setNames(sprintf("ID %s  (%.1f kg, %d sample%s)", sel,
+                         wtI$WT[match(sel, wtI$ID)], nobs[as.character(sel)],
+                         ifelse(nobs[as.character(sel)] == 1, "", "s")), sel)
+
+ap <- as.data.frame(augPred(fit3)) %>% filter(id %in% sel, ind != "Observed")
+ob <- as.data.frame(fit3) %>% filter(ID %in% sel) %>%
+  transmute(id = as.character(ID), time = TIME, values = DV)
+ap$id <- factor(ap$id, levels = sel); ob$id <- factor(ob$id, levels = sel)
+
+ggplot(ap, aes(time, values, colour = ind)) +
+  geom_line(linewidth = .7) +
+  geom_point(data = ob, colour = "black", size = 2.2) +
+  facet_wrap(~ id, scales = "free_x", labeller = labeller(id = lab)) +
+  labs(x = "Time (h)", y = "Phenobarbital (mg/L)", colour = NULL) +
+  theme(legend.position = "top")
+```
+
+Infants 56 and 28 contributed **one measurement each**, and both come
+out with a complete concentration-time profile.
+The individual (red) and population (blue)
+curves nearly coincide -- with one data point there is nothing to move
+the individual away from the population, which is exactly the right
+behavior. For infants 2 and 8, with three samples each, the two curves
+separate: there is now enough information to say this infant is not
+typical.
+
+Second, a prediction-corrected visual predictive check — simulate many
+replicates of the study from the fitted model and ask whether the real
+data looks like a plausible draw:
+
+```{r fig-vpc, echo = TRUE, results = "hide"}
+vpcPlot(fit3, n = 300, pred_corr = TRUE, show = list(obs_dv = TRUE)) +
+  labs(x = "Time (h)", y = "Prediction-corrected phenobarbital (mg/L)") +
+  theme_bw()
+```
+
+The observed median and 5th/95th percentiles (solid and dashed lines)
+sit inside the simulated bands across the study. With 155 observations
+the percentiles are noisy but it is not misspecified.
+
+## Answering the actual question
+
+This analysis showed we have
+a model that says how clearance and volume change with body weight, so
+we can simulate regimens for infants across the weight range and ask
+which regimen actually keeps them in the therapeutic window of roughly
+15-40 mg/L.
+
+Two candidates. A **flat** regimen — one dose for every infant, chosen
+to be correct for the average 1.5 kg baby in this study. And a
+**weight-based** regimen in mg/kg. Both use a loading dose (which
+volume of distribution determines) followed by twice-daily maintenance
+(which clearance determines).
+
+The simulation reuses the fitted object directly — `rxSolve()` takes
+`fit3` and samples new infants from its estimated between-subject
+distribution:
+
+```{r sim, results = "hide"}
+set.seed(99)
+wts <- seq(0.7, 3.5, by = 0.2)
+
+simOne <- function(w, reg) {
+  flat <- grepl("^Flat", reg)
+  ev <- et(amt = if (flat) 30  else 20   * w) %>%                # loading
+        et(amt = if (flat) 1.9 else 1.25 * w,                    # maintenance
+           ii = 12, until = 24 * 14, time = 12) %>%
+        et(seq(24 * 7, 24 * 14, by = 4))                         # sample week 2
+  rxSolve(fit3, ev, nSub = 400, iCov = data.frame(WT = w),
+          addDosing = FALSE) %>%
+    as.data.frame() %>% mutate(WT = w, regimen = reg)
+}
+
+grid <- expand.grid(
+  WT = wts,
+  regimen = c("Flat: 30 mg load + 1.9 mg q12h",
+              "Weight-based: 20 mg/kg load + 1.25 mg/kg q12h"),
+  stringsAsFactors = FALSE)
+
+sim <- bind_rows(Map(simOne, grid$WT, grid$regimen))
+```
+
+```{r fig-regimen, echo = FALSE}
+res <- sim %>% group_by(regimen, WT) %>%
+  summarise(lo = quantile(cp, .05), med = median(cp),
+            hi = quantile(cp, .95), .groups = "drop")
+
+ggplot(res, aes(WT, med)) +
+  annotate("rect", xmin = -Inf, xmax = Inf, ymin = 15, ymax = 40,
+           fill = "grey70", alpha = .35) +
+  geom_ribbon(aes(ymin = lo, ymax = hi, fill = regimen), alpha = .35) +
+  geom_line(aes(colour = regimen), linewidth = .9) +
+  scale_y_log10() +
+  labs(x = "Body weight (kg)", y = "Phenobarbital, week 2 (mg/L)",
+       colour = NULL, fill = NULL,
+       subtitle = "Shaded band is the 15-40 mg/L therapeutic window; ribbons are 90% prediction intervals") +
+  theme(legend.position = "top", legend.direction = "vertical")
+```
+
+```{r tab-regimen}
+sim %>%
+  filter(round(WT, 1) %in% c(0.7, 1.5, 2.3, 3.1)) %>%
+  group_by(regimen, WT) %>%
+  summarise(median = median(cp),
+            `% in window` = 100 * mean(cp >= 15 & cp <= 40),
+            .groups = "drop") %>%
+  mutate(across(where(is.numeric), ~ round(.x, 1))) %>%
+  arrange(regimen, WT)
+```
+
+The flat regimen was chosen to be *right* for the average infant, and
+it is: at 1.5 kg the median lands at 22 mg/L, comfortably mid-window,
+with virtually every infant in range. But it fails at both ends. The
+median 0.7 kg infant sits at 41 mg/L -- above the top of the window
+entirely -- while at 3.1 kg the median has fallen to 12 mg/L and fewer
+than 4% of infants reach a therapeutic concentration at all. That is a
+three-and-a-half-fold exposure gradient across the population, driven
+entirely by a covariate that was sitting in the dataset the whole time.
+
+The weight-based regimen holds the median between 19 and 25 mg/L across
+the entire weight range, with 96% or more of simulated infants inside
+the window at every weight.
+
+There is a subtlety worth noticing in that curve: the weight-based line
+still drifts gently *upward* with weight then plateaus.
+
+**A caveat, stated clearly:** this is a teaching example on a 1985
+dataset, deliberately kept to one compartment and one covariate. It is
+not dosing guidance. Real neonatal phenobarbital dosing accounts for
+postnatal age and maturation, and would be under the care of a
+qualified doctor and pharmacist. The *workflow*, though, is the real
+one.  Also note, the original dataset was
+
+## Where this sits in the R ecosystem
+
+The part that is easy to miss in a walkthrough is that nothing above
+required leaving R. Many tools in pharmacometrics require a shuttle
+back and forth between 2 different tools and ecosystems.
+
+The fit object is a modified tibble. `as.data.frame(fit2)` gives you
+observations, predictions, residuals, and empirical Bayes estimates in
+a tidy frame, which is why every plot in this post is plain `ggplot2`
+and every summary is plain `dplyr`. There is no export step, no
+intermediate file format, no separate post-processing tool with its own
+data conventions. That sounds like a convenience and is really a
+reproducibility property: the places where analyses usually become
+irreproducible are the boundaries between tools, and this workflow does
+not have any.
+
+That matters concretely. The whole thing — data prep, fit, diagnostics,
+simulation, report — is one Quarto or R Markdown document (this post is
+one).
+
+One approach to keep this reproducible is to in the dependencies with
+`renv`, wire the fits into a `targets` pipeline so they only re-run when
+the model changes, and someone else can reproduce the dosing
+recommendation from the raw data with the R script or report.
+
+The second thing worth knowing is that nlmixr2 is not a walled garden,
+which is unusual for this field and is probably the strongest practical
+argument for adopting it:
+
+- [**babelmixr2**](https://nlmixr2.github.io/babelmixr2/) takes the
+  *same model object* you just read and runs it through NONMEM or
+  Monolix. You are not choosing a camp — you can fit in nlmixr2 and
+  confirm in NONMEM, which is a genuinely useful thing to be able to do
+  when the model matters. It also connects to `PKNCA` for
+  non-compartmental initial estimates and `PopED` for optimal design.
+
+- [**nonmem2rx**](https://nlmixr2.github.io/nonmem2rx/) and
+  [**monolix2rx**](https://nlmixr2.github.io/monolix2rx/) go the other
+  direction, importing finished NONMEM and Monolix runs into R so that
+  a decade of legacy models can be simulated, plotted, and checked with
+  the same tooling.
+
+- [**rxode2**](https://nlmixr2.github.io/rxode2/) is the ODE solver
+  underneath both fitting and simulation. The model used for the
+  regimen comparison above is bit-for-bit the model that was fit — not
+  a hand-re-implementation of it in a separate simulation tool, which
+  is a classic source of quiet errors.
+
+- The surrounding ecosystem — `xpose.nlmixr2` and `ggPMX` for
+  standardized diagnostics, `tidyvpc` for VPCs, `shinyMixR` for run
+  management, `nlmixr2rpt` for Word and PowerPoint reports — is
+  described in more detail in an
+  [earlier post](https://blog.nlmixr2.org/blog/2025-06-30-nlmixr2-ecosystem/).
+
+And then the ordinary open-source argument, which lands harder in
+pharma than people outside it expect: there is no license to negotiate.
+An academic collaborator, a CRO, a reviewer, or a curious statistician
+two floors away can run your analysis today.
+
+## Getting started
+
+If you are a pharmacometrician who has been meaning to try this, the
+first model is a smaller step than it looks — everything above is about
+forty lines of code.
+
+```r
+install.packages("nlmixr2")
+```
+
+That brings in the estimation engine, the ODE solver, and the plotting
+and diagnostic packages. On Windows you will also want
+[Rtools](https://cran.r-project.org/bin/windows/Rtools/), since models
+are compiled to C for speed. Then:
+
+```r
+library(nlmixr2)
+fit <- nlmixr2(pheno, pheno_sd, est = "saem",
+               control = saemControl(print = 0))
+```
+
+Some places to go next:
+
+- The [nlmixr2 website](https://nlmixr2.org) has the full model
+  language reference and a gallery of worked examples.
+- [nlmixr2lib](https://github.com/nlmixr2/nlmixr2lib) is a library of
+  starting models, so a two-compartment model with transit absorption
+  is a lookup rather than a derivation.
+- If you are coming from NONMEM, `nonmem2rx` will translate a model you
+  already trust, which is a considerably more comfortable way in than
+  starting from a blank file.
+- [nlmixr2 7.0](https://blog.nlmixr2.org/blog/2026-08-05-nlmixr2-7/),
+  released this month, made
+  `focei` solve in parallel across all OpenMP-enabled platforms, so the
+  fits in this post are quicker than they would have been a year ago.
+
+And if you are coming from outside the field entirely — from sports
+analytics, from supply chain, from anywhere people fit hierarchical
+models to messy observational data -- the thing worth taking away is the
+shape of the problem. Fifty-nine subjects, most with one or two
+observations, a mechanistic model with parameters that mean something,
+and a decision at the end that someone has to make on Tuesday whether
+or not the analysis is finished.
+
+---
+
+*The complete source for this post, including every model and figure,
+is in the [blog repository](https://github.com/nlmixr2/blog). The
+phenobarbital data is from Grasela TH Jr and Donn SM, "Neonatal
+population pharmacokinetics of phenobarbital derived from routine
+clinical data," Dev Pharmacol Ther. 1985;8(6):374-383.*
