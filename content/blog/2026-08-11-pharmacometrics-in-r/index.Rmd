@@ -26,7 +26,7 @@ breathing. What information do we have -- the birth weight (900 g) and
 the [APGAR
 score](https://medlineplus.gov/ency/article/003402.htm).
 
-To complicated the analysis, this was not created from a well
+To complicate the analysis, this was not created from a well
 controlled clinical study taking intensive (15+) blood samples from
 these pre-term infants.  They only have less than a teacup of blood in
 their entire body!  What exists is scraps of concentrations, one here
