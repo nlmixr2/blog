@@ -7,6 +7,72 @@ institute: "On behalf of the [nlmixr2]{.nlmixr} team"
 # separate blank slide.  reveal reads speaker notes from data-notes as well.
 title-slide-attributes:
   data-notes: "Hi, I'm here to talk about the covariance step in nlmixr2 7.0 -- what changed, and why."
+# Narration.  One clip per slide in audio/, bound and auto-advanced by the
+# vendored audio-slideshow plugin; its options live in
+# _extensions/audio-slideshow/_extension.yml.
+revealjs-plugins:
+  - audio-slideshow
+# Browsers refuse to start audio until the page has had a real user gesture
+# (Chrome: "NotAllowedError: play() failed because the user didn't interact
+# with the document first"), so autoplay:true alone leaves the deck silent on
+# slide 1.  No plugin setting can override it.  This overlay takes one click
+# and starts playback; from then on the plugin advances by itself.
+include-after-body:
+  text: |
+    <script>
+    // Two things the audio-slideshow plugin needs help with.
+    //
+    // 1. It assigns <source>.src AFTER the <audio> is in the DOM.  Per spec
+    //    that does not start a fetch -- the browser only ever issues the
+    //    plugin's HEAD probe, never a GET, so the clip never loads
+    //    (networkState stays LOADING, duration null) and the deck is silent
+    //    or stutters.  Calling load() on the element fixes it.
+    //
+    // 2. Browsers refuse to start audio until the page has had a real user
+    //    gesture, so autoplay:true alone leaves slide 1 silent.  One click
+    //    on the overlay satisfies that; after it the plugin runs itself.
+    (function () {
+      function playerFor(h, v) {
+        return document.getElementById('audioplayer-' + h + '.' + v);
+      }
+      function prime(a) {
+        if (!a) return;
+        if (a.readyState === 0) { try { a.load(); } catch (e) {} }
+      }
+      function currentPlayer() {
+        var i = (window.Reveal && Reveal.getIndices) ? Reveal.getIndices()
+                                                     : { h: 0, v: 0 };
+        return playerFor(i.h, i.v || 0);
+      }
+      function start() {
+        var a = currentPlayer();
+        prime(a);
+        if (a) { var pr = a.play(); if (pr && pr.catch) pr.catch(function () {}); }
+      }
+      function arm() {
+        if (window.Reveal && Reveal.on) {
+          Reveal.on('slidechanged', function () { prime(currentPlayer()); });
+        }
+        prime(currentPlayer());
+        if (document.getElementById('audio-start')) return;
+        var d = document.createElement('div');
+        d.id = 'audio-start';
+        d.innerHTML = '<button style="font: 600 22px/1 Calibri, sans-serif;' +
+          'color:#fff;background:#b40000;border:0;border-radius:6px;' +
+          'padding:18px 30px;cursor:pointer">&#9654;&nbsp; Play with narration</button>' +
+          '<div style="margin-top:14px;font:16px Calibri,sans-serif;color:#17375d">' +
+          'your browser needs one click before it will play audio</div>';
+        d.style.cssText = 'position:fixed;inset:0;z-index:60;display:flex;' +
+          'flex-direction:column;align-items:center;justify-content:center;' +
+          'background:rgba(255,255,255,.92);text-align:center';
+        d.addEventListener('click', function () { start(); d.remove(); });
+        document.body.appendChild(d);
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', arm);
+      } else { arm(); }
+    })();
+    </script>
 format:
   nlmixr2-revealjs:
     embed-resources: false
@@ -386,14 +452,14 @@ methods on the same fit without paying the calculation cost twice.
 
 ::: {.notes}
 Here's the full vocabulary. R comma S is the sandwich estimator, and it's
-the default for the focei family. R and S are its two halves, useful for
-comparison. Analytic is the exact observed information, matching NONMEM's
-COV MATRIX equals R. S A is SAEM's Louis stochastic approximation Fisher
-information. Imp is the importance sampling Monte Carlo observed
-information. V I is the variational covariance, only available from emvi
-and f b v i. nlme keeps nlme's own standard errors. Lin f i m and f i m
-are SAEM's linearized and accumulated Fisher information. And an empty
-string just skips the covariance step.
+the default for the focei family. Analytic is the exact observed
+information, matching NONMEM's COV MATRIX equals R. SAEM's Louis
+stochastic approximation Fisher information and the importance sampling
+Monte Carlo observed information are the two that travel across methods.
+The rest stay tied to their own method -- the variational covariance,
+nlme's own standard errors, and SAEM's linearized and accumulated Fisher
+information, all listed on the slide. And an empty string just skips the
+covariance step.
 :::
 
 ## Most families' defaults now reflect what they're actually best at
@@ -559,7 +625,7 @@ To summarize: the default covariance step now covers:
 
 - you can switch after the fact with set cov
 
-- the analytic covariance gives you an exact standard size.
+- the analytic covariance gives you an exact standard error.
 
 :::
 

@@ -580,7 +580,7 @@ setCov(fit, "imp")</code></pre>
 </table>
 </div>
 <aside class="notes">
-<p>Here’s the full vocabulary. R comma S is the sandwich estimator, and it’s the default for the focei family. R and S are its two halves, useful for comparison. Analytic is the exact observed information, matching NONMEM’s COV MATRIX equals R. S A is SAEM’s Louis stochastic approximation Fisher information. Imp is the importance sampling Monte Carlo observed information. V I is the variational covariance, only available from emvi and f b v i. nlme keeps nlme’s own standard errors. Lin f i m and f i m are SAEM’s linearized and accumulated Fisher information. And an empty string just skips the covariance step.</p>
+<p>Here’s the full vocabulary. R comma S is the sandwich estimator, and it’s the default for the focei family. Analytic is the exact observed information, matching NONMEM’s COV MATRIX equals R. SAEM’s Louis stochastic approximation Fisher information and the importance sampling Monte Carlo observed information are the two that travel across methods. The rest stay tied to their own method – the variational covariance, nlme’s own standard errors, and SAEM’s linearized and accumulated Fisher information, all listed on the slide. And an empty string just skips the covariance step.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -633,7 +633,7 @@ setCov(fit, "imp")</code></pre>
 <tr class="odd">
 <td><code>npag</code> / <code>npb</code></td>
 <td><code>"imp"</code></td>
-<td><strong>new</strong> – previously reported no covariance at all</td>
+<td>currently does not have its own method</td>
 </tr>
 <tr class="even">
 <td><code>emvi</code> / <code>fbvi</code></td>
@@ -644,7 +644,7 @@ setCov(fit, "imp")</code></pre>
 </table>
 </div>
 <aside class="notes">
-<p>Most defaults stayed put, because they were already the right choice for that family. The one that changes the most is the nonparametric family – n p a g and n p b previously reported no covariance at all, and now they get the importance sampling covariance by default. imp, impmap and q r p e m lose the old imp cov equals true argument, because imp is just the default now.</p>
+<p>Most defaults stayed put, because they were already the right choice for that family.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -703,7 +703,7 @@ setCov(fit, "imp")</code></pre>
   <text class="mono red" x="775" y="230" text-anchor="middle">needs 3rd-order sensitivities</text>
 </svg>
 <aside class="notes">
-<p>Here’s the shape of the idea. The population objective is a data term plus a log determinant penalty term. The gradient – already exact, from the Almquist sensitivity equations Hidde and I used for the fast gradient – only needs second order sensitivities. The observed information is one more derivative past that. The data term needs nothing new. But the log determinant term needs third order sensitivities, and that’s confined to exactly that one term.</p>
+<p>For the new analytic method the population objective is a data term plus a log determinant penalty term. The gradient – already exact, from the Almquist sensitivity equations only needs second order sensitivities. The observed information is one more derivative past that. The data term needs nothing new. But the log determinant term needs third order sensitivities, and that’s confined to exactly that one term.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -728,7 +728,7 @@ setCov(fit, "imp")</code></pre>
 </div>
 <p>The analytic form carries <strong>no step size</strong> – it is limited only by the accuracy of the sensitivity and ODE solutions underneath it.</p>
 <aside class="notes">
-<p>Here’s why this is hard the old way. A finite differenced gradient’s accuracy scales with the inner problem’s tolerance to the two thirds power. A finite differenced Hessian is worse, it only scales to the one half power. And on top of that you need a step size, tuned by hand – too large and you get truncation bias, too small and round off makes it erratic, sometimes not even positive definite. The analytic form has no step size to tune at all. It’s limited only by the accuracy of the sensitivity and O D E solutions underneath it.</p>
+<p>The analytic gradient has no step size and no finite difference noise, so it is not erratic or biased – it is exact. It is only limited by the accuracy of the ODE systems themselves.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -794,7 +794,12 @@ setCov(fit, "imp")</code></pre>
 </ul>
 </div></div>
 <aside class="notes">
-<p>So, to summarize: the default covariance step now covers every estimated parameter, sa, imp, analytic and the finite-difference methods now travel across mixed-effects fits and switch after the fact with setCov, and the analytic covariance gives you an exact standard error with no step size to tune. If two covariance methods agree on a parameter’s standard error, that’s real signal. If they don’t, that’s worth knowing before you write the number into a report.</p>
+<p>To summarize: the default covariance step now covers:</p>
+<ul>
+<li><p>every estimated parameter, SA, IMP, analytic and the finite-difference methods.</p></li>
+<li><p>you can switch after the fact with set cov</p></li>
+<li><p>the analytic covariance gives you an exact standard error.</p></li>
+</ul>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -810,7 +815,7 @@ setCov(fit, "imp")</code></pre>
 <section id="thank-you" class="slide level2 thanks">
 <h2>Thank you</h2>
 <aside class="notes">
-<p>Thank you – and thank you to Hidde van de Beek and the rest of the Leiden team for the analytic covariance work behind this release.</p>
+<p>Thank you – and thank you to Hidde and the rest of the Leiden team for the analytic covariance work behind this release.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -838,6 +843,7 @@ setCov(fit, "imp")</code></pre>
   <script src="nlmixr2-cov_files/libs/revealjs/plugin/pdf-export/pdfexport.js"></script>
   <script src="nlmixr2-cov_files/libs/revealjs/plugin/reveal-menu/menu.js"></script>
   <script src="nlmixr2-cov_files/libs/revealjs/plugin/reveal-menu/quarto-menu.js"></script>
+  <script src="nlmixr2-cov_files/libs/revealjs/plugin/reveal-audio-slideshow/plugin.js"></script>
   <script src="nlmixr2-cov_files/libs/revealjs/plugin/quarto-support/support.js"></script>
   
 
@@ -860,6 +866,7 @@ setCov(fit, "imp")</code></pre>
 'autoAnimateUnmatched': true,
 'jumpToSlide': true,
 'menu': {"side":"left","useTextContentForMissingTitles":true,"markers":false,"loadIcons":false,"custom":[{"title":"Tools","icon":"<i class=\"fas fa-gear\"></i>","content":"<ul class=\"slide-menu-items\">\n<li class=\"slide-tool-item active\" data-item=\"0\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.fullscreen(event)\"><kbd>f</kbd> Fullscreen</a></li>\n<li class=\"slide-tool-item\" data-item=\"1\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.speakerMode(event)\"><kbd>s</kbd> Speaker View</a></li>\n<li class=\"slide-tool-item\" data-item=\"2\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.overview(event)\"><kbd>o</kbd> Slide Overview</a></li>\n<li class=\"slide-tool-item\" data-item=\"3\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.togglePdfExport(event)\"><kbd>e</kbd> PDF Export Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"4\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleScrollView(event)\"><kbd>r</kbd> Scroll View Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"5\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.keyboardHelp(event)\"><kbd>?</kbd> Keyboard Help</a></li>\n</ul>"}],"openButton":true},
+'audio': {"prefix":"audio/slide","suffix":".mp3","autoplay":true,"advance":0,"defaultNotes":false,"defaultText":false,"defaultAudios":true,"playerOpacity":0.05},
 'smaller': false,
  
         // Display controls in the bottom right corner
@@ -1030,7 +1037,7 @@ setCov(fit, "imp")</code></pre>
         },
 
         // reveal.js plugins
-        plugins: [QuartoLineHighlight, PdfExport, RevealMenu, QuartoSupport,
+        plugins: [QuartoLineHighlight, PdfExport, RevealMenu, RevealAudioSlideshow, QuartoSupport,
 
           RevealMath,
           RevealNotes,
@@ -1212,6 +1219,60 @@ setCov(fit, "imp")</code></pre>
         }
       });
       </script>
+    <script>
+    // Two things the audio-slideshow plugin needs help with.
+    //
+    // 1. It assigns <source>.src AFTER the <audio> is in the DOM.  Per spec
+    //    that does not start a fetch -- the browser only ever issues the
+    //    plugin's HEAD probe, never a GET, so the clip never loads
+    //    (networkState stays LOADING, duration null) and the deck is silent
+    //    or stutters.  Calling load() on the element fixes it.
+    //
+    // 2. Browsers refuse to start audio until the page has had a real user
+    //    gesture, so autoplay:true alone leaves slide 1 silent.  One click
+    //    on the overlay satisfies that; after it the plugin runs itself.
+    (function () {
+      function playerFor(h, v) {
+        return document.getElementById('audioplayer-' + h + '.' + v);
+      }
+      function prime(a) {
+        if (!a) return;
+        if (a.readyState === 0) { try { a.load(); } catch (e) {} }
+      }
+      function currentPlayer() {
+        var i = (window.Reveal && Reveal.getIndices) ? Reveal.getIndices()
+                                                     : { h: 0, v: 0 };
+        return playerFor(i.h, i.v || 0);
+      }
+      function start() {
+        var a = currentPlayer();
+        prime(a);
+        if (a) { var pr = a.play(); if (pr && pr.catch) pr.catch(function () {}); }
+      }
+      function arm() {
+        if (window.Reveal && Reveal.on) {
+          Reveal.on('slidechanged', function () { prime(currentPlayer()); });
+        }
+        prime(currentPlayer());
+        if (document.getElementById('audio-start')) return;
+        var d = document.createElement('div');
+        d.id = 'audio-start';
+        d.innerHTML = '<button style="font: 600 22px/1 Calibri, sans-serif;' +
+          'color:#fff;background:#b40000;border:0;border-radius:6px;' +
+          'padding:18px 30px;cursor:pointer">&#9654;&nbsp; Play with narration</button>' +
+          '<div style="margin-top:14px;font:16px Calibri,sans-serif;color:#17375d">' +
+          'your browser needs one click before it will play audio</div>';
+        d.style.cssText = 'position:fixed;inset:0;z-index:60;display:flex;' +
+          'flex-direction:column;align-items:center;justify-content:center;' +
+          'background:rgba(255,255,255,.92);text-align:center';
+        d.addEventListener('click', function () { start(); d.remove(); });
+        document.body.appendChild(d);
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', arm);
+      } else { arm(); }
+    })();
+    </script>
     
 
 </body></html>
