@@ -195,7 +195,7 @@
   <div class="reveal">
     <div class="slides">
 
-<section id="title-slide" data-notes="Hi, I’m here to talk about the covariance step in nlmixr2 7.0 – what changed, and why." class="quarto-title-block center">
+<section id="title-slide" data-notes="Hi, I’m here to talk about the covariance step in nlmixr – what changed, and why." class="quarto-title-block center">
   <h1 class="title"><span class="nlmixr">nlmixr<sup>2</sup></span> 7.0: the covariance step, all grown up</h1>
 
 <div class="quarto-title-authors">
@@ -236,8 +236,8 @@ Matthew Fidler
 <p>Three things changed in the covariance step for this release:</p>
 <ol type="1">
 <li><p>The default covariance step now covers every parameter.</p></li>
-<li><p>Two new covariance methods, SA and IMP that can be used almost anywhere.</p></li>
-<li><p>A genuine new covariance method Hidde create – an exact analytic covariance</p></li>
+<li><p>Two new covariance methods, S-A and I-M-P that can be used almost anywhere.</p></li>
+<li><p>A genuine new covariance method that Hidde created – an exact analytic covariance</p></li>
 </ol>
 <style type="text/css">
         span.MJX_Assistive_MathML {
@@ -255,7 +255,7 @@ Matthew Fidler
 <h2>1. A full covariance step</h2>
 <p><img data-src="images/sec-full.jpg" class=""></p>
 <aside class="notes">
-<p>Let’s start with the covariance step now full covariances are created</p>
+<p>Let’s start with the new full covariance</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -330,7 +330,7 @@ Matthew Fidler
   <text class="sm" x="545" y="296" text-anchor="middle">the additive residual SD is a fitted parameter, just like tka, tcl, tv</text>
 </svg>
 <aside class="notes">
-<p>Now the additive residual error standard deviation is calculated on all methods – before 7.0 the standard error was missing.</p>
+<p>Now the additive residual error standard deviation is calculated for all methods – before 7.0 the standard error was missing.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -354,9 +354,9 @@ Matthew Fidler
 </div>
 <p>7.0 adds the full covariance step <em>on top of</em> that – it is not a reversal of how we think about simulating uncertainty.</p>
 <aside class="notes">
-<p>We’ve always leaned toward the inverse Wishart distribution for simulating uncertainty in omega and sigma; we hoped not having these standard errors this would lead others to do that as well.</p>
+<p>We’ve always leaned toward using the inverse Wishart distribution for simulating uncertainty in omega and sigma; when implementing nlmixr, we thought by not having these standard errors, others would simulate with uncertainty with the inverse Wishart distribution too.</p>
 <p>Additionally, getting real standard errors for those terms took real additional work.</p>
-<p>This new work really doesn’t change how we think simulating with uncertainty.</p>
+<p>This new work really doesn’t change how we think about simulating with uncertainty.</p>
 <p>However, these values inform how well these parameters are estimated and are frequently requested (and useful in other methods).</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
@@ -385,7 +385,8 @@ print(fit)</code></pre>
 <p>The full covariance (<code>$cov</code>) also carries the <code>Omega</code> block, named by random effect – <code>om.eta.cl</code>, <code>cov.eta.cl.eta.v</code> – so you can find what you’re looking for without guessing at row order.</p>
 </div>
 <aside class="notes">
-<p>A tight standard error is produced for this method. If you look at the full covariance matrix, you’ll also see the omega block, and every row is named by the random effect it belongs to, so you’re never guessing at row order.</p>
+<p>If you look at the full covariance matrix, you’ll also see the omega block standard errors.</p>
+<p>The covariance matrix is named so you will never guessing at which covariance term belongs to which estimated omega element.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -411,7 +412,7 @@ print(fit)</code></pre>
 <li>mixture-probability parameters on the mlogit scale – yes, we have mixtures now too, more on that another day</li>
 </ul>
 <aside class="notes">
-<p>So what’s still skipped. Fixed parameters, Inter occasion variability parameters and mixture probability Everything else is in.</p>
+<p>So what’s still skipped? Fixed parameters, Inter occasion variability parameters and mixture probability parameters. Everything else is in the covariance matrix by default.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -485,7 +486,8 @@ print(fit)</code></pre>
   <text class="sm" x="500" y="384" text-anchor="middle" fill="#5a6b80">method: "sa", "imp", "analytic", "r,s", ...</text>
 </svg>
 <aside class="notes">
-<p>The new SA and IMP covariance methods can be requested for practically any fit and also be computed post fit, at the converged estimates of any mixed effects fit.</p>
+<p>The new S-A and I-M-P covariance methods can be requested for practically any fit and also be computed post fit.</p>
+<p>This post-fit covariance step occurs at the converged estimates of the mixed effects model.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -580,7 +582,7 @@ setCov(fit, "imp")</code></pre>
 </table>
 </div>
 <aside class="notes">
-<p>Here’s the full vocabulary. R comma S is the sandwich estimator, and it’s the default for the focei family. Analytic is the exact observed information, matching NONMEM’s COV MATRIX equals R. SAEM’s Louis stochastic approximation Fisher information and the importance sampling Monte Carlo observed information are the two that travel across methods. The rest stay tied to their own method – the variational covariance, nlme’s own standard errors, and SAEM’s linearized and accumulated Fisher information, all listed on the slide. And an empty string just skips the covariance step.</p>
+<p>Here’s the full list of supported covariance matrix methods. Some are still only found in their corresponding methods. If you specify an empty string, the covariance step is simply skipped.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -644,7 +646,7 @@ setCov(fit, "imp")</code></pre>
 </table>
 </div>
 <aside class="notes">
-<p>Most defaults stayed put, because they were already the right choice for that family.</p>
+<p>This lists the default covariance methods. Most defaults stayed put, because they were already the right choice for that family.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -661,7 +663,7 @@ setCov(fit, "imp")</code></pre>
 <h2>3. The analytic covariance: an exact standard error</h2>
 <p><img data-src="images/sec-analytic.jpg" class=""></p>
 <aside class="notes">
-<p>The last piece is <code>covMethod="analytic"</code> itself, and this one is Hidde’s. Hidde van de Beek led the work that makes it possible.</p>
+<p>The last piece is <code>covMethod="analytic"</code> itself, and this one is based on Hidde’s work.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -703,7 +705,8 @@ setCov(fit, "imp")</code></pre>
   <text class="mono red" x="775" y="230" text-anchor="middle">needs 3rd-order sensitivities</text>
 </svg>
 <aside class="notes">
-<p>For the new analytic method the population objective is a data term plus a log determinant penalty term. The gradient – already exact, from the Almquist sensitivity equations only needs second order sensitivities. The observed information is one more derivative past that. The data term needs nothing new. But the log determinant term needs third order sensitivities, and that’s confined to exactly that one term.</p>
+<p>For the new analytic method the population objective is a data term plus a log determinant penalty term.</p>
+<p>The gradient only needs second order sensitivities. For more details, you can read the corresponding paper.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -796,7 +799,7 @@ setCov(fit, "imp")</code></pre>
 <aside class="notes">
 <p>To summarize: the default covariance step now covers:</p>
 <ul>
-<li><p>every estimated parameter, SA, IMP, analytic and the finite-difference methods.</p></li>
+<li><p>every estimated parameter, S-A, I-M-P, analytic and the finite-difference methods.</p></li>
 <li><p>you can switch after the fact with set cov</p></li>
 <li><p>the analytic covariance gives you an exact standard error.</p></li>
 </ul>
@@ -815,7 +818,7 @@ setCov(fit, "imp")</code></pre>
 <section id="thank-you" class="slide level2 thanks">
 <h2>Thank you</h2>
 <aside class="notes">
-<p>Thank you – and thank you to Hidde and the rest of the Leiden team for the analytic covariance work behind this release.</p>
+<p>Thank you – and thank you to Hidee and the rest of the Leiden team for the analytic covariance work behind this release.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;

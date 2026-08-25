@@ -9,11 +9,27 @@ pronunciation is controlled by respelling, which works on every model.
   python3 tts_generate.py               # ONE take, cut into audio/slide<h>.0.mp3
   python3 tts_generate.py --per-slide   # legacy: one request per slide
   python3 tts_generate.py --recut       # re-cut the cached take, no API call
+  python3 tts_generate.py --draft       # FREE local draft via piper -- no API call,
+                                        # no key needed; audio-draft/slide<h>.0.wav
+                                        # plus a concatenated full-draft.wav.  Runs
+                                        # the exact same slides_from()/spoken() text
+                                        # through a local voice, so it catches the
+                                        # same sentence-break/gap bugs and lets you
+                                        # hear pacing before spending a real take.
 """
-import re, sys, html, time, pathlib, requests
+import re, sys, html, time, pathlib, subprocess, requests
 
 DECK   = pathlib.Path(__file__).with_name("nlmixr2-cov.html")
 OUT    = pathlib.Path(__file__).with_name("audio")
+
+# -- free local draft voice (piper, no API, no cost) -----------------------
+# Self-contained release binary (bundles its own espeak-ng + onnxruntime),
+# no apt/pip needed -- this machine has neither sudo nor a working pip.
+# https://github.com/rhasspy/piper/releases
+PIPER_BIN    = pathlib.Path.home() / ".local/opt/piper/piper"
+PIPER_VOICE  = pathlib.Path.home() / ".local/opt/piper-voices/en_US-ryan-medium.onnx"
+DRAFT_OUT    = pathlib.Path(__file__).with_name("audio-draft")
+DRAFT_GAP_S  = 0.5   # silence spliced between slides in the concatenated preview
 VOICE  = "Q2BxE1QwrstK5TvS1kaT"
 # Back to multilingual_v2: it matches the cloned voice better than eleven_v3,
 # which was tried for its audio tags.  v2 has NO tag support -- it reads
@@ -148,6 +164,9 @@ SAY = [
     (r"\bBOBYQA\b",          "B-O-B-Y-Q-A"),
     (r"\bbobyqa\b",          "B-O-B-Y-Q-A"),
     (r"\bnlmixr2\b",         "N L mixer two"),
+    # Bare "nlmixr" (no "2") has no natural reading either -- came out as
+    # "NLMIXAR"/"L-MixAR" when left alone.  Same fix, minus "two".
+    (r"\bnlmixr\b",          "N L mixer"),
     (r"\brxode2\b",          "RXODE2"),
     (r"\bn1qn1\b",           "N one Q N one"),
     (r"\bnlminb\b",          "N-L-M-I-N-B"),
@@ -155,6 +174,7 @@ SAY = [
     (r"\bDOP853\b",          "D-O-P 853"),       # letters, not "dop"
     (r"\bOctave\b",          "Ock-tayve"),       # GNU Octave: long a
     (r"\bHidde\b",           "Hiddee"),          # one word; "Hid-ee" split in two
+    (r"\bHidee\b",           "Hiddee"),          # same name, alternate spelling in one note
     (r"\bBayesian\b",        "Bayzian"),
     (r"\betas\b",            "eightuhz"),   # plural: "eightuhs" was heard as "ADHS"
     (r"\beta\b",             "eightuh"),
@@ -593,6 +613,63 @@ def single_take(slides, key):
     print(f"\ncut {len(slides)} clips from one {total:.1f}s take")
 
 
+def draft(slides):
+    """Synthesise every slide with the local piper voice -- no API, no cost.
+
+    Runs the SAME slides_from()/spoken() text that would be sent to
+    ElevenLabs, so this catches the same problems for free: a stray period
+    that splits one sentence into two (today's "Hidde. work." bug), an
+    un-normalised acronym, a garbled camelCase token.  It will not tell you
+    whether ElevenLabs pronounces something correctly -- piper's phonemizer
+    is different -- but it WILL tell you whether the text has an unwanted
+    gap, a run-on, or an odd sentence break, which is most of what a first
+    listen is for.
+    """
+    if not PIPER_BIN.exists():
+        sys.exit(f"no piper binary at {PIPER_BIN} -- see the --draft note in "
+                  "this file's docstring for how it was installed")
+    if not PIPER_VOICE.exists():
+        sys.exit(f"no piper voice at {PIPER_VOICE}")
+
+    DRAFT_OUT.mkdir(exist_ok=True)
+    clips = []
+    for s in slides:
+        dest = DRAFT_OUT / f"slide{s['h']}.0.wav"
+        r = subprocess.run([str(PIPER_BIN), "-m", str(PIPER_VOICE),
+                            "-f", str(dest), "-q"],
+                           input=s["say"], capture_output=True, text=True)
+        if r.returncode != 0:
+            sys.exit(f"piper failed on slide{s['h']}.0: {r.stderr[-300:]}")
+        secs = float(subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+             "-of", "default=nw=1:nk=1", str(dest)],
+            capture_output=True, text=True).stdout.strip())
+        clips.append(dest)
+        print(f"slide{s['h']}.0  {secs:5.1f}s  {s['say'][:70]}"
+              f"{'...' if len(s['say']) > 70 else ''}")
+
+    # One concatenated file for a single continuous listen-through, silence
+    # spliced between slides so it reads the same way the real deck does.
+    silence = DRAFT_OUT / "_silence.wav"
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi",
+                    "-i", f"anullsrc=r=22050:cl=mono", "-t", str(DRAFT_GAP_S),
+                    str(silence)], check=True)
+    lst = DRAFT_OUT / "_concat.txt"
+    parts = []
+    for c in clips:
+        parts.append(c)
+        parts.append(silence)
+    lst.write_text("".join(f"file '{p.resolve()}'\n" for p in parts[:-1]))
+    full = DRAFT_OUT / "full-draft.wav"
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat",
+                    "-safe", "0", "-i", str(lst), "-c", "copy", str(full)],
+                   check=True)
+    silence.unlink()
+    lst.unlink()
+    print(f"\n{len(slides)} draft clips in {DRAFT_OUT}/ -- "
+          f"play the whole thing with {full}")
+
+
 def main():
     slides = slides_from(DECK)
     for s in slides:
@@ -605,6 +682,9 @@ def main():
             print()
         print(f"{len(slides)} slides, {sum(len(s['say']) for s in slides)} characters")
         return
+
+    if "--draft" in sys.argv:
+        return draft(slides)
 
     key = api_key()
     if "--per-slide" not in sys.argv:
