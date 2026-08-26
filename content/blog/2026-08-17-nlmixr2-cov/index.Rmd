@@ -1,0 +1,235 @@
+---
+title: nlmixr2 7.0's covariance step, all grown up
+author: Matthew Fidler
+date: '2026-08-17'
+slug: []
+categories: [nlmixr2]
+tags: []
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
+```
+
+<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;max-width:100%;">
+<iframe src="https://youtube.com/embed/vN9NKgBxKFs"
+        title="nlmixr2 7.0: the covariance step, all grown up"
+        style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen></iframe>
+</div>
+
+[Watch on YouTube](https://youtu.be/vN9NKgBxKFs)
+
+
+In the [7.0 post](/blog/2026-08-05-nlmixr2-7/), I talked mostly about
+parallel solving in `focei`. This time I want to talk about a feature
+that has been requested frequently: a full covariance step, and other
+refinements to the covariance steps.
+
+Two things changed there, and they are related:
+
+- Nearly any covariance method can now be requested from nearly any
+  estimation method, and you can switch a finished fit to a different
+  one without refitting.
+
+- The default covariance step now actually covers every estimated
+  parameter, not just the structural ones.
+
+Neither of these will show up in a benchmark. Both of them will show
+up the next time you stare at a `$parFixed` table wondering why a
+residual-error parameter has a standard error, or wondering whether
+your `saem` fit's confidence intervals would look different under a
+different covariance method.
+
+The easiest way to look at this is the most modeled drug --
+theophylline:
+
+```{r oneCmt}
+library(nlmixr2)
+
+pheno <- function() {
+  ini({
+    tcl <- log(0.008) # typical value of clearance
+    tv <-  log(0.6)   # typical value of volume
+    ## var(eta.cl)
+    eta.cl + eta.v ~ c(1,
+                       0.01, 1) ## cov(eta.cl, eta.v), var(eta.v)
+    # interindividual variability on clearance and volume
+    add.sd <- 0.1    # residual variability
+  })
+  model({
+    cl <- exp(tcl + eta.cl) # individual value of clearance
+    v <- exp(tv + eta.v)    # individual value of volume
+    ke <- cl / v            # elimination rate constant
+    d/dt(A1) = - ke * A1    # model differential equation
+    cp = A1 / v             # concentration in plasma
+    cp ~ add(add.sd)       # define error model
+  })
+}
+
+```
+
+## The covariance step now includes every parameter
+
+Look at `add.sd` in that model. It is the additive residual error
+standard deviation -- a parameter you fit just like `tka`, `tcl` or
+`tv`. Before 7.0, if you ran
+
+```{r theoFocei}
+fit := nlmixr2(pheno, pheno_sd, est="focei")
+```
+
+`add.sd` would come back in `fit$parFixed` with an estimate and
+nothing else -- no SE, no %RSE, no confidence interval.
+
+Now all parameter describing how much noise is in your assay did not.
+
+```{r theoFoceiFit}
+print(fit)
+```
+
+The old behavior was an intentional choice for a few reasons:
+
+1. We as a `nlmixr2` team think when simulating with uncertainty,
+   `omega` and `sigma` terms should be simulated using the inverse
+   Wishart distribution instead of standard errors.
+
+2. To get the `omega` and residuals standard errors required quite a
+   bit more effort than the approach we originally took.
+
+In 7.0 a full covariance step gives a real standard error.
+
+Fit the model above and you'll see something like `add.sd` at an SE of
+about `0.008` (roughly 0.9% RSE) -- a number that, before this release,
+simply was not there.
+
+There are only a few things that are still not calculated:
+
+- `fix()`ed  parameters
+- inter-occasion variability (IOV) parameter, or
+- it is a mixture-probability parameter on the mlogit scale (yes, we
+  have mixtures now too, more about this later).
+
+If you look at the full covariance (`$cov`) you can also see the omega
+values:
+
+```{r theoFoceiCov}
+fit$cov
+```
+As a note about naming for the omega matrix
+
+Every other estimated theta -- structural, covariate, and now every
+residual-error parameter -- is included, and `covFull=TRUE` (the
+default) reports the full theta + residual + `Omega` covariance, with
+the `Omega` rows named by the random effect (`om.eta.cl`,
+`cov.eta.cl.eta.v`) so you can find what you're looking for without
+guessing at row order.
+
+## Any covariance, on any method
+
+The second change is that `covMethod` stopped being tied to a specific
+estimation method. Historically, the SAEM Louis stochastic-approximation
+FIM only came out of `saem`, and the importance-sampling Monte Carlo
+observed information only came out of `imp`/`impmap`. If you wanted
+that covariance on a `focei` fit, you were out of luck.
+
+Now `sa` and `imp` are covariance methods first and estimation methods
+second. Either one can be requested as the `covMethod` of any
+mixed-effects fit, computed post-fit at the converged estimates:
+
+```{r switchCov}
+# the SAEM Louis stochastic-approximation FIM, on a focei fit,
+# without refitting anything
+setCov(fit, "sa")
+
+# the importance-sampling Monte Carlo observed information, same fit
+setCov(fit, "imp")
+```
+
+The `setCov()` will calculate the covariance and integrate it into the
+fit. Once calculated, it will be saved and you can switch between
+covariances by `setCov()` without the overhead of calculating it again.
+
+Here's the full list of `covMethod` tokens you can reach for, and what
+each one actually is:
+
+- `"r,s"` -- the sandwich estimator `solve(R) %*% S %*% solve(R)`,
+  where `R` is the Hessian of the objective and `S` is the sum of each
+  individual's gradient cross-product at their empirical Bayes
+  estimate. This is the finite-difference default for the `focei`
+  family.
+- `"r"` / `"s"` -- just the Hessian-based or cross-product-based half
+  of the sandwich, if you want to compare them.
+- `"analytic"` -- the exact analytic observed-information covariance,
+  matching NONMEM's `$COV MATRIX=R` but it is exact rather than
+  finite-differenced, and it covers additive/proportional/combined
+  error, censored M2/M3/M4 observations, an estimated `boxCox()` or
+  `yeoJohnson()` lambda, `foce+`, `matExp()`/`indLin()` models, and
+  mu-referenced covariate parameters. When a model falls outside that
+  scope it says so and falls back to the finite-difference sandwich,
+  rather than failing outright.
+- `"sa"` -- the SAEM Louis stochastic-approximation Fisher information
+  (Kuhn & Lavielle 2005): a dedicated covariance phase resimulates the
+  individual parameters at the converged estimate and Monte-Carlo
+  averages the observed-information integrand into a FIM decoupled
+  from the cooling schedule. No longer `saem`-only.
+
+- `"imp"` -- importance-sampling Monte Carlo observed information, in
+  the style of NONMEM `METHOD=IMP`. No longer `imp`/`impmap`-only.
+
+- `"vi"` -- the variational covariance from `emvi`/`fbvi` (can't be
+  calculated outside `emvi`/`fbvi`).
+
+- `"nlme"` -- `nlme`'s own standard errors, for when you want them
+  as-is rather than recomputed (can't be calculate outside by `nlme`).
+
+- `"linFim"` / `"fim"` -- SAEM's linearized Fisher information, and
+  the (noisier) Fisher information matrix accumulated during
+  estimation itself, both usable as fallbacks or direct
+  requests. (Can't be calculated outside of `saem`).
+
+- `""` -- skip the covariance step entirely.
+
+Because every family now recognizes this shared vocabulary, the
+default `covMethod` per family also changed where it made sense to:
+
+- the FOCEI family (`focei`/`foce`/`laplace`/`agq`) defaults to
+  `"r,s"`,
+
+- `est="saem"` keeps `"sa"` as its default, now with `"analytic"` and
+  `"linFim"` as fallbacks when a model is out of `sa`'s scope,
+
+- `est="imp"`/`"impmap"`/`"qrpem"` default to `"imp"` (the old
+  `impCov=TRUE` argument is gone -- `covMethod="imp"` is just the
+  default now),
+
+- `est="nlme"` keeps `nlme`'s own covariance (`"nlme"`) as the
+  default, but can now also recompute at the converged estimate with
+  `covMethod="analytic"` or the finite-difference methods,
+
+- `est="npag"`/`"npb"`, which previously reported no covariance at
+  all, now compute one by default (`"imp"`),
+
+- `est="emvi"`/`"fbvi"` keep their variational covariance (`"vi"`) as
+  the default, and now honor an explicit `covMethod` override instead
+  of silently overwriting it.
+
+## Why this is worth having
+
+None of this changes what a fit estimates. What it changes is how much
+you can trust -- and cross-check -- what comes out of the covariance
+step.
+
+The nonparametric family going from "no covariance at all" to a real
+one is the most obvious win, but the quieter one is being able to spot
+check an `"r,s"` finite-difference covariance against the exact
+`"analytic"` one, or against `"sa"`, without paying for a second fit.
+If two covariance methods agree on a parameter's SE, that's real
+signal. If they don't, that's worth knowing before you write the
+number into a report.
+
+## References
+
+Kuhn E, Lavielle M. Maximum likelihood estimation in nonlinear mixed
+effects models. *Comput Stat Data Anal*. 2005;49(4):1020-1038.

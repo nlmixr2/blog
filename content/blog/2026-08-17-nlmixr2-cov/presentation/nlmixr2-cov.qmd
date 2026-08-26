@@ -1,0 +1,634 @@
+---
+title: "[nlmixr^2^]{.nlmixr} 7.0: the covariance step, all grown up"
+author: "Matthew Fidler"
+institute: "On behalf of the [nlmixr2]{.nlmixr} team"
+# The title slide is generated from the YAML, so a ::: {.notes} div cannot be
+# attached to it in markdown -- one placed before the first heading becomes a
+# separate blank slide.  reveal reads speaker notes from data-notes as well.
+title-slide-attributes:
+  data-notes: "Hi, I'm here to talk about the covariance step in nlmixr -- what changed, and why."
+# Narration.  One clip per slide in audio/, bound and auto-advanced by the
+# vendored audio-slideshow plugin; its options live in
+# _extensions/audio-slideshow/_extension.yml.
+revealjs-plugins:
+  - audio-slideshow
+# Browsers refuse to start audio until the page has had a real user gesture
+# (Chrome: "NotAllowedError: play() failed because the user didn't interact
+# with the document first"), so autoplay:true alone leaves the deck silent on
+# slide 1.  No plugin setting can override it.  This overlay takes one click
+# and starts playback; from then on the plugin advances by itself.
+include-after-body:
+  text: |
+    <script>
+    // Two things the audio-slideshow plugin needs help with.
+    //
+    // 1. It assigns <source>.src AFTER the <audio> is in the DOM.  Per spec
+    //    that does not start a fetch -- the browser only ever issues the
+    //    plugin's HEAD probe, never a GET, so the clip never loads
+    //    (networkState stays LOADING, duration null) and the deck is silent
+    //    or stutters.  Calling load() on the element fixes it.
+    //
+    // 2. Browsers refuse to start audio until the page has had a real user
+    //    gesture, so autoplay:true alone leaves slide 1 silent.  One click
+    //    on the overlay satisfies that; after it the plugin runs itself.
+    (function () {
+      function playerFor(h, v) {
+        return document.getElementById('audioplayer-' + h + '.' + v);
+      }
+      function prime(a) {
+        if (!a) return;
+        if (a.readyState === 0) { try { a.load(); } catch (e) {} }
+      }
+      function currentPlayer() {
+        var i = (window.Reveal && Reveal.getIndices) ? Reveal.getIndices()
+                                                     : { h: 0, v: 0 };
+        return playerFor(i.h, i.v || 0);
+      }
+      function start() {
+        var a = currentPlayer();
+        prime(a);
+        if (a) { var pr = a.play(); if (pr && pr.catch) pr.catch(function () {}); }
+      }
+      function arm() {
+        if (window.Reveal && Reveal.on) {
+          Reveal.on('slidechanged', function () { prime(currentPlayer()); });
+        }
+        prime(currentPlayer());
+        if (document.getElementById('audio-start')) return;
+        var d = document.createElement('div');
+        d.id = 'audio-start';
+        d.innerHTML = '<button style="font: 600 22px/1 Calibri, sans-serif;' +
+          'color:#fff;background:#b40000;border:0;border-radius:6px;' +
+          'padding:18px 30px;cursor:pointer">&#9654;&nbsp; Play with narration</button>' +
+          '<div style="margin-top:14px;font:16px Calibri,sans-serif;color:#17375d">' +
+          'your browser needs one click before it will play audio</div>';
+        d.style.cssText = 'position:fixed;inset:0;z-index:60;display:flex;' +
+          'flex-direction:column;align-items:center;justify-content:center;' +
+          'background:rgba(255,255,255,.92);text-align:center';
+        d.addEventListener('click', function () { start(); d.remove(); });
+        document.body.appendChild(d);
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', arm);
+      } else { arm(); }
+    })();
+    </script>
+format:
+  nlmixr2-revealjs:
+    embed-resources: false
+    # MathJax stays enabled -- math is fine in the SLIDE BODIES.
+    #
+    # Keep math OUT OF THE ::: {.notes} blocks, though.  The notes are the
+    # spoken script: they are read aloud in the speaker view and fed to
+    # text-to-speech, and a `$\theta$` there is pronounced as backslash-theta.
+    # Write the spoken form instead -- "theta", "p plus one, times n".
+    #
+    # MathJax also injects its MJX_Assistive_MathML stylesheet into the notes
+    # markup, so anything scraping a transcript out of <aside class="notes">
+    # must strip <style> and <script> before taking the text.
+    include-in-header:
+      text: |
+        <style>
+        svg.dg {
+          display: block;
+          width: 100%;
+          height: auto;
+          max-height: 545px;
+          margin: 0.2em auto 0 auto;
+          font-family: "Calibri", "Carlito", "Segoe UI", sans-serif;
+        }
+        svg.dg text { fill: #0f243e; }
+        svg.dg .t   { font-size: 19px; }
+        svg.dg .lab { font-size: 18px; font-weight: 700; }
+        svg.dg .sm  { font-size: 15px; fill: #5a6b80; }
+        svg.dg .mono { font-family: "Courier New", "Liberation Mono", monospace; font-size: 17px; }
+        svg.dg .red  { fill: #b40000; }
+        svg.dg .blue { fill: #1f497d; }
+        svg.dg .grn  { fill: #4a7d18; }
+
+        /* section-break slides: one captioned illustration */
+        .reveal section.sectionbreak img {
+          display: block; margin: 0.35em auto 0 auto;
+          max-height: 510px; max-width: 100%;
+          width: auto !important; height: auto !important;
+          object-fit: contain; border-radius: 6px;
+        }
+        /* outline slide: the section figures, captioned */
+        .reveal .figgrid {
+          display: grid; grid-template-columns: repeat(3, 1fr);
+          gap: 0.35em 0.9em; margin-top: 0.35em;
+        }
+        .reveal .figgrid figure { margin: 0; }
+        .reveal .figgrid img {
+          width: 100%; display: block; border-radius: 4px;
+          aspect-ratio: 16 / 9; object-fit: cover;
+        }
+        .reveal .figgrid figcaption {
+          font-size: 0.5em; line-height: 1.25; margin-top: 0.2em;
+          color: #17375d;
+        }
+
+        /* Quarto's .columns is display:inline-block, not flex -- `gap`
+           does nothing here.  Its own child-margin rule also excludes
+           ul/ol content (`.columns>.column>:not(ul,ol)`), so a <ul> column
+           gets NO side margin at all.  Without it, a wrapped line in the
+           left column butts right up against the right column's .checks
+           marker, which sits 1em to the LEFT of its own list (see
+           .reveal .checks li::before in the theme).  Add real padding
+           instead, which applies regardless of content type. */
+        .reveal .columns > .column {
+          box-sizing: border-box;
+          padding: 0 0.7em;
+        }
+        .reveal .columns > .column:first-child {
+          padding-left: 0;
+        }
+        .reveal .columns > .column:last-child {
+          padding-right: 0;
+        }
+
+        /* data tables: readable at distance, at least 18pt (24px at the
+           28px root) -- overrides the theme's default .reveal table 0.72em */
+        .reveal .bigtable table {
+          font-size: 24px;
+        }
+        .reveal .bigtable th,
+        .reveal .bigtable td {
+          padding: 0.3em 0.55em;
+        }
+        </style>
+---
+
+## This talk, in three pictures
+
+::: figgrid
+<figure>
+<img src="images/sec-full.jpg">
+<figcaption><b>1.</b> The covariance step now covers every parameter</figcaption>
+</figure>
+<figure>
+<img src="images/sec-any.jpg">
+<figcaption><b>2.</b> sa and imp break free of one estimation method</figcaption>
+</figure>
+<figure>
+<img src="images/sec-analytic.jpg">
+<figcaption><b>3.</b> The analytic covariance: an exact standard error</figcaption>
+</figure>
+:::
+
+::: {.notes}
+Three things changed in the covariance step for this release:
+
+1. The default covariance step now covers every parameter.
+
+2. Two new covariance methods, S-A and I-M-P that can be used almost anywhere.
+
+3. A genuine new covariance method that Hidde created -- an exact analytic covariance
+:::
+
+## 1. A full covariance step {.sectionbreak}
+
+![](images/sec-full.jpg){.nostretch}
+
+::: {.notes}
+Let's start with the new full covariance
+:::
+
+## Residual-error parameters used to come back with no standard error
+
+```{=html}
+<svg class="dg" viewBox="0 0 1000 380" role="img"
+     aria-label="A parFixed table before 7.0: tka, tcl and tv each have an estimate and a standard error, but add.sd has only an estimate and a blank standard error column. After 7.0, add.sd also has a filled-in standard error.">
+  <text class="lab" x="60" y="46">before 7.0</text>
+  <g class="t">
+    <text x="60"  y="90">tka</text>
+    <text x="60"  y="126">tcl</text>
+    <text x="60"  y="162">tv</text>
+    <text x="60"  y="198" font-weight="700">add.sd</text>
+  </g>
+  <g class="sm">
+    <text x="180" y="72">Est.</text>
+    <text x="330" y="72">SE</text>
+  </g>
+  <g fill="#e6f0da" stroke="#4a7d18" stroke-width="1.5">
+    <rect x="160" y="76" width="120" height="30" rx="4"/>
+    <rect x="160" y="112" width="120" height="30" rx="4"/>
+    <rect x="160" y="148" width="120" height="30" rx="4"/>
+    <rect x="160" y="184" width="120" height="30" rx="4"/>
+    <rect x="310" y="76" width="120" height="30" rx="4"/>
+    <rect x="310" y="112" width="120" height="30" rx="4"/>
+    <rect x="310" y="148" width="120" height="30" rx="4"/>
+  </g>
+  <rect x="310" y="184" width="120" height="30" rx="4" fill="#f3dede" stroke="#b40000" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text class="sm red" x="370" y="204" text-anchor="middle">-- empty --</text>
+
+  <line x1="500" y1="60" x2="500" y2="220" stroke="#c8d2df" stroke-width="1.5"/>
+
+  <text class="lab" x="560" y="46">nlmixr2 7.0</text>
+  <g class="t">
+    <text x="560" y="90">tka</text>
+    <text x="560" y="126">tcl</text>
+    <text x="560" y="162">tv</text>
+    <text x="560" y="198" font-weight="700">add.sd</text>
+  </g>
+  <g class="sm">
+    <text x="680" y="72">Est.</text>
+    <text x="830" y="72">SE</text>
+  </g>
+  <g fill="#e6f0da" stroke="#4a7d18" stroke-width="1.5">
+    <rect x="660" y="76" width="120" height="30" rx="4"/>
+    <rect x="660" y="112" width="120" height="30" rx="4"/>
+    <rect x="660" y="148" width="120" height="30" rx="4"/>
+    <rect x="660" y="184" width="120" height="30" rx="4"/>
+    <rect x="810" y="76" width="120" height="30" rx="4"/>
+    <rect x="810" y="112" width="120" height="30" rx="4"/>
+    <rect x="810" y="148" width="120" height="30" rx="4"/>
+  </g>
+  <rect x="810" y="184" width="120" height="30" rx="4" fill="#e6f0da" stroke="#4a7d18" stroke-width="2.5"/>
+  <text class="mono grn" x="870" y="204" text-anchor="middle">0.008</text>
+
+  <line x1="220" y1="240" x2="220" y2="270" stroke="#6b7b90" stroke-width="2"/>
+  <line x1="220" y1="270" x2="870" y2="270" stroke="#6b7b90" stroke-width="2"/>
+  <line x1="870" y1="270" x2="870" y2="230" stroke="#6b7b90" stroke-width="2" marker-end="url(#ar3)"/>
+  <defs>
+    <marker id="ar3" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#6b7b90"/>
+    </marker>
+  </defs>
+  <text class="sm" x="545" y="296" text-anchor="middle">the additive residual SD is a fitted parameter, just like tka, tcl, tv</text>
+</svg>
+```
+
+::: {.notes}
+
+Now the additive residual error standard deviation is calculated for
+all methods -- before 7.0 the standard error was missing.
+:::
+
+## That was a deliberate choice, not an oversight
+
+- We, as a nlmixr2 team, think that when you simulate *with* uncertainty,
+  the `omega` and `sigma` terms should be simulated from the inverse
+  Wishart distribution, not from standard errors
+- Getting real `omega` and residual standard errors also required
+  meaningfully more implementation effort than the approach we
+  originally took
+
+::: rule
+:::
+
+7.0 adds the full covariance step *on top of* that -- it is not a reversal
+of how we think about simulating uncertainty.
+
+::: {.notes}
+We've always leaned toward using the inverse Wishart distribution for
+simulating uncertainty in omega and sigma; when implementing nlmixr,
+we thought by not having these standard errors, others would simulate
+with uncertainty with the inverse Wishart distribution too.
+
+Additionally, getting real standard errors for those terms took real
+additional work.
+
+This new work really doesn't change how we think about simulating with
+uncertainty.
+
+However, these values inform how well these parameters are estimated
+and are frequently requested (and useful in other methods).
+:::
+
+## Fit the model, and `add.sd` comes back with a real number
+
+```r
+fit <- nlmixr2(pheno, pheno_sd, est="focei")
+print(fit)
+```
+
+::: {.smaller}
+`add.sd` -- SE about `0.008`, roughly 0.9% RSE -- a number that, before
+this release, simply was not there.
+:::
+
+::: rule
+:::
+
+```r
+fit$cov
+```
+
+::: {.smaller}
+The full covariance (`$cov`) also carries the `Omega` block, named by
+random effect -- `om.eta.cl`, `cov.eta.cl.eta.v` -- so you can find what
+you're looking for without guessing at row order.
+:::
+
+::: {.notes}
+If you look at the full covariance matrix, you'll also see the omega
+block standard errors.
+
+The covariance matrix is named so you will
+never guessing at which covariance term belongs to which estimated
+omega element.
+:::
+
+## Only three things still don't get a standard error
+
+::: {.checks}
+- Everything else -- structural, covariate, and residual-error thetas
+:::
+
+- `fix()`ed parameters -- there is nothing to estimate a standard error for
+- inter-occasion variability (IOV) parameters -- those are individual-level,
+  not population-level
+- mixture-probability parameters on the mlogit scale -- yes, we have
+  mixtures now too, more on that another day
+
+::: {.notes}
+So what's still skipped? Fixed parameters, Inter occasion variability
+parameters and mixture probability parameters.  Everything else is in
+the covariance matrix by default.
+:::
+
+## 2. `sa` and `imp` break free of one estimation method {.sectionbreak}
+
+![](images/sec-any.jpg){.nostretch}
+
+::: {.notes}
+The second change is bigger than it sounds: two covariance methods
+stopped being tied to one specific estimation method.
+:::
+
+## `sa` and `imp` used to be locked to one estimation method each
+
+```{=html}
+<svg class="dg" viewBox="0 0 1000 405" role="img"
+     aria-label="Before 7.0, sa (SAEM Louis FIM) only came from saem, and imp (importance-sampling observed information) only came from imp/impmap. A focei fit could not use either. After 7.0, setCov() connects sa and imp to any mixed-effects fit."
+>
+  <text class="lab" x="500" y="36" text-anchor="middle">before 7.0</text>
+  <g fill="#f3dede" stroke="#b40000" stroke-width="1.5">
+    <rect x="90"  y="60" width="190" height="56" rx="6"/>
+    <rect x="405" y="60" width="190" height="56" rx="6"/>
+    <rect x="720" y="60" width="190" height="56" rx="6"/>
+  </g>
+  <g class="t" text-anchor="middle" font-weight="700">
+    <text x="185" y="93">focei</text>
+    <text x="500" y="93">saem</text>
+    <text x="815" y="93">imp / impmap</text>
+  </g>
+  <g class="sm" text-anchor="middle" fill="#b40000">
+    <text x="185" y="140">r,s only</text>
+    <text x="500" y="140">sa only</text>
+    <text x="815" y="140">imp only</text>
+  </g>
+  <line x1="185" y1="116" x2="185" y2="130" stroke="#b40000" stroke-width="2"/>
+  <line x1="500" y1="116" x2="500" y2="130" stroke="#b40000" stroke-width="2"/>
+  <line x1="815" y1="116" x2="815" y2="130" stroke="#b40000" stroke-width="2"/>
+
+  <line x1="0" y1="180" x2="1000" y2="180" stroke="#c8d2df" stroke-width="1.5"/>
+
+  <text class="lab" x="500" y="216" text-anchor="middle">nlmixr2 7.0</text>
+  <g fill="#e6f0da" stroke="#4a7d18" stroke-width="1.5">
+    <rect x="90"  y="240" width="190" height="56" rx="6"/>
+    <rect x="405" y="240" width="190" height="56" rx="6"/>
+    <rect x="720" y="240" width="190" height="56" rx="6"/>
+  </g>
+  <g class="t" text-anchor="middle" font-weight="700">
+    <text x="185" y="273">focei</text>
+    <text x="500" y="273">saem</text>
+    <text x="815" y="273">imp / impmap</text>
+  </g>
+  <rect x="360" y="330" width="280" height="36" rx="6" fill="#e6f0da" stroke="#4a7d18" stroke-width="2"/>
+  <text class="mono grn" x="500" y="354" text-anchor="middle">setCov(fit, method)</text>
+  <line x1="185" y1="296" x2="410" y2="330" stroke="#4a7d18" stroke-width="1.5"/>
+  <line x1="500" y1="296" x2="500" y2="330" stroke="#4a7d18" stroke-width="1.5"/>
+  <line x1="815" y1="296" x2="590" y2="330" stroke="#4a7d18" stroke-width="1.5"/>
+  <text class="sm" x="500" y="384" text-anchor="middle" fill="#5a6b80">method: "sa", "imp", "analytic", "r,s", ...</text>
+</svg>
+```
+
+::: {.notes}
+
+The new S-A and I-M-P covariance methods can be requested for practically
+any fit and also be computed post fit.
+
+This post-fit covariance step occurs at the converged estimates of
+the mixed effects model.
+:::
+
+## `setCov()` switches a finished fit without refitting anything
+
+```r
+fit <- nlmixr2(pheno, pheno_sd, est="focei")
+
+# the SAEM Louis stochastic-approximation FIM, on a focei fit,
+# without refitting anything
+setCov(fit, "sa")
+
+# the importance-sampling Monte Carlo observed information, same fit
+setCov(fit, "imp")
+```
+
+::: {.smaller}
+`setCov()` calculates the covariance and installs it on the fit. Once
+calculated, it is saved, so switching back and forth costs nothing extra.
+:::
+
+::: {.notes}
+setCov calculates the new covariance and folds it right into the fit.
+Once it's calculated, it's cached, so you can flip between covariance
+methods on the same fit without paying the calculation cost twice.
+:::
+
+## `covMethod` is now a shared vocabulary of nine tokens
+
+::: {.bigtable}
+
+| token | what it is |
+|---|---|
+| `"r,s"` | sandwich, `solve(R) %*% S %*% solve(R)` -- the `focei`-family default |
+| `"r"` / `"s"` | just the Hessian half or the cross-product half of the sandwich |
+| `"analytic"` | exact observed-information covariance, matches NONMEM's `$COV MATRIX=R` |
+| `"sa"` | SAEM Louis stochastic-approximation FIM (Kuhn & Lavielle 2005) |
+| `"imp"` | importance-sampling Monte Carlo observed information |
+| `"vi"` | variational covariance -- `emvi`/`fbvi` only |
+| `"nlme"` | `nlme`'s own standard errors -- `nlme` only |
+| `"linFim"` / `"fim"` | SAEM's linearized / accumulated Fisher information -- `saem` only |
+| `""` | skip the covariance step |
+
+:::
+
+::: {.notes}
+Here's the full list of supported covariance matrix methods.  Some are still only found in their corresponding methods.
+If you specify an empty string, the covariance step is simply skipped.
+:::
+
+## Most families' defaults now reflect what they're actually best at
+
+::: {.bigtable}
+
+| family | default `covMethod` | note |
+|---|---|---|
+| `focei` / `foce` / `laplace` / `agq` | `"r,s"` | unchanged |
+| `saem` | `"sa"` | falls back `"analytic"` then `"linFim"` when out of scope |
+| `imp` / `impmap` / `qrpem` | `"imp"` | `impCov=TRUE` argument is gone -- this is just the default now |
+| `nlme` | `"nlme"` | unchanged, but `"analytic"` is now selectable too |
+| `npag` / `npb` | `"imp"` | currently does not have its own method  |
+| `emvi` / `fbvi` | `"vi"` | now honors an explicit override instead of overwriting it |
+
+:::
+
+::: {.notes}
+This lists the default covariance methods. Most defaults stayed put,
+because they were already the right choice for that family.
+:::
+
+## 3. The analytic covariance: an exact standard error {.sectionbreak}
+
+![](images/sec-analytic.jpg){.nostretch}
+
+::: {.notes}
+The last piece is `covMethod="analytic"` itself, and this one is based on Hidde's work.
+:::
+
+## The exact gradient stops one derivative short of a standard error
+
+```{=html}
+<svg class="dg" viewBox="0 0 1000 320" role="img"
+     aria-label="The population objective is a data term plus a log-determinant penalty term. The gradient, already exact, needs second-order sensitivities. The observed information -- one more derivative -- needs third-order sensitivities, and only in the log-determinant term.">
+  <rect x="40" y="60" width="430" height="200" rx="8" fill="#eef2f6" stroke="#8fa0b6" stroke-width="1.5"/>
+  <text class="lab" x="255" y="94" text-anchor="middle">gradient (already exact)</text>
+  <text class="t" x="255" y="140" text-anchor="middle">data term + log-determinant term</text>
+  <text class="sm" x="255" y="170" text-anchor="middle">one derivative in</text>
+  <rect x="90" y="192" width="330" height="40" rx="6" fill="#e6f0da" stroke="#4a7d18" stroke-width="1.5"/>
+  <text class="mono grn" x="255" y="217" text-anchor="middle">needs 2nd-order sensitivities</text>
+
+  <line x1="500" y1="160" x2="560" y2="160" stroke="#6b7b90" stroke-width="2.5" marker-end="url(#ar4)"/>
+  <defs>
+    <marker id="ar4" markerWidth="10" markerHeight="10" refX="7" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6b7b90"/>
+    </marker>
+  </defs>
+  <text class="sm" x="530" y="145" text-anchor="middle">one more</text>
+  <text class="sm" x="530" y="180" text-anchor="middle">derivative</text>
+
+  <rect x="570" y="60" width="410" height="210" rx="8" fill="#eef2f6" stroke="#8fa0b6" stroke-width="1.5"/>
+  <text class="lab" x="775" y="94" text-anchor="middle">observed information (new, "analytic")</text>
+  <text class="t" x="775" y="136" text-anchor="middle">same two terms, differentiated again</text>
+  <rect x="600" y="148" width="350" height="32" rx="6" fill="#e6f0da" stroke="#4a7d18" stroke-width="1.5"/>
+  <text class="sm grn" x="775" y="169" text-anchor="middle">data term: needs nothing new</text>
+  <rect x="600" y="188" width="350" height="60" rx="6" fill="#f3dede" stroke="#b40000" stroke-width="1.5"/>
+  <text class="mono red" x="775" y="208" text-anchor="middle">log-det term:</text>
+  <text class="mono red" x="775" y="230" text-anchor="middle">needs 3rd-order sensitivities</text>
+</svg>
+```
+
+::: {.notes}
+For the new analytic method the population objective is a data term
+plus a log determinant penalty term.
+
+The gradient only needs second order sensitivities. For more details,
+you can read the corresponding paper.
+
+:::
+
+## A finite-differenced Hessian has a harder accuracy floor than a gradient
+
+- A finite-differenced **gradient**'s achievable accuracy scales with the
+  inner-problem tolerance to the two-thirds power
+- A finite-differenced **Hessian**'s achievable accuracy is worse -- it
+  only scales to the one-half power
+- ... and it needs a step size tuned by hand: too large and you get
+  truncation bias, too small and round-off makes it erratic -- sometimes
+  not even positive definite
+
+::: rule
+:::
+
+The analytic form carries **no step size** -- it is limited only by the
+accuracy of the sensitivity and ODE solutions underneath it.
+
+::: {.notes}
+The analytic gradient has no step size and no finite difference noise,
+so it is not erratic or biased -- it is exact.  It is only limited by
+the accuracy of the ODE systems themselves.
+:::
+
+## On warfarin data, the analytic value matches NONMEM -- with no step to tune
+
+```{=html}
+<svg class="dg" viewBox="0 0 1000 340" role="img"
+     aria-label="Standard error against finite-difference step size for one warfarin model parameter. The analytic value is a flat horizontal line. The finite-difference value only tracks it over a narrow middle band of step sizes, and is biased or erratic at the extremes.">
+  <line x1="80" y1="280" x2="940" y2="280" stroke="#0f243e" stroke-width="1.5"/>
+  <polygon points="940,280 928,274 928,286" fill="#0f243e"/>
+  <text class="sm" x="510" y="308" text-anchor="middle">finite-difference step size h (large &#8594; small)</text>
+
+  <line x1="80" y1="180" x2="940" y2="180" stroke="#0f243e" stroke-width="3"/>
+  <text class="mono" x="90" y="164">analytic (no step size)</text>
+
+  <path d="M120,80 C 200,140 260,175 340,179 C 460,181 560,179 640,181 C 720,183 800,150 900,60"
+        fill="none" stroke="#b40000" stroke-width="2.5"/>
+  <text class="sm red" x="150" y="70">truncation bias</text>
+  <text class="sm red" x="770" y="55">round-off, erratic</text>
+
+  <circle cx="490" cy="180" r="6" fill="#4a7d18"/>
+  <text class="sm grn" x="490" y="205" text-anchor="middle">tracks the analytic value here</text>
+
+  <text class="lab" x="80" y="40">SE(&#969;&#178;<tspan baseline-shift="sub">CL</tspan>)</text>
+</svg>
+```
+
+::: {.smaller}
+Warfarin PK, one-compartment oral absorption, 10 subjects, correlated
+clearance/volume random-effect block, diagonal absorption-rate random
+effect -- the analytic standard error matches an independent NONMEM run
+to every figure shown.
+:::
+
+::: {.notes}
+On a warfarin case study -- one compartment, oral absorption, ten
+subjects, a correlated random effect block on clearance and volume, and a
+diagonal random effect on the absorption rate -- the analytic standard
+error matched an independent NONMEM run to every figure they reported.
+The finite difference standard error only tracked that value over a
+narrow middle band of step sizes -- too large a step and it's biased, too
+small and it gets erratic. The analytic value just sits there, flat, no
+step size involved at all.
+:::
+
+## Why this matters
+
+:::: columns
+::: {.column width="52%"}
+- The default covariance step now covers every estimated theta,
+  residual-error parameters included
+- `sa`, `imp`, `analytic` and the finite-difference methods now travel
+  across mixed-effects fits, switchable after the fact with `setCov()`
+- `covMethod="analytic"` gives you an exact standard error with no
+  finite-difference step size to tune
+:::
+
+::: {.column width="48%" .checks}
+- Spot-check an `"r,s"` covariance against `"analytic"` or `"sa"`
+  without paying for a second fit
+- The covariance step you gave up on for `npag`/`npb` is worth trying
+  again -- it's there now
+- Tell us where the analytic covariance falls outside its scope
+:::
+::::
+
+::: {.notes}
+To summarize: the default covariance step now covers:
+
+- every estimated parameter, S-A, I-M-P, analytic and the finite-difference methods.
+
+- you can switch after the fact with set cov
+
+- the analytic covariance gives you an exact standard error.
+
+:::
+
+## Thank you {.thanks}
+
+::: {.notes}
+Thank you -- and thank you to Hidee and the rest of the Leiden team
+for the analytic covariance work behind this release.
+:::

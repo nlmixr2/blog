@@ -60,6 +60,8 @@ eta-samples/
 __pycache__/
 pronunciation-samples/
 term-speed-samples/
+# Free local (piper) draft narration -- not the real ElevenLabs clips
+**/presentation/audio-draft/
 
 # Rendered presentation video -- uploaded to YouTube, not stored here
 **/presentation/*.mp4

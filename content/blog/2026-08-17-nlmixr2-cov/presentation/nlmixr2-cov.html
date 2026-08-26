@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<script src="nlmixr2-cov_files/libs/clipboard/clipboard.min.js"></script>
+<script src="nlmixr2-cov_files/libs/quarto-html/tabby.min.js"></script>
+<script src="nlmixr2-cov_files/libs/quarto-html/popper.min.js"></script>
+<script src="nlmixr2-cov_files/libs/quarto-html/tippy.umd.min.js"></script>
+<link href="nlmixr2-cov_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="nlmixr2-cov_files/libs/quarto-html/light-border.css" rel="stylesheet">
+<link href="nlmixr2-cov_files/libs/quarto-html/quarto-syntax-highlighting-7254980e6d35ae156d877b48cddee30a.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
+  <meta name="generator" content="quarto-1.8.26">
+
+  <meta name="author" content="Matthew Fidler">
+  <title>nlmixr2 7.0: the covariance step, all grown up</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="nlmixr2-cov_files/libs/revealjs/dist/reset.css">
+  <link rel="stylesheet" href="nlmixr2-cov_files/libs/revealjs/dist/reveal.css">
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="nlmixr2-cov_files/libs/revealjs/dist/theme/quarto-53f9a834a5bbb213b599e3ca8a7eeaff.css">
+  <link href="nlmixr2-cov_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
+  <link href="nlmixr2-cov_files/libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
+  <link href="nlmixr2-cov_files/libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
+  <link href="nlmixr2-cov_files/libs/revealjs/plugin/quarto-support/footer.css" rel="stylesheet">
+  <style type="text/css">
+    .reveal div.sourceCode {
+      margin: 0;
+      overflow: auto;
+    }
+    .reveal div.hanging-indent {
+      margin-left: 1em;
+      text-indent: -1em;
+    }
+    .reveal .slide:not(.center) {
+      height: 100%;
+    }
+    .reveal .slide.scrollable {
+      overflow-y: auto;
+    }
+    .reveal .footnotes {
+      height: 100%;
+      overflow-y: auto;
+    }
+    .reveal .slide .absolute {
+      position: absolute;
+      display: block;
+    }
+    .reveal .footnotes ol {
+      counter-reset: ol;
+      list-style-type: none; 
+      margin-left: 0;
+    }
+    .reveal .footnotes ol li:before {
+      counter-increment: ol;
+      content: counter(ol) ". "; 
+    }
+    .reveal .footnotes ol li > p:first-child {
+      display: inline-block;
+    }
+    .reveal .slide ul,
+    .reveal .slide ol {
+      margin-bottom: 0.5em;
+    }
+    .reveal .slide ul li,
+    .reveal .slide ol li {
+      margin-top: 0.4em;
+      margin-bottom: 0.2em;
+    }
+    .reveal .slide ul[role="tablist"] li {
+      margin-bottom: 0;
+    }
+    .reveal .slide ul li > *:first-child,
+    .reveal .slide ol li > *:first-child {
+      margin-block-start: 0;
+    }
+    .reveal .slide ul li > *:last-child,
+    .reveal .slide ol li > *:last-child {
+      margin-block-end: 0;
+    }
+    .reveal .slide .columns:nth-child(3) {
+      margin-block-start: 0.8em;
+    }
+    .reveal blockquote {
+      box-shadow: none;
+    }
+    .reveal .tippy-content>* {
+      margin-top: 0.2em;
+      margin-bottom: 0.7em;
+    }
+    .reveal .tippy-content>*:last-child {
+      margin-bottom: 0.2em;
+    }
+    .reveal .slide > img.stretch.quarto-figure-center,
+    .reveal .slide > img.r-stretch.quarto-figure-center {
+      display: block;
+      margin-left: auto;
+      margin-right: auto; 
+    }
+    .reveal .slide > img.stretch.quarto-figure-left,
+    .reveal .slide > img.r-stretch.quarto-figure-left  {
+      display: block;
+      margin-left: 0;
+      margin-right: auto; 
+    }
+    .reveal .slide > img.stretch.quarto-figure-right,
+    .reveal .slide > img.r-stretch.quarto-figure-right  {
+      display: block;
+      margin-left: auto;
+      margin-right: 0; 
+    }
+  </style>
+  <style>
+  svg.dg {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 545px;
+    margin: 0.2em auto 0 auto;
+    font-family: "Calibri", "Carlito", "Segoe UI", sans-serif;
+  }
+  svg.dg text { fill: #0f243e; }
+  svg.dg .t   { font-size: 19px; }
+  svg.dg .lab { font-size: 18px; font-weight: 700; }
+  svg.dg .sm  { font-size: 15px; fill: #5a6b80; }
+  svg.dg .mono { font-family: "Courier New", "Liberation Mono", monospace; font-size: 17px; }
+  svg.dg .red  { fill: #b40000; }
+  svg.dg .blue { fill: #1f497d; }
+  svg.dg .grn  { fill: #4a7d18; }
+
+  /* section-break slides: one captioned illustration */
+  .reveal section.sectionbreak img {
+    display: block; margin: 0.35em auto 0 auto;
+    max-height: 510px; max-width: 100%;
+    width: auto !important; height: auto !important;
+    object-fit: contain; border-radius: 6px;
+  }
+  /* outline slide: the section figures, captioned */
+  .reveal .figgrid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 0.35em 0.9em; margin-top: 0.35em;
+  }
+  .reveal .figgrid figure { margin: 0; }
+  .reveal .figgrid img {
+    width: 100%; display: block; border-radius: 4px;
+    aspect-ratio: 16 / 9; object-fit: cover;
+  }
+  .reveal .figgrid figcaption {
+    font-size: 0.5em; line-height: 1.25; margin-top: 0.2em;
+    color: #17375d;
+  }
+
+  /* Quarto's .columns is display:inline-block, not flex -- `gap`
+     does nothing here.  Its own child-margin rule also excludes
+     ul/ol content (`.columns>.column>:not(ul,ol)`), so a <ul> column
+     gets NO side margin at all.  Without it, a wrapped line in the
+     left column butts right up against the right column's .checks
+     marker, which sits 1em to the LEFT of its own list (see
+     .reveal .checks li::before in the theme).  Add real padding
+     instead, which applies regardless of content type. */
+  .reveal .columns > .column {
+    box-sizing: border-box;
+    padding: 0 0.7em;
+  }
+  .reveal .columns > .column:first-child {
+    padding-left: 0;
+  }
+  .reveal .columns > .column:last-child {
+    padding-right: 0;
+  }
+
+  /* data tables: readable at distance, at least 18pt (24px at the
+     28px root) -- overrides the theme's default .reveal table 0.72em */
+  .reveal .bigtable table {
+    font-size: 24px;
+  }
+  .reveal .bigtable th,
+  .reveal .bigtable td {
+    padding: 0.3em 0.55em;
+  }
+  </style>
+</head>
+<body class="quarto-light">
+  <div class="reveal">
+    <div class="slides">
+
+<section id="title-slide" data-notes="Hi, I’m here to talk about the covariance step in nlmixr – what changed, and why." class="quarto-title-block center">
+  <h1 class="title"><span class="nlmixr">nlmixr<sup>2</sup></span> 7.0: the covariance step, all grown up</h1>
+
+<div class="quarto-title-authors">
+<div class="quarto-title-author">
+<div class="quarto-title-author-name">
+Matthew Fidler 
+</div>
+        <p class="quarto-title-affiliation">
+            On behalf of the <span class="nlmixr">nlmixr2</span> team
+          </p>
+    </div>
+</div>
+
+</section>
+<section id="this-talk-in-three-pictures" class="slide level2">
+<h2>This talk, in three pictures</h2>
+<div class="figgrid">
+<figure>
+<img src="images/sec-full.jpg">
+<figcaption>
+<b>1.</b> The covariance step now covers every parameter
+</figcaption>
+</figure>
+<figure>
+<img src="images/sec-any.jpg">
+<figcaption>
+<b>2.</b> sa and imp break free of one estimation method
+</figcaption>
+</figure>
+<figure>
+<img src="images/sec-analytic.jpg">
+<figcaption>
+<b>3.</b> The analytic covariance: an exact standard error
+</figcaption>
+</figure>
+</div>
+<aside class="notes">
+<p>Three things changed in the covariance step for this release:</p>
+<ol type="1">
+<li><p>The default covariance step now covers every parameter.</p></li>
+<li><p>Two new covariance methods, S-A and I-M-P that can be used almost anywhere.</p></li>
+<li><p>A genuine new covariance method that Hidde created – an exact analytic covariance</p></li>
+</ol>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="a-full-covariance-step" class="slide level2 sectionbreak">
+<h2>1. A full covariance step</h2>
+<p><img data-src="images/sec-full.jpg" class=""></p>
+<aside class="notes">
+<p>Let’s start with the new full covariance</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="residual-error-parameters-used-to-come-back-with-no-standard-error" class="slide level2">
+<h2>Residual-error parameters used to come back with no standard error</h2>
+<svg class="dg" viewbox="0 0 1000 380" role="img" aria-label="A parFixed table before 7.0: tka, tcl and tv each have an estimate and a standard error, but add.sd has only an estimate and a blank standard error column. After 7.0, add.sd also has a filled-in standard error.">
+  <text class="lab" x="60" y="46">before 7.0</text>
+  <g class="t">
+    <text x="60" y="90">tka</text>
+    <text x="60" y="126">tcl</text>
+    <text x="60" y="162">tv</text>
+    <text x="60" y="198" font-weight="700">add.sd</text>
+  </g>
+  <g class="sm">
+    <text x="180" y="72">Est.</text>
+    <text x="330" y="72">SE</text>
+  </g>
+  <g fill="#e6f0da" stroke="#4a7d18" stroke-width="1.5">
+    <rect x="160" y="76" width="120" height="30" rx="4"></rect>
+    <rect x="160" y="112" width="120" height="30" rx="4"></rect>
+    <rect x="160" y="148" width="120" height="30" rx="4"></rect>
+    <rect x="160" y="184" width="120" height="30" rx="4"></rect>
+    <rect x="310" y="76" width="120" height="30" rx="4"></rect>
+    <rect x="310" y="112" width="120" height="30" rx="4"></rect>
+    <rect x="310" y="148" width="120" height="30" rx="4"></rect>
+  </g>
+  <rect x="310" y="184" width="120" height="30" rx="4" fill="#f3dede" stroke="#b40000" stroke-width="1.5" stroke-dasharray="4 3"></rect>
+  <text class="sm red" x="370" y="204" text-anchor="middle">-- empty --</text>
+
+  <line x1="500" y1="60" x2="500" y2="220" stroke="#c8d2df" stroke-width="1.5"></line>
+
+  <text class="lab" x="560" y="46">nlmixr2 7.0</text>
+  <g class="t">
+    <text x="560" y="90">tka</text>
+    <text x="560" y="126">tcl</text>
+    <text x="560" y="162">tv</text>
+    <text x="560" y="198" font-weight="700">add.sd</text>
+  </g>
+  <g class="sm">
+    <text x="680" y="72">Est.</text>
+    <text x="830" y="72">SE</text>
+  </g>
+  <g fill="#e6f0da" stroke="#4a7d18" stroke-width="1.5">
+    <rect x="660" y="76" width="120" height="30" rx="4"></rect>
+    <rect x="660" y="112" width="120" height="30" rx="4"></rect>
+    <rect x="660" y="148" width="120" height="30" rx="4"></rect>
+    <rect x="660" y="184" width="120" height="30" rx="4"></rect>
+    <rect x="810" y="76" width="120" height="30" rx="4"></rect>
+    <rect x="810" y="112" width="120" height="30" rx="4"></rect>
+    <rect x="810" y="148" width="120" height="30" rx="4"></rect>
+  </g>
+  <rect x="810" y="184" width="120" height="30" rx="4" fill="#e6f0da" stroke="#4a7d18" stroke-width="2.5"></rect>
+  <text class="mono grn" x="870" y="204" text-anchor="middle">0.008</text>
+
+  <line x1="220" y1="240" x2="220" y2="270" stroke="#6b7b90" stroke-width="2"></line>
+  <line x1="220" y1="270" x2="870" y2="270" stroke="#6b7b90" stroke-width="2"></line>
+  <line x1="870" y1="270" x2="870" y2="230" stroke="#6b7b90" stroke-width="2" marker-end="url(#ar3)"></line>
+  <defs>
+    <marker id="ar3" markerwidth="9" markerheight="9" refx="7" refy="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#6b7b90"></path>
+    </marker>
+  </defs>
+  <text class="sm" x="545" y="296" text-anchor="middle">the additive residual SD is a fitted parameter, just like tka, tcl, tv</text>
+</svg>
+<aside class="notes">
+<p>Now the additive residual error standard deviation is calculated for all methods – before 7.0 the standard error was missing.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="that-was-a-deliberate-choice-not-an-oversight" class="slide level2">
+<h2>That was a deliberate choice, not an oversight</h2>
+<ul>
+<li>We, as a nlmixr2 team, think that when you simulate <em>with</em> uncertainty, the <code>omega</code> and <code>sigma</code> terms should be simulated from the inverse Wishart distribution, not from standard errors</li>
+<li>Getting real <code>omega</code> and residual standard errors also required meaningfully more implementation effort than the approach we originally took</li>
+</ul>
+<div class="rule">
+
+</div>
+<p>7.0 adds the full covariance step <em>on top of</em> that – it is not a reversal of how we think about simulating uncertainty.</p>
+<aside class="notes">
+<p>We’ve always leaned toward using the inverse Wishart distribution for simulating uncertainty in omega and sigma; when implementing nlmixr, we thought by not having these standard errors, others would simulate with uncertainty with the inverse Wishart distribution too.</p>
+<p>Additionally, getting real standard errors for those terms took real additional work.</p>
+<p>This new work really doesn’t change how we think about simulating with uncertainty.</p>
+<p>However, these values inform how well these parameters are estimated and are frequently requested (and useful in other methods).</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="fit-the-model-and-add.sd-comes-back-with-a-real-number" class="slide level2">
+<h2>Fit the model, and <code>add.sd</code> comes back with a real number</h2>
+<pre class="r number-lines"><code>fit &lt;- nlmixr2(pheno, pheno_sd, est="focei")
+print(fit)</code></pre>
+<div class="smaller">
+<p><code>add.sd</code> – SE about <code>0.008</code>, roughly 0.9% RSE – a number that, before this release, simply was not there.</p>
+</div>
+<div class="rule">
+
+</div>
+<pre class="r number-lines"><code>fit$cov</code></pre>
+<div class="smaller">
+<p>The full covariance (<code>$cov</code>) also carries the <code>Omega</code> block, named by random effect – <code>om.eta.cl</code>, <code>cov.eta.cl.eta.v</code> – so you can find what you’re looking for without guessing at row order.</p>
+</div>
+<aside class="notes">
+<p>If you look at the full covariance matrix, you’ll also see the omega block standard errors.</p>
+<p>The covariance matrix is named so you will never guessing at which covariance term belongs to which estimated omega element.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="only-three-things-still-dont-get-a-standard-error" class="slide level2">
+<h2>Only three things still don’t get a standard error</h2>
+<div class="checks">
+<ul>
+<li>Everything else – structural, covariate, and residual-error thetas</li>
+</ul>
+</div>
+<ul>
+<li><code>fix()</code>ed parameters – there is nothing to estimate a standard error for</li>
+<li>inter-occasion variability (IOV) parameters – those are individual-level, not population-level</li>
+<li>mixture-probability parameters on the mlogit scale – yes, we have mixtures now too, more on that another day</li>
+</ul>
+<aside class="notes">
+<p>So what’s still skipped? Fixed parameters, Inter occasion variability parameters and mixture probability parameters. Everything else is in the covariance matrix by default.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="sa-and-imp-break-free-of-one-estimation-method" class="slide level2 sectionbreak">
+<h2>2. <code>sa</code> and <code>imp</code> break free of one estimation method</h2>
+<p><img data-src="images/sec-any.jpg" class=""></p>
+<aside class="notes">
+<p>The second change is bigger than it sounds: two covariance methods stopped being tied to one specific estimation method.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="sa-and-imp-used-to-be-locked-to-one-estimation-method-each" class="slide level2">
+<h2><code>sa</code> and <code>imp</code> used to be locked to one estimation method each</h2>
+<svg class="dg" viewbox="0 0 1000 405" role="img" aria-label="Before 7.0, sa (SAEM Louis FIM) only came from saem, and imp (importance-sampling observed information) only came from imp/impmap. A focei fit could not use either. After 7.0, setCov() connects sa and imp to any mixed-effects fit.">
+  <text class="lab" x="500" y="36" text-anchor="middle">before 7.0</text>
+  <g fill="#f3dede" stroke="#b40000" stroke-width="1.5">
+    <rect x="90" y="60" width="190" height="56" rx="6"></rect>
+    <rect x="405" y="60" width="190" height="56" rx="6"></rect>
+    <rect x="720" y="60" width="190" height="56" rx="6"></rect>
+  </g>
+  <g class="t" text-anchor="middle" font-weight="700">
+    <text x="185" y="93">focei</text>
+    <text x="500" y="93">saem</text>
+    <text x="815" y="93">imp / impmap</text>
+  </g>
+  <g class="sm" text-anchor="middle" fill="#b40000">
+    <text x="185" y="140">r,s only</text>
+    <text x="500" y="140">sa only</text>
+    <text x="815" y="140">imp only</text>
+  </g>
+  <line x1="185" y1="116" x2="185" y2="130" stroke="#b40000" stroke-width="2"></line>
+  <line x1="500" y1="116" x2="500" y2="130" stroke="#b40000" stroke-width="2"></line>
+  <line x1="815" y1="116" x2="815" y2="130" stroke="#b40000" stroke-width="2"></line>
+
+  <line x1="0" y1="180" x2="1000" y2="180" stroke="#c8d2df" stroke-width="1.5"></line>
+
+  <text class="lab" x="500" y="216" text-anchor="middle">nlmixr2 7.0</text>
+  <g fill="#e6f0da" stroke="#4a7d18" stroke-width="1.5">
+    <rect x="90" y="240" width="190" height="56" rx="6"></rect>
+    <rect x="405" y="240" width="190" height="56" rx="6"></rect>
+    <rect x="720" y="240" width="190" height="56" rx="6"></rect>
+  </g>
+  <g class="t" text-anchor="middle" font-weight="700">
+    <text x="185" y="273">focei</text>
+    <text x="500" y="273">saem</text>
+    <text x="815" y="273">imp / impmap</text>
+  </g>
+  <rect x="360" y="330" width="280" height="36" rx="6" fill="#e6f0da" stroke="#4a7d18" stroke-width="2"></rect>
+  <text class="mono grn" x="500" y="354" text-anchor="middle">setCov(fit, method)</text>
+  <line x1="185" y1="296" x2="410" y2="330" stroke="#4a7d18" stroke-width="1.5"></line>
+  <line x1="500" y1="296" x2="500" y2="330" stroke="#4a7d18" stroke-width="1.5"></line>
+  <line x1="815" y1="296" x2="590" y2="330" stroke="#4a7d18" stroke-width="1.5"></line>
+  <text class="sm" x="500" y="384" text-anchor="middle" fill="#5a6b80">method: "sa", "imp", "analytic", "r,s", ...</text>
+</svg>
+<aside class="notes">
+<p>The new S-A and I-M-P covariance methods can be requested for practically any fit and also be computed post fit.</p>
+<p>This post-fit covariance step occurs at the converged estimates of the mixed effects model.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="setcov-switches-a-finished-fit-without-refitting-anything" class="slide level2">
+<h2><code>setCov()</code> switches a finished fit without refitting anything</h2>
+<pre class="r number-lines"><code>fit &lt;- nlmixr2(pheno, pheno_sd, est="focei")
+
+# the SAEM Louis stochastic-approximation FIM, on a focei fit,
+# without refitting anything
+setCov(fit, "sa")
+
+# the importance-sampling Monte Carlo observed information, same fit
+setCov(fit, "imp")</code></pre>
+<div class="smaller">
+<p><code>setCov()</code> calculates the covariance and installs it on the fit. Once calculated, it is saved, so switching back and forth costs nothing extra.</p>
+</div>
+<aside class="notes">
+<p>setCov calculates the new covariance and folds it right into the fit. Once it’s calculated, it’s cached, so you can flip between covariance methods on the same fit without paying the calculation cost twice.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="covmethod-is-now-a-shared-vocabulary-of-nine-tokens" class="slide level2">
+<h2><code>covMethod</code> is now a shared vocabulary of nine tokens</h2>
+<div class="bigtable">
+<table class="caption-top">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>token</th>
+<th>what it is</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>"r,s"</code></td>
+<td>sandwich, <code>solve(R) %*% S %*% solve(R)</code> – the <code>focei</code>-family default</td>
+</tr>
+<tr class="even">
+<td><code>"r"</code> / <code>"s"</code></td>
+<td>just the Hessian half or the cross-product half of the sandwich</td>
+</tr>
+<tr class="odd">
+<td><code>"analytic"</code></td>
+<td>exact observed-information covariance, matches NONMEM’s <code>$COV MATRIX=R</code></td>
+</tr>
+<tr class="even">
+<td><code>"sa"</code></td>
+<td>SAEM Louis stochastic-approximation FIM (Kuhn &amp; Lavielle 2005)</td>
+</tr>
+<tr class="odd">
+<td><code>"imp"</code></td>
+<td>importance-sampling Monte Carlo observed information</td>
+</tr>
+<tr class="even">
+<td><code>"vi"</code></td>
+<td>variational covariance – <code>emvi</code>/<code>fbvi</code> only</td>
+</tr>
+<tr class="odd">
+<td><code>"nlme"</code></td>
+<td><code>nlme</code>’s own standard errors – <code>nlme</code> only</td>
+</tr>
+<tr class="even">
+<td><code>"linFim"</code> / <code>"fim"</code></td>
+<td>SAEM’s linearized / accumulated Fisher information – <code>saem</code> only</td>
+</tr>
+<tr class="odd">
+<td><code>""</code></td>
+<td>skip the covariance step</td>
+</tr>
+</tbody>
+</table>
+</div>
+<aside class="notes">
+<p>Here’s the full list of supported covariance matrix methods. Some are still only found in their corresponding methods. If you specify an empty string, the covariance step is simply skipped.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="most-families-defaults-now-reflect-what-theyre-actually-best-at" class="slide level2">
+<h2>Most families’ defaults now reflect what they’re actually best at</h2>
+<div class="bigtable">
+<table class="caption-top">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>family</th>
+<th>default <code>covMethod</code></th>
+<th>note</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>focei</code> / <code>foce</code> / <code>laplace</code> / <code>agq</code></td>
+<td><code>"r,s"</code></td>
+<td>unchanged</td>
+</tr>
+<tr class="even">
+<td><code>saem</code></td>
+<td><code>"sa"</code></td>
+<td>falls back <code>"analytic"</code> then <code>"linFim"</code> when out of scope</td>
+</tr>
+<tr class="odd">
+<td><code>imp</code> / <code>impmap</code> / <code>qrpem</code></td>
+<td><code>"imp"</code></td>
+<td><code>impCov=TRUE</code> argument is gone – this is just the default now</td>
+</tr>
+<tr class="even">
+<td><code>nlme</code></td>
+<td><code>"nlme"</code></td>
+<td>unchanged, but <code>"analytic"</code> is now selectable too</td>
+</tr>
+<tr class="odd">
+<td><code>npag</code> / <code>npb</code></td>
+<td><code>"imp"</code></td>
+<td>currently does not have its own method</td>
+</tr>
+<tr class="even">
+<td><code>emvi</code> / <code>fbvi</code></td>
+<td><code>"vi"</code></td>
+<td>now honors an explicit override instead of overwriting it</td>
+</tr>
+</tbody>
+</table>
+</div>
+<aside class="notes">
+<p>This lists the default covariance methods. Most defaults stayed put, because they were already the right choice for that family.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="the-analytic-covariance-an-exact-standard-error" class="slide level2 sectionbreak">
+<h2>3. The analytic covariance: an exact standard error</h2>
+<p><img data-src="images/sec-analytic.jpg" class=""></p>
+<aside class="notes">
+<p>The last piece is <code>covMethod="analytic"</code> itself, and this one is based on Hidde’s work.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="the-exact-gradient-stops-one-derivative-short-of-a-standard-error" class="slide level2">
+<h2>The exact gradient stops one derivative short of a standard error</h2>
+<svg class="dg" viewbox="0 0 1000 320" role="img" aria-label="The population objective is a data term plus a log-determinant penalty term. The gradient, already exact, needs second-order sensitivities. The observed information -- one more derivative -- needs third-order sensitivities, and only in the log-determinant term.">
+  <rect x="40" y="60" width="430" height="200" rx="8" fill="#eef2f6" stroke="#8fa0b6" stroke-width="1.5"></rect>
+  <text class="lab" x="255" y="94" text-anchor="middle">gradient (already exact)</text>
+  <text class="t" x="255" y="140" text-anchor="middle">data term + log-determinant term</text>
+  <text class="sm" x="255" y="170" text-anchor="middle">one derivative in</text>
+  <rect x="90" y="192" width="330" height="40" rx="6" fill="#e6f0da" stroke="#4a7d18" stroke-width="1.5"></rect>
+  <text class="mono grn" x="255" y="217" text-anchor="middle">needs 2nd-order sensitivities</text>
+
+  <line x1="500" y1="160" x2="560" y2="160" stroke="#6b7b90" stroke-width="2.5" marker-end="url(#ar4)"></line>
+  <defs>
+    <marker id="ar4" markerwidth="10" markerheight="10" refx="7" refy="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6b7b90"></path>
+    </marker>
+  </defs>
+  <text class="sm" x="530" y="145" text-anchor="middle">one more</text>
+  <text class="sm" x="530" y="180" text-anchor="middle">derivative</text>
+
+  <rect x="570" y="60" width="410" height="210" rx="8" fill="#eef2f6" stroke="#8fa0b6" stroke-width="1.5"></rect>
+  <text class="lab" x="775" y="94" text-anchor="middle">observed information (new, "analytic")</text>
+  <text class="t" x="775" y="136" text-anchor="middle">same two terms, differentiated again</text>
+  <rect x="600" y="148" width="350" height="32" rx="6" fill="#e6f0da" stroke="#4a7d18" stroke-width="1.5"></rect>
+  <text class="sm grn" x="775" y="169" text-anchor="middle">data term: needs nothing new</text>
+  <rect x="600" y="188" width="350" height="60" rx="6" fill="#f3dede" stroke="#b40000" stroke-width="1.5"></rect>
+  <text class="mono red" x="775" y="208" text-anchor="middle">log-det term:</text>
+  <text class="mono red" x="775" y="230" text-anchor="middle">needs 3rd-order sensitivities</text>
+</svg>
+<aside class="notes">
+<p>For the new analytic method the population objective is a data term plus a log determinant penalty term.</p>
+<p>The gradient only needs second order sensitivities. For more details, you can read the corresponding paper.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="a-finite-differenced-hessian-has-a-harder-accuracy-floor-than-a-gradient" class="slide level2">
+<h2>A finite-differenced Hessian has a harder accuracy floor than a gradient</h2>
+<ul>
+<li>A finite-differenced <strong>gradient</strong>’s achievable accuracy scales with the inner-problem tolerance to the two-thirds power</li>
+<li>A finite-differenced <strong>Hessian</strong>’s achievable accuracy is worse – it only scales to the one-half power</li>
+<li>… and it needs a step size tuned by hand: too large and you get truncation bias, too small and round-off makes it erratic – sometimes not even positive definite</li>
+</ul>
+<div class="rule">
+
+</div>
+<p>The analytic form carries <strong>no step size</strong> – it is limited only by the accuracy of the sensitivity and ODE solutions underneath it.</p>
+<aside class="notes">
+<p>The analytic gradient has no step size and no finite difference noise, so it is not erratic or biased – it is exact. It is only limited by the accuracy of the ODE systems themselves.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="on-warfarin-data-the-analytic-value-matches-nonmem-with-no-step-to-tune" class="slide level2">
+<h2>On warfarin data, the analytic value matches NONMEM – with no step to tune</h2>
+<svg class="dg" viewbox="0 0 1000 340" role="img" aria-label="Standard error against finite-difference step size for one warfarin model parameter. The analytic value is a flat horizontal line. The finite-difference value only tracks it over a narrow middle band of step sizes, and is biased or erratic at the extremes.">
+  <line x1="80" y1="280" x2="940" y2="280" stroke="#0f243e" stroke-width="1.5"></line>
+  <polygon points="940,280 928,274 928,286" fill="#0f243e"></polygon>
+  <text class="sm" x="510" y="308" text-anchor="middle">finite-difference step size h (large → small)</text>
+
+  <line x1="80" y1="180" x2="940" y2="180" stroke="#0f243e" stroke-width="3"></line>
+  <text class="mono" x="90" y="164">analytic (no step size)</text>
+
+  <path d="M120,80 C 200,140 260,175 340,179 C 460,181 560,179 640,181 C 720,183 800,150 900,60" fill="none" stroke="#b40000" stroke-width="2.5"></path>
+  <text class="sm red" x="150" y="70">truncation bias</text>
+  <text class="sm red" x="770" y="55">round-off, erratic</text>
+
+  <circle cx="490" cy="180" r="6" fill="#4a7d18"></circle>
+  <text class="sm grn" x="490" y="205" text-anchor="middle">tracks the analytic value here</text>
+
+  <text class="lab" x="80" y="40">SE(ω²<tspan baseline-shift="sub">CL</tspan>)</text>
+</svg>
+<div class="smaller">
+<p>Warfarin PK, one-compartment oral absorption, 10 subjects, correlated clearance/volume random-effect block, diagonal absorption-rate random effect – the analytic standard error matches an independent NONMEM run to every figure shown.</p>
+</div>
+<aside class="notes">
+<p>On a warfarin case study – one compartment, oral absorption, ten subjects, a correlated random effect block on clearance and volume, and a diagonal random effect on the absorption rate – the analytic standard error matched an independent NONMEM run to every figure they reported. The finite difference standard error only tracked that value over a narrow middle band of step sizes – too large a step and it’s biased, too small and it gets erratic. The analytic value just sits there, flat, no step size involved at all.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="why-this-matters" class="slide level2">
+<h2>Why this matters</h2>
+<div class="columns">
+<div class="column" style="width:52%;">
+<ul>
+<li>The default covariance step now covers every estimated theta, residual-error parameters included</li>
+<li><code>sa</code>, <code>imp</code>, <code>analytic</code> and the finite-difference methods now travel across mixed-effects fits, switchable after the fact with <code>setCov()</code></li>
+<li><code>covMethod="analytic"</code> gives you an exact standard error with no finite-difference step size to tune</li>
+</ul>
+</div><div class="column checks" style="width:48%;">
+<ul>
+<li>Spot-check an <code>"r,s"</code> covariance against <code>"analytic"</code> or <code>"sa"</code> without paying for a second fit</li>
+<li>The covariance step you gave up on for <code>npag</code>/<code>npb</code> is worth trying again – it’s there now</li>
+<li>Tell us where the analytic covariance falls outside its scope</li>
+</ul>
+</div></div>
+<aside class="notes">
+<p>To summarize: the default covariance step now covers:</p>
+<ul>
+<li><p>every estimated parameter, S-A, I-M-P, analytic and the finite-difference methods.</p></li>
+<li><p>you can switch after the fact with set cov</p></li>
+<li><p>the analytic covariance gives you an exact standard error.</p></li>
+</ul>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="thank-you" class="slide level2 thanks">
+<h2>Thank you</h2>
+<aside class="notes">
+<p>Thank you – and thank you to Hidee and the rest of the Leiden team for the analytic covariance work behind this release.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+
+</section>
+    </div>
+  <div class="quarto-auto-generated-content" style="display: none;">
+<div class="footer footer-default">
+<p>nlmixr2 development team</p>
+</div>
+</div></div>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script>
+  <script src="nlmixr2-cov_files/libs/revealjs/dist/reveal.js"></script>
+  <!-- reveal.js plugins -->
+  <script src="nlmixr2-cov_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.js"></script>
+  <script src="nlmixr2-cov_files/libs/revealjs/plugin/pdf-export/pdfexport.js"></script>
+  <script src="nlmixr2-cov_files/libs/revealjs/plugin/reveal-menu/menu.js"></script>
+  <script src="nlmixr2-cov_files/libs/revealjs/plugin/reveal-menu/quarto-menu.js"></script>
+  <script src="nlmixr2-cov_files/libs/revealjs/plugin/reveal-audio-slideshow/plugin.js"></script>
+  <script src="nlmixr2-cov_files/libs/revealjs/plugin/quarto-support/support.js"></script>
+  
+
+  <script src="nlmixr2-cov_files/libs/revealjs/plugin/notes/notes.js"></script>
+  <script src="nlmixr2-cov_files/libs/revealjs/plugin/search/search.js"></script>
+  <script src="nlmixr2-cov_files/libs/revealjs/plugin/zoom/zoom.js"></script>
+  <script src="nlmixr2-cov_files/libs/revealjs/plugin/math/math.js"></script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://revealjs.com/config/
+      Reveal.initialize({
+'controlsAuto': true,
+'previewLinksAuto': false,
+'pdfSeparateFragments': false,
+'autoAnimateEasing': "ease",
+'autoAnimateDuration': 1,
+'autoAnimateUnmatched': true,
+'jumpToSlide': true,
+'menu': {"side":"left","useTextContentForMissingTitles":true,"markers":false,"loadIcons":false,"custom":[{"title":"Tools","icon":"<i class=\"fas fa-gear\"></i>","content":"<ul class=\"slide-menu-items\">\n<li class=\"slide-tool-item active\" data-item=\"0\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.fullscreen(event)\"><kbd>f</kbd> Fullscreen</a></li>\n<li class=\"slide-tool-item\" data-item=\"1\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.speakerMode(event)\"><kbd>s</kbd> Speaker View</a></li>\n<li class=\"slide-tool-item\" data-item=\"2\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.overview(event)\"><kbd>o</kbd> Slide Overview</a></li>\n<li class=\"slide-tool-item\" data-item=\"3\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.togglePdfExport(event)\"><kbd>e</kbd> PDF Export Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"4\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleScrollView(event)\"><kbd>r</kbd> Scroll View Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"5\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.keyboardHelp(event)\"><kbd>?</kbd> Keyboard Help</a></li>\n</ul>"}],"openButton":true},
+'audio': {"prefix":"audio/slide","suffix":".mp3","autoplay":true,"advance":0,"defaultNotes":false,"defaultText":false,"defaultAudios":true,"playerOpacity":0.05},
+'smaller': false,
+ 
+        // Display controls in the bottom right corner
+        controls: false,
+
+        // Help the user learn the controls by providing hints, for example by
+        // bouncing the down arrow when they first encounter a vertical slide
+        controlsTutorial: false,
+
+        // Determines where controls appear, "edges" or "bottom-right"
+        controlsLayout: 'edges',
+
+        // Visibility rule for backwards navigation arrows; "faded", "hidden"
+        // or "visible"
+        controlsBackArrows: 'faded',
+
+        // Display a presentation progress bar
+        progress: false,
+
+        // Display the page number of the current slide
+        slideNumber: 'c',
+
+        // 'all', 'print', or 'speaker'
+        showSlideNumber: 'all',
+
+        // Add the current slide number to the URL hash so that reloading the
+        // page/copying the URL will return you to the same slide
+        hash: true,
+
+        // Start with 1 for the hash rather than 0
+        hashOneBasedIndex: false,
+
+        // Flags if we should monitor the hash and change slides accordingly
+        respondToHashChanges: true,
+
+        // Push each slide change to the browser history
+        history: true,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: true,
+
+        // Disables the default reveal.js slide layout (scaling and centering)
+        // so that you can use custom CSS layout
+        disableLayout: false,
+
+        // Vertical centering of slides
+        center: false,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // see https://revealjs.com/vertical-slides/#navigation-mode
+        navigationMode: 'linear',
+
+        // Randomizes the order of slides each time the presentation loads
+        shuffle: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags whether to include the current fragment in the URL,
+        // so that reloading brings you to the same fragment position
+        fragmentInURL: false,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if it should be possible to pause the presentation (blackout)
+        pause: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Global override for autoplaying embedded media (null/true/false)
+        autoPlayMedia: null,
+
+        // Global override for preloading lazy-loaded iframes (null/true/false)
+        preloadIframes: null,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Use this method for navigation when auto-sliding
+        autoSlideMethod: null,
+
+        // Specify the average time in seconds that you think you will spend
+        // presenting each slide. This is used to show a pacing timer in the
+        // speaker view
+        defaultTiming: null,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // The display mode that will be used to show slides
+        display: 'block',
+
+        // Hide cursor if inactive
+        hideInactiveCursor: true,
+
+        // Time before the cursor is hidden (in ms)
+        hideCursorTime: 5000,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style (none/fade/slide/convex/concave/zoom)
+        transition: 'none',
+
+        // Transition speed (default/fast/slow)
+        transitionSpeed: 'default',
+
+        // Transition style for full page slide backgrounds
+        // (none/fade/slide/convex/concave/zoom)
+        backgroundTransition: 'none',
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Number of slides away from the current that are visible on mobile
+        // devices. It is advisable to set this to a lower number than
+        // viewDistance in order to save resources.
+        mobileViewDistance: 2,
+
+        // The "normal" size of the presentation, aspect ratio will be preserved
+        // when the presentation is scaled to fit different resolutions. Can be
+        // specified using percentage units.
+        width: 1280,
+
+        height: 720,
+
+        // Factor of the display size that should remain empty around the content
+        margin: 0.1,
+
+        math: {
+          mathjax: 'https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js',
+          config: 'TeX-AMS_HTML-full',
+          tex2jax: {
+            inlineMath: [['\\(','\\)']],
+            displayMath: [['\\[','\\]']],
+            balanceBraces: true,
+            processEscapes: false,
+            processRefs: true,
+            processEnvironments: true,
+            preview: 'TeX',
+            skipTags: ['script','noscript','style','textarea','pre','code'],
+            ignoreClass: 'tex2jax_ignore',
+            processClass: 'tex2jax_process'
+          },
+        },
+
+        // reveal.js plugins
+        plugins: [QuartoLineHighlight, PdfExport, RevealMenu, RevealAudioSlideshow, QuartoSupport,
+
+          RevealMath,
+          RevealNotes,
+          RevealSearch,
+          RevealZoom
+        ]
+      });
+    </script>
+    <script id="quarto-html-after-body" type="application/javascript">
+      window.document.addEventListener("DOMContentLoaded", function (event) {
+        const tabsets =  window.document.querySelectorAll(".panel-tabset-tabby")
+        tabsets.forEach(function(tabset) {
+          const tabby = new Tabby('#' + tabset.id);
+        });
+        const isCodeAnnotation = (el) => {
+          for (const clz of el.classList) {
+            if (clz.startsWith('code-annotation-')) {                     
+              return true;
+            }
+          }
+          return false;
+        }
+        const onCopySuccess = function(e) {
+          // button target
+          const button = e.trigger;
+          // don't keep focus
+          button.blur();
+          // flash "checked"
+          button.classList.add('code-copy-button-checked');
+          var currentTitle = button.getAttribute("title");
+          button.setAttribute("title", "Copied!");
+          let tooltip;
+          if (window.bootstrap) {
+            button.setAttribute("data-bs-toggle", "tooltip");
+            button.setAttribute("data-bs-placement", "left");
+            button.setAttribute("data-bs-title", "Copied!");
+            tooltip = new bootstrap.Tooltip(button, 
+              { trigger: "manual", 
+                customClass: "code-copy-button-tooltip",
+                offset: [0, -8]});
+            tooltip.show();    
+          }
+          setTimeout(function() {
+            if (tooltip) {
+              tooltip.hide();
+              button.removeAttribute("data-bs-title");
+              button.removeAttribute("data-bs-toggle");
+              button.removeAttribute("data-bs-placement");
+            }
+            button.setAttribute("title", currentTitle);
+            button.classList.remove('code-copy-button-checked');
+          }, 1000);
+          // clear code selection
+          e.clearSelection();
+        }
+        const getTextToCopy = function(trigger) {
+          const outerScaffold = trigger.parentElement.cloneNode(true);
+          const codeEl = outerScaffold.querySelector('code');
+          for (const childEl of codeEl.children) {
+            if (isCodeAnnotation(childEl)) {
+              childEl.remove();
+            }
+          }
+          return codeEl.innerText;
+        }
+        const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+          text: getTextToCopy
+        });
+        clipboard.on('success', onCopySuccess);
+        if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+          const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+            text: getTextToCopy,
+            container: window.document.getElementById('quarto-embedded-source-code-modal')
+          });
+          clipboardModal.on('success', onCopySuccess);
+        }
+          var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+          var mailtoRegex = new RegExp(/^mailto:/);
+            var filterRegex = new RegExp('/' + window.location.host + '/');
+          var isInternal = (href) => {
+              return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+          }
+          // Inspect non-navigation links and adorn them if external
+         var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+          for (var i=0; i<links.length; i++) {
+            const link = links[i];
+            if (!isInternal(link.href)) {
+              // undo the damage that might have been done by quarto-nav.js in the case of
+              // links that we want to consider external
+              if (link.dataset.originalHref !== undefined) {
+                link.href = link.dataset.originalHref;
+              }
+                // target, if specified
+                link.setAttribute("target", "_blank");
+                if (link.getAttribute("rel") === null) {
+                  link.setAttribute("rel", "noopener");
+                }
+            }
+          }
+        function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+          const config = {
+            allowHTML: true,
+            maxWidth: 500,
+            delay: 100,
+            arrow: false,
+            appendTo: function(el) {
+                return el.closest('section.slide') || el.parentElement;
+            },
+            interactive: true,
+            interactiveBorder: 10,
+            theme: 'light-border',
+            placement: 'bottom-start',
+          };
+          if (contentFn) {
+            config.content = contentFn;
+          }
+          if (onTriggerFn) {
+            config.onTrigger = onTriggerFn;
+          }
+          if (onUntriggerFn) {
+            config.onUntrigger = onUntriggerFn;
+          }
+            config['offset'] = [0,0];
+            config['maxWidth'] = 700;
+          window.tippy(el, config); 
+        }
+        const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+        for (var i=0; i<noterefs.length; i++) {
+          const ref = noterefs[i];
+          tippyHover(ref, function() {
+            // use id or data attribute instead here
+            let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+            try { href = new URL(href).hash; } catch {}
+            const id = href.replace(/^#\/?/, "");
+            const note = window.document.getElementById(id);
+            if (note) {
+              return note.innerHTML;
+            } else {
+              return "";
+            }
+          });
+        }
+        const findCites = (el) => {
+          const parentEl = el.parentElement;
+          if (parentEl) {
+            const cites = parentEl.dataset.cites;
+            if (cites) {
+              return {
+                el,
+                cites: cites.split(' ')
+              };
+            } else {
+              return findCites(el.parentElement)
+            }
+          } else {
+            return undefined;
+          }
+        };
+        var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+        for (var i=0; i<bibliorefs.length; i++) {
+          const ref = bibliorefs[i];
+          const citeInfo = findCites(ref);
+          if (citeInfo) {
+            tippyHover(citeInfo.el, function() {
+              var popup = window.document.createElement('div');
+              citeInfo.cites.forEach(function(cite) {
+                var citeDiv = window.document.createElement('div');
+                citeDiv.classList.add('hanging-indent');
+                citeDiv.classList.add('csl-entry');
+                var biblioDiv = window.document.getElementById('ref-' + cite);
+                if (biblioDiv) {
+                  citeDiv.innerHTML = biblioDiv.innerHTML;
+                }
+                popup.appendChild(citeDiv);
+              });
+              return popup.innerHTML;
+            });
+          }
+        }
+      });
+      </script>
+    <script>
+    // Two things the audio-slideshow plugin needs help with.
+    //
+    // 1. It assigns <source>.src AFTER the <audio> is in the DOM.  Per spec
+    //    that does not start a fetch -- the browser only ever issues the
+    //    plugin's HEAD probe, never a GET, so the clip never loads
+    //    (networkState stays LOADING, duration null) and the deck is silent
+    //    or stutters.  Calling load() on the element fixes it.
+    //
+    // 2. Browsers refuse to start audio until the page has had a real user
+    //    gesture, so autoplay:true alone leaves slide 1 silent.  One click
+    //    on the overlay satisfies that; after it the plugin runs itself.
+    (function () {
+      function playerFor(h, v) {
+        return document.getElementById('audioplayer-' + h + '.' + v);
+      }
+      function prime(a) {
+        if (!a) return;
+        if (a.readyState === 0) { try { a.load(); } catch (e) {} }
+      }
+      function currentPlayer() {
+        var i = (window.Reveal && Reveal.getIndices) ? Reveal.getIndices()
+                                                     : { h: 0, v: 0 };
+        return playerFor(i.h, i.v || 0);
+      }
+      function start() {
+        var a = currentPlayer();
+        prime(a);
+        if (a) { var pr = a.play(); if (pr && pr.catch) pr.catch(function () {}); }
+      }
+      function arm() {
+        if (window.Reveal && Reveal.on) {
+          Reveal.on('slidechanged', function () { prime(currentPlayer()); });
+        }
+        prime(currentPlayer());
+        if (document.getElementById('audio-start')) return;
+        var d = document.createElement('div');
+        d.id = 'audio-start';
+        d.innerHTML = '<button style="font: 600 22px/1 Calibri, sans-serif;' +
+          'color:#fff;background:#b40000;border:0;border-radius:6px;' +
+          'padding:18px 30px;cursor:pointer">&#9654;&nbsp; Play with narration</button>' +
+          '<div style="margin-top:14px;font:16px Calibri,sans-serif;color:#17375d">' +
+          'your browser needs one click before it will play audio</div>';
+        d.style.cssText = 'position:fixed;inset:0;z-index:60;display:flex;' +
+          'flex-direction:column;align-items:center;justify-content:center;' +
+          'background:rgba(255,255,255,.92);text-align:center';
+        d.addEventListener('click', function () { start(); d.remove(); });
+        document.body.appendChild(d);
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', arm);
+      } else { arm(); }
+    })();
+    </script>
+    
+
+</body></html>
