@@ -8,7 +8,7 @@ tags: []
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
 ```
 
 <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;max-width:100%;">
@@ -24,7 +24,7 @@ knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
 
 In the [7.0 post](/blog/2026-08-05-nlmixr2-7/), I talked mostly about
 parallel solving in `focei`. This time I want to talk about a feature
-that has been request frequently: a full covariance step, and other
+that has been requested frequently: a full covariance step, and other
 refinements to the covariance steps.
 
 Two things changed there, and they are related:
