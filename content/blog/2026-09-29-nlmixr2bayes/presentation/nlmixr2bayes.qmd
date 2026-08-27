@@ -1,0 +1,1103 @@
+---
+title: "[nlmixr2bayes]{.nlmixr}: Stan, without rewriting your model"
+author: "Matthew Fidler"
+institute: "On behalf of the [nlmixr2]{.nlmixr} team"
+# The title slide is generated from the YAML, so a ::: {.notes} div cannot be
+# attached to it in markdown -- one placed before the first heading becomes a
+# separate blank slide.  reveal reads speaker notes from data-notes as well.
+title-slide-attributes:
+  data-notes: "Hi. Today I want to talk about Bayesian estimation in nlmixr2, and about a package called nlmixr2 bayes. The idea is one model definition allows both Stan and nlmixr2."
+# Narration.  One clip per slide in audio/, bound and auto-advanced by the
+# vendored audio-slideshow plugin; its options live in
+# _extensions/audio-slideshow/_extension.yml.
+revealjs-plugins:
+  - audio-slideshow
+# Browsers refuse to start audio until the page has had a real user gesture
+# (Chrome: "NotAllowedError: play() failed because the user didn't interact
+# with the document first"), so autoplay:true alone leaves the deck silent on
+# slide 1.  No plugin setting can override it.  This overlay takes one click
+# and starts playback; from then on the plugin advances by itself.
+include-after-body:
+  text: |
+    <script>
+    // Two things the audio-slideshow plugin needs help with.
+    //
+    // 1. It assigns <source>.src AFTER the <audio> is in the DOM.  Per spec
+    //    that does not start a fetch -- the browser only ever issues the
+    //    plugin's HEAD probe, never a GET, so the clip never loads
+    //    (networkState stays LOADING, duration null) and the deck is silent
+    //    or stutters.  Calling load() on the element fixes it.
+    //
+    // 2. Browsers refuse to start audio until the page has had a real user
+    //    gesture, so autoplay:true alone leaves slide 1 silent.  One click
+    //    on the overlay satisfies that; after it the plugin runs itself.
+    (function () {
+      function playerFor(h, v) {
+        return document.getElementById('audioplayer-' + h + '.' + v);
+      }
+      function prime(a) {
+        if (!a) return;
+        if (a.readyState === 0) { try { a.load(); } catch (e) {} }
+      }
+      function currentPlayer() {
+        var i = (window.Reveal && Reveal.getIndices) ? Reveal.getIndices()
+                                                     : { h: 0, v: 0 };
+        return playerFor(i.h, i.v || 0);
+      }
+      function start() {
+        var a = currentPlayer();
+        prime(a);
+        if (a) { var pr = a.play(); if (pr && pr.catch) pr.catch(function () {}); }
+      }
+      function arm() {
+        if (window.Reveal && Reveal.on) {
+          Reveal.on('slidechanged', function () { prime(currentPlayer()); });
+        }
+        prime(currentPlayer());
+        if (document.getElementById('audio-start')) return;
+        var d = document.createElement('div');
+        d.id = 'audio-start';
+        d.innerHTML = '<button style="font: 600 22px/1 Calibri, sans-serif;' +
+          'color:#fff;background:#b40000;border:0;border-radius:6px;' +
+          'padding:18px 30px;cursor:pointer">&#9654;&nbsp; Play with narration</button>' +
+          '<div style="margin-top:14px;font:16px Calibri,sans-serif;color:#17375d">' +
+          'your browser needs one click before it will play audio</div>';
+        d.style.cssText = 'position:fixed;inset:0;z-index:60;display:flex;' +
+          'flex-direction:column;align-items:center;justify-content:center;' +
+          'background:rgba(255,255,255,.92);text-align:center';
+        d.addEventListener('click', function () { start(); d.remove(); });
+        document.body.appendChild(d);
+      }
+      // Narration is generated separately (see the presentation-narration
+      // skill).  Until audio/slide0.0.mp3 exists, skip the overlay entirely
+      // rather than offer a Play button that plays nothing.
+      function armIfNarrated() {
+        fetch('audio/slide0.0.mp3', { method: 'HEAD' })
+          .then(function (r) { if (r.ok) arm(); })
+          .catch(function () {});
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', armIfNarrated);
+      } else { armIfNarrated(); }
+    })();
+    </script>
+format:
+  nlmixr2-revealjs:
+    embed-resources: false
+    # MathJax stays enabled -- math is fine in the SLIDE BODIES.
+    #
+    # Keep math OUT OF THE ::: {.notes} blocks, though.  The notes are the
+    # spoken script: they are read aloud in the speaker view and fed to
+    # text-to-speech, and a `$\theta$` there is pronounced as backslash-theta.
+    # Write the spoken form instead -- "theta", "p plus one, times n".
+    #
+    # MathJax also injects its MJX_Assistive_MathML stylesheet into the notes
+    # markup, so anything scraping a transcript out of <aside class="notes">
+    # must strip <style> and <script> before taking the text.
+    include-in-header:
+      text: |
+        <style>
+        svg.dg {
+          display: block;
+          width: 100%;
+          height: auto;
+          max-height: 545px;
+          margin: 0.2em auto 0 auto;
+          font-family: "Calibri", "Carlito", "Segoe UI", sans-serif;
+        }
+        svg.dg text { fill: #0f243e; }
+        svg.dg .t   { font-size: 19px; }
+        svg.dg .lab { font-size: 18px; font-weight: 700; }
+        svg.dg .sm  { font-size: 15px; fill: #5a6b80; }
+        svg.dg .mono { font-family: "Courier New", "Liberation Mono", monospace; font-size: 17px; }
+        svg.dg .red  { fill: #b40000; }
+        svg.dg .blue { fill: #1f497d; }
+        svg.dg .grn  { fill: #4a7d18; }
+
+        /* section-break slides: one captioned illustration */
+        .reveal section.sectionbreak img {
+          display: block; margin: 0.35em auto 0 auto;
+          max-height: 510px; max-width: 100%;
+          width: auto !important; height: auto !important;
+          object-fit: contain; border-radius: 6px;
+        }
+        /* outline slide: the section figures, captioned */
+        .reveal .figgrid {
+          display: grid; grid-template-columns: repeat(3, 1fr);
+          gap: 0.35em 0.9em; margin-top: 0.35em;
+        }
+        .reveal .figgrid figure { margin: 0; }
+        .reveal .figgrid img {
+          width: 100%; display: block; border-radius: 4px;
+          aspect-ratio: 16 / 9; object-fit: cover;
+        }
+        .reveal .figgrid figcaption {
+          font-size: 0.5em; line-height: 1.25; margin-top: 0.2em;
+          color: #17375d;
+        }
+
+        /* Quarto's .columns is display:inline-block, not flex -- `gap`
+           does nothing here.  Its own child-margin rule also excludes
+           ul/ol content (`.columns>.column>:not(ul,ol)`), so a <ul> column
+           gets NO side margin at all.  Without it, a wrapped line in the
+           left column butts right up against the right column's .checks
+           marker, which sits 1em to the LEFT of its own list (see
+           .reveal .checks li::before in the theme).  Add real padding
+           instead, which applies regardless of content type. */
+        .reveal .columns > .column {
+          box-sizing: border-box;
+          padding: 0 0.7em;
+        }
+        .reveal .columns > .column:first-child {
+          padding-left: 0;
+        }
+        .reveal .columns > .column:last-child {
+          padding-right: 0;
+        }
+
+        /* data tables: readable at distance, at least 18pt (24px at the
+           28px root) -- overrides the theme's default .reveal table 0.72em */
+        .reveal .bigtable table {
+          font-size: 24px;
+        }
+        .reveal .bigtable th,
+        .reveal .bigtable td {
+          padding: 0.3em 0.55em;
+        }
+        /* code shown side by side in a two-column slide needs to be
+           smaller than the theme's 20pt or the Stan column wraps */
+        .reveal .codecols pre code {
+          font-size: 15px; line-height: 1.25;
+        }
+
+        /* Opening logo slide.  .nostretch turns off reveal's auto-stretch,
+           which would force a height and wreck the hex's aspect ratio; the
+           max-height below is what sizes it instead.  The source is 2048px
+           square, so this is a downscale -- adjust it freely. */
+        .reveal section.logoslide img {
+          display: block; margin: 0 auto;
+          max-height: 560px; max-width: 100%;
+          width: auto !important; height: auto !important;
+        }
+
+        /* closing animation slide: full-bleed video on black.  Hide the
+           corner logo and the footer over it, the way the theme already
+           does for .thanks (see nlmixr2.scss). */
+        body.reveal-viewport:has(section.videoslide.present) .slide-logo {
+          display: none !important;
+        }
+        body.reveal-viewport:has(section.videoslide.present)::after {
+          content: none;
+        }
+        /* the theme leaves these on .thanks, where the slide is white and
+           they read fine; over a full-bleed video they are just clutter */
+        body.reveal-viewport:has(section.videoslide.present) .footer,
+        body.reveal-viewport:has(section.videoslide.present) .slide-number {
+          display: none !important;
+        }
+        </style>
+---
+
+## {.logoslide .center-slide}
+
+![](images/logo.jpg){.nostretch}
+
+::: {.notes}
+This is nlmixr2 bayes. A Stan interface for nlmixr2 -- and, as
+the hex says, powered with Stan rather than replacing it.
+:::
+
+## This talk, in three pictures
+
+::: figgrid
+<figure>
+<img src="images/sec-link.jpg">
+<figcaption><b>1.</b> Link Stan to the likelihood instead of translating the model</figcaption>
+</figure>
+<figure>
+<img src="images/sec-buys.jpg">
+<figcaption><b>2.</b> What linking buys: doses, DDEs, and 2.4x the effective draws</figcaption>
+</figure>
+<figure>
+<img src="images/sec-right.jpg">
+<figcaption><b>3.</b> Checking it against things that share no code with it</figcaption>
+</figure>
+:::
+
+::: {.notes}
+Three things I will talk about toady
+
+First, how nlmixr2 bayes works
+
+Second, what that buys you.
+
+And third, how we checked that it is right.
+:::
+
+## 1. Link the likelihood, don't translate the model {.sectionbreak}
+
+![](images/sec-link.jpg){.nostretch}
+
+::: {.notes}
+So let's start with what the package actually does.
+:::
+
+## Until now, going Bayesian meant maintaining the model twice
+
+```{=html}
+<svg class="dg" viewBox="0 0 1000 400" role="img"
+     aria-label="Two separate model definitions. On the left, a twenty line nlmixr2 model function feeds focei, saem and agq. On the right, a separately hand-written two hundred line Stan or Torsten program feeds NUTS. A red double-headed arrow between them asks whether they are the same model, and the answer is that nothing checks it.">
+  <rect x="40" y="50" width="380" height="120" rx="8" fill="#eef3f9" stroke="#1f497d" stroke-width="2"/>
+  <text class="lab blue" x="230" y="80" text-anchor="middle">your nlmixr2 model</text>
+  <text class="mono" x="230" y="110" text-anchor="middle">ini({ ... })  model({ ... })</text>
+  <text class="sm" x="230" y="145" text-anchor="middle">about 20 lines</text>
+
+  <rect x="580" y="50" width="380" height="120" rx="8" fill="#f7eeee" stroke="#b40000" stroke-width="2"/>
+  <text class="lab red" x="770" y="80" text-anchor="middle">a hand-written Stan program</text>
+  <text class="mono" x="770" y="110" text-anchor="middle">data{} parameters{} model{}</text>
+  <text class="sm" x="770" y="145" text-anchor="middle">100-200 lines, written again by hand</text>
+
+  <line x1="425" y1="110" x2="575" y2="110" stroke="#b40000" stroke-width="2.5"
+        stroke-dasharray="6 4" marker-start="url(#arL)" marker-end="url(#arR)"/>
+  <text class="sm red" x="500" y="96" text-anchor="middle">same model?</text>
+  <text class="sm red" x="500" y="136" text-anchor="middle">nothing checks</text>
+
+  <g stroke="#6b7b90" stroke-width="2" fill="none">
+    <path d="M230,175 L230,215" marker-end="url(#arG)"/>
+    <path d="M770,175 L770,215" marker-end="url(#arG)"/>
+  </g>
+
+  <rect x="60" y="225" width="340" height="52" rx="6" fill="#fff" stroke="#6b7b90" stroke-width="1.5"/>
+  <text class="t" x="230" y="257" text-anchor="middle">focei &#183; saem &#183; agq</text>
+
+  <rect x="600" y="225" width="340" height="52" rx="6" fill="#fff" stroke="#6b7b90" stroke-width="1.5"/>
+  <text class="t" x="770" y="257" text-anchor="middle">NUTS</text>
+
+  <text class="sm" x="500" y="330" text-anchor="middle">Two likelihoods, written by two different people on two different days --</text>
+  <text class="sm" x="500" y="356" text-anchor="middle">and when the posterior disagrees with the FOCEi fit, you get to find out which one you typed wrong.</text>
+
+  <defs>
+    <marker id="arR" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#b40000"/>
+    </marker>
+    <marker id="arL" markerWidth="9" markerHeight="9" refX="2" refY="4.5" orient="auto">
+      <path d="M9,0 L0,4.5 L9,9 z" fill="#b40000"/>
+    </marker>
+    <marker id="arG" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#6b7b90"/>
+    </marker>
+  </defs>
+</svg>
+```
+
+::: {.notes}
+Bayesian estimation one of the many features we have been asked about the
+for awhile.
+
+Until now the answer was some version of: write it again in Stan. Hand
+code the model with Torsten, or move it over to NONMEM's bayes
+methods.
+
+Either way you end up maintaining two models. The nlmixr2 one, and the Stan one.
+
+And when those two disagree, you had to figure out why.
+:::
+
+## Stan does not need your model -- it needs your likelihood
+
+```{=html}
+<svg class="dg" viewBox="0 0 1000 430" role="img"
+     aria-label="One nlmixr2 model feeds a single shared likelihood layer: rxode2 solves the ODEs and handles the dosing events, and nlmixr2est evaluates the conditional log-likelihood and its analytic gradients. focei, saem and agq draw on that layer directly. Stan reaches the same layer through an external function boundary, receiving the log-likelihood value and its analytic gradient, and supplies the priors and the NUTS sampler on its own side.">
+  <rect x="330" y="20" width="340" height="56" rx="8" fill="#eef3f9" stroke="#1f497d" stroke-width="2"/>
+  <text class="lab blue" x="500" y="45" text-anchor="middle">your nlmixr2 model</text>
+  <text class="sm" x="500" y="66" text-anchor="middle">one function, plus prior() lines in ini({})</text>
+
+  <line x1="500" y1="78" x2="500" y2="108" stroke="#6b7b90" stroke-width="2" marker-end="url(#a2)"/>
+
+  <rect x="60" y="112" width="880" height="118" rx="8" fill="#f2f7ea" stroke="#4a7d18" stroke-width="2.5"/>
+  <text class="lab grn" x="500" y="137" text-anchor="middle">one compiled likelihood</text>
+  <rect x="90" y="152" width="390" height="60" rx="6" fill="#fff" stroke="#4a7d18" stroke-width="1.5"/>
+  <text class="t" x="285" y="176" text-anchor="middle">rxode2</text>
+  <text class="sm" x="285" y="198" text-anchor="middle">ODE solve &#183; dosing events &#183; sensitivities</text>
+  <rect x="520" y="152" width="390" height="60" rx="6" fill="#fff" stroke="#4a7d18" stroke-width="1.5"/>
+  <text class="t" x="715" y="176" text-anchor="middle">nlmixr2est</text>
+  <text class="sm" x="715" y="198" text-anchor="middle">conditional log-lik &#183; analytic gradients</text>
+
+  <g stroke="#6b7b90" stroke-width="2" fill="none">
+    <path d="M180,236 L180,286" marker-end="url(#a2)"/>
+    <path d="M820,236 L820,286" marker-end="url(#a2)"/>
+  </g>
+
+  <rect x="40" y="292" width="280" height="56" rx="6" fill="#fff" stroke="#6b7b90" stroke-width="1.5"/>
+  <text class="t" x="180" y="316" text-anchor="middle">focei &#183; saem &#183; agq</text>
+  <text class="sm" x="180" y="338" text-anchor="middle">unchanged</text>
+
+  <rect x="680" y="292" width="280" height="86" rx="6" fill="#f7eeee" stroke="#b40000" stroke-width="2.5"/>
+  <text class="t red" x="820" y="316" text-anchor="middle">Stan &#183; NUTS</text>
+  <text class="sm" x="820" y="338" text-anchor="middle">priors, the eta hierarchy,</text>
+  <text class="sm" x="820" y="358" text-anchor="middle">and the sampler</text>
+
+  <line x1="640" y1="262" x2="1000" y2="262" stroke="#b40000" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text class="sm red" x="820" y="256" text-anchor="middle">external function boundary: value + analytic gradient</text>
+
+  <text class="sm" x="330" y="404" text-anchor="middle">The Stan program never sees the ODE system --</text>
+  <text class="sm" x="330" y="424" text-anchor="middle">so anything rxode2 can solve is in scope without the generator knowing about it.</text>
+
+  <defs>
+    <marker id="a2" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#6b7b90"/>
+    </marker>
+  </defs>
+</svg>
+```
+
+::: {.notes}
+Here is the idea the whole package rests on.
+
+Stan does not actually need your model. It needs a log density and a
+gradient.
+
+So rather than translate the model into Stan's language, we link Stan
+to the likelihood that already exists. We keep our own
+ODE solving and dose handling and individual likelihoods.
+Stan calls the compiled model as an external function, and gets the
+analytic gradients handed to it.
+
+Stan still owns the parts that are genuinely Bayesian -- the priors,
+the eta hierarchy, and the sampler itself.
+
+One model. One likelihood. One source of truth.
+:::
+
+## Priors are declared next to the parameters they describe
+
+```r
+one.cmt <- function() {
+  ini({
+    tka <- 0.45
+    tcl <- log(c(0, 2.7, 100))
+    tv <- 3.45
+    add.sd <- c(0, 0.7)
+    eta.ka ~ 0.6; eta.cl ~ 0.3; eta.v ~ 0.1
+    prior(tka) ~ dnorm(0.45, 1)
+    prior(tcl) ~ dnorm(1, 1)
+    prior(tv) ~ dnorm(3.45, 1)
+    prior(add.sd) ~ dcauchy(0, 2.5)
+  })
+  model({ ... })
+}
+```
+
+::: {.smaller}
+All 39 real-valued distributions in the `lotri` catalog -- and the
+catalog is deliberately one-to-one with Stan's, so `dcauchy()` means
+what Stan means by it. `lotri::lotriPriorDists()` lists them.
+:::
+
+::: {.notes}
+This is the standard toy model with the four new prior lines.
+
+Priors live right next to the parameters they describe, in the same
+syntax as everything else in the initialization block.
+
+The distribution catalog is deliberately one to one with Stan's -- all
+thirty nine real valued distributions.
+
+:::
+
+## `est="nuts"` gives back an ordinary [nlmixr2]{.nlmixr} fit
+
+```r
+fit <- nlmixr2(one.cmt, theo_sd, est="nuts",
+               control=nutsControl(seed=42, chains=2, iter=1000))
+```
+
+::: rule
+:::
+
+```r
+print(fit)
+#> -- nlmixr2 Stan (HMC) (2 chains x 500 draws; max Rhat 1.009; min ESS 377) --
+#>         Est.     SE %RSE Back-transformed(95%CI) BSV(CV%) Shrink(SD)%
+#> tka    0.469  0.222 47.4       1.60 (1.03, 2.47)     92.9       17.1
+#> tcl     1.01  0.103 10.2       2.75 (2.24, 3.36)     32.8       20.4
+#> tv      3.45 0.0524 1.52       31.5 (28.5, 35.0)     17.2       26.1
+#> add.sd 0.707 0.0544 7.69    0.707 (0.601, 0.814)
+```
+
+::: {.smaller}
+`"nuts"` names the *algorithm*, the way `"foce"` and `"focei"` do --
+IPRED, CWRES, `plot(fit)` and the rest work, because the fit object
+does not know Stan produced the numbers.
+:::
+
+::: {.notes}
+Fitting is one call. The estimation method is nuts.
+
+Nuts names the algorithm -- Stan's no U turn sampler -- rather than the
+software tool, the same way FOCE and FOCEI name algorithms rather than
+naming nlmixr.
+
+And what comes back is an ordinary nlmixr2 fit object. The sampler
+diagnostics are in the header, the posterior is summarized in the
+usual par fixed table with all the other features of a nlmixr2 fit
+:::
+
+## A model with no priors is refused -- and the error is the fix
+
+```r
+nlmixr2(noPriors, theo_sd, est="nuts")
+#> Error: no priors declared; add prior() lines to ini({}), e.g.
+#>   prior(tka) ~ dnorm(0.45, 1)
+#>   prior(tcl) ~ dnorm(0.993, 1)
+#>   prior(tv) ~ dnorm(3.45, 1)
+#>   prior(add.sd) ~ dcauchy(0, 2.5)
+```
+
+::: rule
+:::
+
+Bayesian output built on silently-invented priors looks every bit as
+publishable as the real thing, and is wrong.
+
+The one default is on `omega` blocks -- `lkj_corr_cholesky(2)` on the
+correlation, half-Cauchy on each SD -- and even that is *announced* in a
+message rather than assumed quietly.
+
+::: {.notes}
+Note that a model with no priors errors.
+
+However, the error message suggests pior lines to put in your
+initialization block, derived from the model's own starting values and
+bounds.
+
+The one place we do supply a default is on the omega blocks, which
+will be gets announced in a message rather than assumed quietly.
+:::
+
+## 2. What linking buys you {.sectionbreak}
+
+![](images/sec-buys.jpg){.nostretch}
+
+::: {.notes}
+Now, what does linking Stan to nlmixr2 actually buy you?
+:::
+
+## Stan's ODE interface cannot express a dose
+
+```{=html}
+<svg class="dg" viewBox="0 0 1000 400" role="img"
+     aria-label="A concentration-time curve with dosing events marked on it: an estimated lag time delays the start of absorption, an infusion of estimated duration raises the curve, and a second dose repeats through addl and ii. Each event is a discontinuity in the state, and the derivative with respect to an estimated lag time, bioavailability, duration or rate has to carry that jump condition.">
+  <line x1="70" y1="300" x2="960" y2="300" stroke="#6b7b90" stroke-width="1.5"/>
+  <line x1="70" y1="300" x2="70" y2="60" stroke="#6b7b90" stroke-width="1.5"/>
+  <text class="sm" x="960" y="326" text-anchor="end">time</text>
+
+  <path d="M70,300 L180,300 C240,300 260,140 330,130 C420,118 470,215 560,246 L580,250"
+        fill="none" stroke="#1f497d" stroke-width="3"/>
+  <path d="M580,250 C620,180 640,120 700,112 C790,100 850,205 950,258"
+        fill="none" stroke="#1f497d" stroke-width="3"/>
+
+  <line x1="120" y1="300" x2="120" y2="200" stroke="#b40000" stroke-width="2.5"/>
+  <path d="M120,200 l-5,10 l10,0 z" fill="#b40000"/>
+  <text class="sm red" x="120" y="188" text-anchor="middle">dose</text>
+
+  <line x1="180" y1="310" x2="180" y2="340" stroke="#b40000" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <line x1="120" y1="325" x2="180" y2="325" stroke="#b40000" stroke-width="2" marker-end="url(#a3)"/>
+  <text class="mono red" x="150" y="362" text-anchor="middle">alag()</text>
+
+  <rect x="580" y="286" width="90" height="14" fill="#e08836" opacity="0.55"/>
+  <line x1="580" y1="300" x2="580" y2="230" stroke="#e08836" stroke-width="2.5"/>
+  <text class="mono" x="690" y="272" text-anchor="start" fill="#a86018">dur() / rate()</text>
+
+  <line x1="580" y1="300" x2="580" y2="336" stroke="#b40000" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <text class="mono red" x="580" y="358" text-anchor="middle">addl, ii, ss</text>
+
+  <text class="sm" x="500" y="392" text-anchor="middle">Every one of these is a discontinuity in the state -- and an estimated alag, f, dur or rate has a derivative that must carry the jump.</text>
+
+  <defs>
+    <marker id="a3" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#b40000"/>
+    </marker>
+  </defs>
+</svg>
+```
+
+::: {.notes}
+
+One of the main thing this provides is dose handling in a
+pharmacometrics dataset is handled for you.  No more hand-coding
+datasets to work with stan, it is done for you.  Not only that, it is
+tested by everything that our package has been using for years
+
+:::
+
+## Delay differential equations are ordinary models here
+
+```r
+model({
+  ...
+  d/dt(R) <- kin - kout * delay(R, tau)   # tau is estimated like any theta
+})
+```
+
+::: rule
+:::
+
+::: checks
+- Stan has **no DDE solver at all** -- and never needs one, because it
+  never sees the ODE system
+- `rxode2` switches to a dense solver behind the likelihood, exactly as
+  it does under `focei` or `saem`
+- The same is true of M2/M3/M4 censoring, the residual-error catalog,
+  `linCmt()` closed forms, mu-referenced covariates and estimated
+  `boxCox()` lambda
+:::
+
+::: {.notes}
+
+One of the other consequences is that if you have a new feature in nlmixr2 it is inherited in stan.
+
+For example, the new delay differential equations can now be expressed
+in stan with this linkage, something you couldn't do in stan at all
+without this linkage.
+
+The same argument covers the censoring machinery, the residual error
+catalog, the closed form solved  solutions, mu referenced
+covariates, and an estimated box cox lambda. None of that needed
+special handling on the Stan side. It was already in the likelihood.
+:::
+
+## Linked, the same model draws 2.4x more effective samples per second
+
+::: bigtable
+|                        | native Stan | nlmixr2bayes (linked) |
+|------------------------|-------------|-----------------------|
+| wall clock             | 142.7 s     | **80.8 s**            |
+| worst bulk ESS         | 236         | **286-378**           |
+| **worst ESS / s**      | 1.66        | **4.04**              |
+| gradient evaluation    | 1.98 ms     | 1.36 ms (C level)     |
+| posterior means        | agree to < 0.01 on every parameter ||
+:::
+
+::: {.smaller}
+Three things get it there: chains run in **forked processes** (draws
+bit-identical to a sequential run); the whole gradient comes from **one
+solve per subject**; and `Omega^-1` is rebuilt on the C side
+instead of by evaluating an R closure every single evaluation.
+:::
+
+::: {.notes}
+I did not expect this result, so let me be clear about what is being
+compared. This is the same model, with the same priors, fitted two
+ways: once as a hand written native Stan program, and once linked.
+
+The posterior means agree to better than a hundredth on every
+parameter. So we are comparing two routes to the same answer.
+
+The linked run is about twice as fast in wall clock, and -- more
+importantly -- it extracts more effective samples per draw. Put
+together, that is two point four times the effective samples per
+second.
+
+Three things got it there. The chains run in forked processes, and
+those draws are bit identical to a sequential run. The whole gradient
+now comes from one solve per subject.
+:::
+
+## Parallelism has two axes, and neither one is Stan's threading
+
+```{=html}
+<svg class="dg" viewBox="0 0 1000 380" role="img"
+     aria-label="Two axes of parallelism. On the left, the default: four chains run in four forked processes, each a copy-on-write duplicate of the linked state. On the right, with chainCores set to one, the chains run sequentially and each single likelihood evaluation is split across OpenMP threads by subject.">
+  <text class="lab blue" x="250" y="42" text-anchor="middle">default: forked chains</text>
+  <text class="mono" x="250" y="66" text-anchor="middle">stanControl(chainCores=)</text>
+  <g fill="#eef3f9" stroke="#1f497d" stroke-width="2">
+    <rect x="90" y="86" width="320" height="42" rx="5"/>
+    <rect x="90" y="136" width="320" height="42" rx="5"/>
+    <rect x="90" y="186" width="320" height="42" rx="5"/>
+    <rect x="90" y="236" width="320" height="42" rx="5"/>
+  </g>
+  <g class="sm">
+    <text x="250" y="113" text-anchor="middle">chain 1 -- forked process</text>
+    <text x="250" y="163" text-anchor="middle">chain 2 -- forked process</text>
+    <text x="250" y="213" text-anchor="middle">chain 3 -- forked process</text>
+    <text x="250" y="263" text-anchor="middle">chain 4 -- forked process</text>
+  </g>
+  <text class="sm grn" x="250" y="300" text-anchor="middle">copy-on-write copy of the linked state;</text>
+  <text class="sm grn" x="250" y="322" text-anchor="middle">draws bit-identical to a sequential run</text>
+
+  <line x1="500" y1="40" x2="500" y2="330" stroke="#c8d2df" stroke-width="1.5"/>
+
+  <text class="lab blue" x="750" y="42" text-anchor="middle">chainCores = 1: threads inside</text>
+  <text class="mono" x="750" y="66" text-anchor="middle">stanControl(cores=)</text>
+  <rect x="590" y="86" width="320" height="142" rx="5" fill="#eef3f9" stroke="#1f497d" stroke-width="2"/>
+  <text class="sm" x="750" y="108" text-anchor="middle">one chain, one likelihood evaluation</text>
+  <g fill="#f2f7ea" stroke="#4a7d18" stroke-width="1.5">
+    <rect x="610" y="122" width="66" height="90" rx="4"/>
+    <rect x="686" y="122" width="66" height="90" rx="4"/>
+    <rect x="762" y="122" width="66" height="90" rx="4"/>
+    <rect x="838" y="122" width="66" height="90" rx="4"/>
+  </g>
+  <g class="sm grn">
+    <text x="643" y="172" text-anchor="middle">subj</text>
+    <text x="719" y="172" text-anchor="middle">subj</text>
+    <text x="795" y="172" text-anchor="middle">subj</text>
+    <text x="871" y="172" text-anchor="middle">subj</text>
+  </g>
+  <text class="sm grn" x="750" y="300" text-anchor="middle">OpenMP, subject-parallel, inside</text>
+  <text class="sm grn" x="750" y="322" text-anchor="middle">every single evaluation</text>
+
+  <text class="sm" x="500" y="366" text-anchor="middle">The ODE solve is the rate-limiting step either way -- so that is where the cores go.</text>
+</svg>
+```
+
+::: {.notes}
+A word on parallelism, because it works differently here.
+
+We deliberately do not engage Stan's threading. Layering Stan's
+threading runtime on top of our own would just have the two of them
+contend with each other for the same cores.
+
+So there are two axes instead. By default, on unix, the chains run in
+forked processes. Each fork gets a copy on write duplicate of the
+linked state, and the draws are bit identical to a sequential run.
+
+Or, if you set chain cores to one, the chains run sequentially and each
+individual likelihood evaluation is split across threads by subject
+instead.
+
+Either way the O-D-E solve is the rate limiting step in a
+pharmacometric model, so that is where the cores go.
+:::
+
+## ADVI and Pathfinder are the fast first look, not the answer
+
+```r
+fitAdvi <- nlmixr2(one.cmt, theo_sd, adviControl(seed=42))
+fitPf   <- nlmixr2(one.cmt, theo_sd, pathfinderControl(seed=42))
+```
+
+::: rule
+:::
+
+:::: columns
+::: {.column width="50%"}
+- Same generated program, same linked likelihood
+- 3-10x faster; ADVI about 30-40 s, Pathfinder about 90 s here
+- Passing the control **is** the `est=`, the way `foceControl()` implies
+  `est="foce"`
+:::
+
+::: {.column width="50%"}
+- ADVI understates tails and posterior correlations
+- Pareto k-hat replaces Rhat and ESS on those fits
+- k-hat above 0.7 warns; hierarchical PK posteriors routinely exceed it
+:::
+::::
+
+::: {.notes}
+The same generated program and the same linked likelihood also run
+Stan's variational approximations, and multi path Pathfinder.
+
+Each one has its own control object and each runs a separate estimation routine.
+
+These are three to ten times faster. On this model, A-D-V-I finishes in
+about thirty to forty seconds.
+
+But A-D-V-I is an approximation, and it understates tails and posterior
+correlations. So instead of R hat and effective sample size, those fits
+carry the Pareto k hat diagnostic, and it warns you above zero point
+seven.
+
+Hierarchical P-K posteriors routinely exceed that. So treat these two
+as the fast first look, and treat NUTS as the answer.
+:::
+
+## The posterior is right there, and so is the `stanfit`
+
+:::: columns
+::: {.column width="52%"}
+```r
+fit$posteriorSummary   # exact quantiles
+fit$objDf              # FOCEi, WAIC, LOO rows
+fit$stanCode           # the generated program
+sf <- fit$stanfit      # rstan::stanfit
+rstan::traceplot(sf, pars="tka")
+bayesplot::mcmc_pairs(sf, ...)
+```
+:::
+
+::: {.column width="48%" .checks}
+- `$parFixed` CIs are a **Wald** approximation -- for SDs and small
+  omegas quote the exact quantiles instead
+- WAIC and LOO are **leave-one-subject-out**: the subject is the
+  exchangeable unit
+- Declared Stan parameters read like your model -- `tka`, `add_sd`,
+  `sd_eta_ka`
+:::
+::::
+
+::: {.notes}
+Beyond the usual accessors, the fit carries the posterior itself.
+
+Two things worth knowing. The confidence intervals in par fixed are a
+Wald approximation built from the posterior covariance, so for anything
+skewed -- standard deviations, small omegas -- you want the exact
+quantiles from posterior summary instead.
+
+And the W-A-I-C and L-O-O rows are leave one subject out, not leave one
+observation out, because the subject is the exchangeable unit of a
+hierarchical model.
+
+The whole R Stan fit object is kept, so trace plots, bayesplot,
+posterior, and the rest of that ecosystem all work unchanged.
+
+:::
+
+## 3. Is it right? {.sectionbreak}
+
+![](images/sec-right.jpg){.nostretch}
+
+::: {.notes}
+Which brings me to validation section
+:::
+
+## Every claim is checked against something that shares no code with it
+
+::: bigtable
+| check | agreement |
+|---|---|
+| Stan's assembled gradient vs. Richardson finite differences | ~3e-8 |
+| `d/d(eta)`, `d/d(theta)` vs. central differences of the conditional | ~3e-8 |
+| quadrature marginal vs. `est="agq"` at nAGQ=101 | 3e-7 |
+| censored M2/M3/M4 and `ll()` vs. hand-computed textbook densities | exact |
+| prior-only sampling vs. every declared prior | one-sample KS each |
+| full posterior vs. a hand-written **native-Stan** implementation | within 3x MCSE |
+| the linked likelihood engine itself | NONMEM-validated upstream |
+:::
+
+::: {.notes}
+Because the bridge works at the likelihood level, the checks have to be
+at the likelihood level too.
+
+These are the independent ones -- each is a check against something the
+bridge shares no code with.
+
+Every gradient is finite difference verified. A quadrature
+marginalization over the linked conditional reproduces our own adaptive
+Gauss Hermite method. The censored and user likelihood conditionals tie
+to hand computed textbook densities. If you strip the likelihood out
+and sample the priors alone, you get every declared prior back. And the
+full posterior matches a hand written native Stan implementation of the
+same model to within three times the combined Monte Carlo standard
+error.
+
+And underneath all of it, the linked likelihood engine is the one
+already validated against NONMEM upstream in nlmixr2 est.
+:::
+
+## What is in scope is stated, and everything else is refused
+
+:::: columns
+::: {.column width="55%" .checks}
+- mixed **and** population-only (single-subject) models
+- ODE, DDE and `linCmt()`
+- censoring, the residual catalog, user `ll()` endpoints
+- mu-referenced and non-mu etas; mu-referenced covariates, fixed or
+  time-varying
+- estimated `alag`/`f`/`dur`/`rate`, estimated Box-Cox lambda, IOV,
+  2-component `mix()`
+:::
+
+::: {.column width="45%"}
+**Refused with an explanation**
+
+- mixtures beyond two components, for now
+- the 8 discrete distributions -- every `ini({})` parameter is
+  real-valued
+
+::: rule
+:::
+
+Deliberately first-order: no Riemannian HMC, no embedded Laplace. NUTS,
+ADVI, Pathfinder and optimization are all first-order anyway.
+:::
+::::
+
+::: {.notes}
+Here is the scope, stated plainly.
+
+Supported: mixed and population only models, differential equations,
+delay differential equations, closed form models, censoring, the
+residual catalog, user written likelihoods, inter occasion
+variability, and two component mixtures.
+
+Refused, with an explanation rather than a silent approximation:
+mixtures beyond two components for now, and the discrete
+distributions.
+
+The bridge is also deliberately first order, which rules out some
+specialized Stan models.
+
+:::
+
+## If you already have an nlmixr2 model, you already have the Bayesian one
+
+:::: columns
+::: {.column width="52%"}
+```r
+pak::pak("nlmixr2/nlmixr2bayes")
+```
+
+- Add `prior()` lines to `ini({})`
+- Change `est="focei"` to `est="nuts"`
+- That is the whole migration
+:::
+
+::: {.column width="48%" .checks}
+- The posterior is sampled against the **identical** likelihood code
+  your FOCEi run used
+- "What does the Bayesian version say?" becomes a question about the
+  data and the priors
+- Not about whether you translated the model correctly
+:::
+::::
+
+::: {.notes}
+So, to close.
+
+If you have an nlmixr2 model you already trust, adding
+prior lines changes the model to a bayesian one.
+
+Which means that, for the first time, when you ask what does the
+Bayesian version say, you don't have to worry about your model being
+translated correctly.
+:::
+
+<!-- ==================================================================== -->
+<!-- REVIEW ONLY -- for the pre-meeting with the Bayesian pharmacometrics  -->
+<!-- reviewers.  DELETE THIS WHOLE BLOCK (down to END REVIEW ONLY) before  -->
+<!-- the deck goes with the blog post.                                     -->
+<!-- ==================================================================== -->
+
+## For review: three things to check in the generated Stan
+
+Everything below comes out of `stanControl(run = FALSE)`, which builds the
+program and its data list **without compiling or sampling** -- so any of
+these is a few seconds to reproduce and read for yourself.
+
+::: {.smaller}
+1. **IOV** -- does `iov.x ~ v | OCC` expand into the model you would have
+   written by hand?
+2. **Mixtures** -- is the eta prior in the right place relative to the
+   `log_sum_exp`?
+3. **The two eta parameterizations** -- do `"noncentered"` and `"centered"`
+   really target the same posterior?
+:::
+
+::: rule
+:::
+
+I would rather find these here than in a paper.
+
+::: {.notes}
+Before the thank you slide, this is the part I actually want from this
+room.
+
+Everything I am about to show comes out of stan control with run equals
+false, which builds the Stan program and its data list without compiling
+or sampling anything. So each of these takes a few seconds to reproduce,
+and you can read the generated program yourself.
+
+There are three places where I want a second opinion. I-O-V. Mixtures.
+And the two eta parameterizations.
+
+I would much rather find a problem in this room than in a paper.
+:::
+
+## IOV: `prior(iov.cl)` now lands on the magnitude
+
+```stan
+parameters {
+  real<lower=0> iov_cl;               // estimated magnitude, on the sd scale
+  matrix[N, 1] z_rx_iov_cl_1;         // occasion 1
+  matrix[N, 1] z_rx_iov_cl_2;         // occasion 2
+}
+transformed parameters {
+  matrix[1,1] L_rx_iov_cl_1 = [[1]];  // unit variance, FIXED
+  eta[, 4:4] = z_rx_iov_cl_1 * L_rx_iov_cl_1';
+}
+model {
+  to_vector(z_rx_iov_cl_1) ~ std_normal();
+  iov_cl ~ cauchy(0, 1);              // <-- the declared prior(iov.cl)
+}
+```
+
+::: {.smaller}
+Is the per-occasion structure the one you would write by hand;
+`prior(iov.cl)` describes the **sd** (the `iovXform` scale), not the variance
+-- right convention?; and with no prior declared the magnitude is left
+**flat and improper** (warned, not substituted) while omega diagonals get a
+default half-Cauchy -- should it get one too?
+:::
+
+::: {.notes}
+The structure is what the documentation says: each occasion gets its own eta
+with a fixed unit variance -- that is the L equals one one matrix -- and those
+are scaled by an estimated magnitude theta, here called I-O-V underscore C-L.
+
+Three things I would still like checked. First, is the per occasion structure
+what you would have written by hand?
+
+Second, the magnitude is on the standard deviation scale by default -- the
+I-O-V transform -- so prior of I-O-V dot C-L is a prior on an S-D, not on a
+variance. Is that the convention you would expect?
+
+And third, if you declare no prior at all, the magnitude is now left flat and
+improper. It does warn you. But the omega diagonals get a default half Cauchy
+in that situation. Should an I-O-V magnitude get a default too, and if so,
+which one?
+:::
+
+## Mixtures: is the eta prior on the right side of the `log_sum_exp`?
+
+```stan
+matrix[2*N, 1] eta;                    // component-major: 1..N, then N+1..2N
+...
+to_vector(z_eta_cl) ~ std_normal();    // BOTH components, OUTSIDE the mixture
+...
+for (i in 1:N)
+  sumLL += log_sum_exp(log(p1)    + llCond[i],
+                       log1p(-p1) + llCond[N + i]);
+```
+
+::: {.smaller}
+The claim is that the component-specific etas' priors factor out of the
+marginalization, so only the conditionals go inside. **Is that the
+marginal you want** -- both components' etas carry a prior whether or not
+the subject is in that component? Also: `p1` is passed into `theta` even
+though the conditional is asserted to be p-free, and the per-subject
+`logLikSubj` used for LOO is the *marginalized* value.
+:::
+
+::: {.notes}
+Second: mixtures. Two components only, for now.
+
+The etas are stacked component major -- subjects one through N are
+component one, N plus one through two N are component two -- and the
+marginalization is the log sum exp pattern out of the Stan Users Guide.
+
+Here is what I want checked. The eta priors sit OUTSIDE the log sum exp.
+The argument is that they factor out of the marginalization, so only the
+conditional likelihoods go inside. Is that the marginal you actually
+want, given that both components' etas carry a prior whether or not the
+subject belongs to that component?
+
+Two smaller things while you are in there. The mixing probability is
+passed into the theta vector even though we assert the conditional does
+not depend on it. And the per subject log likelihood used for L-O-O is
+the marginalized value, not a component conditional one.
+:::
+
+## Two eta styles: do these target the same posterior?
+
+:::: {.columns .codecols}
+::: {.column width="50%"}
+**`etaParam = "noncentered"`** (default)
+
+```stan
+matrix[N, 1] z_eta_cl;
+
+eta[, 2:2] = z_eta_cl * L_eta_cl';
+
+to_vector(z_eta_cl) ~ std_normal();
+```
+:::
+
+::: {.column width="50%"}
+**`etaParam = "centered"`**
+
+```stan
+matrix[N, 1] etaP_eta_cl;
+
+eta[, 2:2] = etaP_eta_cl;
+
+for (i in 1:N)
+  etaP_eta_cl[i] ~
+    multi_normal_cholesky(rep_vector(0, 1), L_eta_cl);
+```
+:::
+::::
+
+::: {.smaller}
+Both hand the same `eta` matrix to the external conditional, so neither
+needs a Jacobian on our side -- Stan owns the whole eta prior either way.
+**Is that reasoning right, and would you expect the two to agree to within
+MCSE on a real hierarchical PK posterior** (as opposed to just in
+principle)?
+:::
+
+::: {.notes}
+Third: the two eta parameterizations.
+
+On the left, the default, non centered. We sample a standard normal z and
+form eta as z times L transpose.
+
+On the right, centered. We sample the etas directly and give them a multi
+normal Cholesky prior.
+
+Both hand the same eta matrix to the external conditional, so on our side
+neither one needs a Jacobian -- Stan owns the entire eta prior in both
+cases.
+
+So: is that reasoning right? And would you expect these two to agree to
+within Monte Carlo standard error on a real hierarchical P-K posterior,
+rather than just in principle?
+:::
+
+## Questions
+
+::: {.smaller}
+- Anything above that looks wrong, or looks right but for the wrong reason
+- Anywhere you would want to see the generated program before trusting a
+  number from it
+- What would you need to see before you would run this on a real analysis?
+:::
+
+::: rule
+:::
+
+`stanControl(run = FALSE)` on any model you have, and the whole program
+comes back as text.
+
+::: {.notes}
+And then, questions.
+
+Three things I am specifically listening for. Anything above that looks
+wrong. Anything that looks right but for the wrong reason. And anywhere
+you would want to see the generated program before you trusted a number
+that came out of it.
+
+The last one is the real question: what would you need to see before you
+would run this on an actual analysis?
+
+If you have a model of your own, run stan control with run equals false on
+it and the whole program comes back as text. Please do bring one.
+:::
+
+<!-- ======================= END REVIEW ONLY ============================= -->
+
+## Thank you {.thanks}
+
+::: {.credit}
+Section illustrations are AI-generated artwork, not photographs.
+:::
+
+::: {.notes}
+Thank you. And a particular thank you to Lukas who wrote the prototype
+rxode2 integration with Stan.
+
+The package, and the list of what is still open, are on GitHub.
+:::
+
+## {.videoslide background-color="black" background-video="nlmixr2bayes-anim.mp4" background-video-muted="true" background-size="contain"}
