@@ -65,3 +65,7 @@ term-speed-samples/
 
 # Rendered presentation video -- uploaded to YouTube, not stored here
 **/presentation/*.mp4
+# ...but a *-anim.mp4 is a SOURCE asset, not a render: it is the film a
+# background-video slide plays, so a clone without it renders that slide
+# black.  Keep the naming convention and new posts get this for free.
+!**/presentation/*-anim.mp4

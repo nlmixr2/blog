@@ -1,0 +1,318 @@
+---
+title: "[nlmixr2bayes]{.nlmixr}: for review"
+author: "Matthew Fidler"
+institute: "Pre-meeting with the Bayesian pharmacometrics reviewers"
+# Split out of nlmixr2bayes.qmd: these slides are for the reviewers'
+# pre-meeting only and never ship with the blog post, which is why they live
+# in their own deck rather than behind a comment in the main one.
+#
+# No narration here.  The main deck carries the audio-slideshow plugin and
+# a click-to-play overlay; this deck is read in a meeting, so both are gone
+# and the speaker notes are left for the speaker view alone.
+format:
+  nlmixr2-revealjs:
+    embed-resources: false
+    # MathJax stays enabled -- math is fine in the SLIDE BODIES.
+    #
+    # Keep math OUT OF THE ::: {.notes} blocks, though.  The notes are the
+    # spoken script: they are read aloud in the speaker view and fed to
+    # text-to-speech, and a `$\theta$` there is pronounced as backslash-theta.
+    # Write the spoken form instead -- "theta", "p plus one, times n".
+    #
+    # MathJax also injects its MJX_Assistive_MathML stylesheet into the notes
+    # markup, so anything scraping a transcript out of <aside class="notes">
+    # must strip <style> and <script> before taking the text.
+    include-in-header:
+      text: |
+        <style>
+        svg.dg {
+          display: block;
+          width: 100%;
+          height: auto;
+          max-height: 545px;
+          margin: 0.2em auto 0 auto;
+          font-family: "Calibri", "Carlito", "Segoe UI", sans-serif;
+        }
+        svg.dg text { fill: #0f243e; }
+        svg.dg .t   { font-size: 19px; }
+        svg.dg .lab { font-size: 18px; font-weight: 700; }
+        svg.dg .sm  { font-size: 15px; fill: #5a6b80; }
+        svg.dg .mono { font-family: "Courier New", "Liberation Mono", monospace; font-size: 17px; }
+        svg.dg .red  { fill: #b40000; }
+        svg.dg .blue { fill: #1f497d; }
+        svg.dg .grn  { fill: #4a7d18; }
+
+        /* section-break slides: one captioned illustration */
+        .reveal section.sectionbreak img {
+          display: block; margin: 0.35em auto 0 auto;
+          max-height: 510px; max-width: 100%;
+          width: auto !important; height: auto !important;
+          object-fit: contain; border-radius: 6px;
+        }
+        /* outline slide: the section figures, captioned */
+        .reveal .figgrid {
+          display: grid; grid-template-columns: repeat(3, 1fr);
+          gap: 0.35em 0.9em; margin-top: 0.35em;
+        }
+        .reveal .figgrid figure { margin: 0; }
+        .reveal .figgrid img {
+          width: 100%; display: block; border-radius: 4px;
+          aspect-ratio: 16 / 9; object-fit: cover;
+        }
+        .reveal .figgrid figcaption {
+          font-size: 0.5em; line-height: 1.25; margin-top: 0.2em;
+          color: #17375d;
+        }
+
+        /* Quarto's .columns is display:inline-block, not flex -- `gap`
+           does nothing here.  Its own child-margin rule also excludes
+           ul/ol content (`.columns>.column>:not(ul,ol)`), so a <ul> column
+           gets NO side margin at all.  Without it, a wrapped line in the
+           left column butts right up against the right column's .checks
+           marker, which sits 1em to the LEFT of its own list (see
+           .reveal .checks li::before in the theme).  Add real padding
+           instead, which applies regardless of content type. */
+        .reveal .columns > .column {
+          box-sizing: border-box;
+          padding: 0 0.7em;
+        }
+        .reveal .columns > .column:first-child {
+          padding-left: 0;
+        }
+        .reveal .columns > .column:last-child {
+          padding-right: 0;
+        }
+
+        /* data tables: readable at distance, at least 18pt (24px at the
+           28px root) -- overrides the theme's default .reveal table 0.72em */
+        .reveal .bigtable table {
+          font-size: 24px;
+        }
+        .reveal .bigtable th,
+        .reveal .bigtable td {
+          padding: 0.3em 0.55em;
+        }
+        /* code shown side by side in a two-column slide needs to be
+           smaller than the theme's 20pt or the Stan column wraps */
+        .reveal .codecols pre code {
+          font-size: 15px; line-height: 1.25;
+        }
+
+        /* Opening logo slide.  .nostretch turns off reveal's auto-stretch,
+           which would force a height and wreck the hex's aspect ratio; the
+           max-height below is what sizes it instead.  The source is 2048px
+           square, so this is a downscale -- adjust it freely. */
+        .reveal section.logoslide img {
+          display: block; margin: 0 auto;
+          max-height: 560px; max-width: 100%;
+          width: auto !important; height: auto !important;
+        }
+
+        /* closing animation slide: full-bleed video on black.  Hide the
+           corner logo and the footer over it, the way the theme already
+           does for .thanks (see nlmixr2.scss). */
+        body.reveal-viewport:has(section.videoslide.present) .slide-logo {
+          display: none !important;
+        }
+        body.reveal-viewport:has(section.videoslide.present)::after {
+          content: none;
+        }
+        /* the theme leaves these on .thanks, where the slide is white and
+           they read fine; over a full-bleed video they are just clutter */
+        body.reveal-viewport:has(section.videoslide.present) .footer,
+        body.reveal-viewport:has(section.videoslide.present) .slide-number {
+          display: none !important;
+        }
+        </style>
+---
+
+## For review: three things to check in the generated Stan
+
+Everything below comes out of `stanControl(run = FALSE)`, which builds the
+program and its data list **without compiling or sampling** -- so any of
+these is a few seconds to reproduce and read for yourself.
+
+::: {.smaller}
+1. **IOV** -- does `iov.x ~ v | OCC` expand into the model you would have
+   written by hand?
+2. **Mixtures** -- is the eta prior in the right place relative to the
+   `log_sum_exp`?
+3. **The two eta parameterizations** -- do `"noncentered"` and `"centered"`
+   really target the same posterior?
+:::
+
+::: rule
+:::
+
+::: {.notes}
+Before the thank you slide, this is the part I actually want from this
+room.
+
+Everything I am about to show comes out of stan control with run equals
+false, which builds the Stan program and its data list without compiling
+or sampling anything. So each of these takes a few seconds to reproduce,
+and you can read the generated program yourself.
+
+There are three places where I want a second opinion. I-O-V. Mixtures.
+And the two eta parameterizations.
+
+:::
+
+## IOV: `prior(iov.cl)`?
+
+```stan
+parameters {
+  real<lower=0> iov_cl;               // estimated magnitude, on the sd scale
+  matrix[N, 1] z_rx_iov_cl_1;         // occasion 1
+  matrix[N, 1] z_rx_iov_cl_2;         // occasion 2
+}
+transformed parameters {
+  matrix[1,1] L_rx_iov_cl_1 = [[1]];  // unit variance, FIXED
+  eta[, 4:4] = z_rx_iov_cl_1 * L_rx_iov_cl_1';
+}
+model {
+  to_vector(z_rx_iov_cl_1) ~ std_normal();
+  iov_cl ~ cauchy(0, 1);              // <-- the declared prior(iov.cl)
+}
+```
+
+::: {.smaller}
+Is the per-occasion structure the one you would write by hand;
+`prior(iov.cl)` describes the **sd** (the `iovXform` scale), not the variance
+-- right convention?; and with no prior declared the magnitude is left
+**flat and improper** (warned, not substituted) while omega diagonals get a
+default half-Cauchy -- should it get one too?
+:::
+
+::: {.notes}
+Each occasion gets its own eta with a fixed unit variance and those
+are scaled by an estimated magnitude theta, here called I-O-V
+underscore C-L.
+
+Three things I would still like checked. First, is the per occasion structure
+what you would have written by hand?
+
+Second, the magnitude is on the standard deviation scale by default,
+is that the convention you would expect?
+
+And third, if you declare no prior at all, the magnitude is now left flat and
+improper. It does warn you.
+
+In contrast, the omega diagonals get a default in that situation.
+
+Should an I-O-V magnitude get a default too, and if so, which one?
+:::
+
+## Mixtures: is the eta prior on the right side of the `log_sum_exp`?
+
+```stan
+matrix[2*N, 1] eta;                    // component-major: 1..N, then N+1..2N
+...
+to_vector(z_eta_cl) ~ std_normal();    // BOTH components, OUTSIDE the mixture
+...
+for (i in 1:N)
+  sumLL += log_sum_exp(log(p1)    + llCond[i],
+                       log1p(-p1) + llCond[N + i]);
+```
+
+::: {.smaller}
+The claim is that the component-specific etas' priors factor out of the
+marginalization, so only the conditionals go inside. **Is that the
+marginal you want** -- both components' etas carry a prior whether or not
+the subject is in that component? Also: `p1` is passed into `theta` even
+though the conditional is asserted to be p-free, and the per-subject
+`logLikSubj` used for LOO is the *marginalized* value.
+:::
+
+::: {.notes}
+Second: mixtures. Two components only, for now.
+
+Here is what I want checked. The eta priors sit OUTSIDE the log sum exp.
+
+Does that marginal make sense given that both components' etas carry
+a prior whether or not the subject belongs to that component?
+
+:::
+
+## Two eta styles: do these target the same posterior?
+
+:::: {.columns .codecols}
+::: {.column width="50%"}
+**`etaParam = "noncentered"`** (default)
+
+```stan
+matrix[N, 1] z_eta_cl;
+
+eta[, 2:2] = z_eta_cl * L_eta_cl';
+
+to_vector(z_eta_cl) ~ std_normal();
+```
+:::
+
+::: {.column width="50%"}
+**`etaParam = "centered"`**
+
+```stan
+matrix[N, 1] etaP_eta_cl;
+
+eta[, 2:2] = etaP_eta_cl;
+
+for (i in 1:N)
+  etaP_eta_cl[i] ~
+    multi_normal_cholesky(rep_vector(0, 1), L_eta_cl);
+```
+:::
+::::
+
+::: {.smaller}
+Both hand the same `eta` matrix to the external conditional, so neither
+needs a Jacobian on our side -- Stan owns the whole eta prior either way.
+**Is that reasoning right, and would you expect the two to agree to within
+MCSE on a real hierarchical PK posterior** (as opposed to just in
+principle)?
+:::
+
+::: {.notes}
+Third: the two eta parameterizations.
+
+On the left, the default, non centered. Is it correct?
+
+On the right, centered. Is it correct?
+
+Stan owns the entire eta prior in both cases.
+
+So: is that reasoning right? And would you expect these two to agree to
+within Monte Carlo standard error on a real hierarchical P-K posterior,
+rather than just in principle?
+
+:::
+
+## Questions
+
+::: {.smaller}
+- Anything above that looks wrong, or looks right but for the wrong reason
+- Anywhere you would want to see the generated program before trusting a
+  number from it
+- What would you need to see before you would run this on a real analysis?
+:::
+
+::: rule
+:::
+
+`stanControl(run = FALSE)` on any model you have, and the whole program
+comes back as text.
+
+::: {.notes}
+And then, questions.
+
+Three things I am specifically listening for. Anything above that looks
+wrong. Anything that looks right but for the wrong reason. And anywhere
+you would want to see the generated program before you trusted a number
+that came out of it.
+
+The last one is the real question: what would you need to see before you
+would run this on an actual analysis?
+
+If you have a model of your own, run stan control with run equals false on
+it and the whole program comes back as text.
+:::

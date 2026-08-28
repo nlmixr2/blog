@@ -1,0 +1,409 @@
+---
+title: nlmixr2bayes -- Stan, without rewriting your model
+author: Matthew Fidler
+date: '2026-09-29'
+slug: []
+categories: [nlmixr2, nlmixr2bayes, stan, bayes]
+tags: []
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
+```
+
+Bayesian estimation is the feature we have been asked about the
+longest, and the one we have been slowest to give you. Until now the
+answer was some version of "write it again in Stan" -- hand-code the
+model with [Torsten](https://metrumresearchgroup.github.io/Torsten/),
+or move it to NONMEM's `$BAYES`. Either way you end up maintaining two
+models: the nlmixr2 one your FOCEi and SAEM runs use, and the Stan one
+your posterior comes from. When they disagree, you get to find out
+which of the two you typed wrong.
+
+[`nlmixr2bayes`](https://github.com/nlmixr2/nlmixr2bayes) takes the
+other road. Instead of translating the model into Stan's language, it
+**links Stan to the likelihood you already have**. `rxode2` keeps
+solving the ODEs and handling the doses; `nlmixr2est` keeps evaluating
+the same conditional likelihood that `focei`, `saem` and `agq` use; and
+Stan calls into that as an external function, receiving analytic
+gradients rather than autodiffing its way through a solver it wrote
+itself.
+
+One model. One likelihood. One source of truth.
+
+```{r install, eval=FALSE}
+# install.packages("pak")
+pak::pak("nlmixr2/nlmixr2bayes")
+```
+
+## Your model, plus priors
+
+Here is the theophylline model you have seen in every one of these
+posts. The only thing that is new is the `prior()` lines in `ini({})`:
+
+```{r oneCmt}
+library(nlmixr2)
+library(nlmixr2bayes)
+
+one.cmt <- function() {
+  ini({
+    tka <- 0.45
+    tcl <- log(c(0, 2.7, 100))
+    tv <- 3.45
+    add.sd <- c(0, 0.7)
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+    prior(tka) ~ dnorm(0.45, 1)
+    prior(tcl) ~ dnorm(1, 1)
+    prior(tv) ~ dnorm(3.45, 1)
+    prior(add.sd) ~ dcauchy(0, 2.5)
+  })
+  model({
+    ka <- exp(tka + eta.ka)
+    cl <- exp(tcl + eta.cl)
+    v <- exp(tv + eta.v)
+    linCmt() ~ add(add.sd)
+  })
+}
+```
+
+Priors live next to the parameters they describe, in the same
+`lotri`/`rxode2` syntax as everything else in the `ini({})` block. The
+distribution catalog is deliberately one-to-one with Stan's -- all 39
+real-valued distributions -- so `dnorm()`, `dcauchy()`, `dbeta()`,
+`invWishart()` and friends mean exactly what Stan means by them. You
+can see the whole list with `lotri::lotriPriorDists()`.
+
+Fitting is one call:
+
+```{r nutsFit}
+fit := nlmixr2(one.cmt, theo_sd, est="nuts",
+               control=nutsControl(seed=42, chains=2, iter=1000))
+```
+
+`est = "nuts"` names the *algorithm* -- Stan's No-U-Turn sampler --
+rather than the tool, the same way `"foce"` and `"focei"` name
+algorithms in the FOCEi family. (`est = "stan"` with its default
+control is the same thing.) The short two-chain run keeps this page
+quick to rebuild; the defaults are 4 chains of 2000.
+
+```{r nutsPrint}
+print(fit)
+```
+
+What comes back is an ordinary `nlmixr2` fit object. The sampler
+diagnostics sit in the header, the posterior is summarized in the usual
+`$parFixed` table, and IPRED/CWRES/`plot(fit)` all work, because
+nothing about the fit object knows or cares that Stan produced the
+numbers.
+
+### No priors is an error, not a default
+
+A model without priors is refused, and the error message prints the
+exact `prior()` lines you need to paste back into `ini({})`:
+
+```{r noPriors, error=TRUE}
+noPriors <- function() {
+  ini({
+    tka <- 0.45
+    tcl <- log(c(0, 2.7, 100))
+    tv <- 3.45
+    add.sd <- c(0, 0.7)
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+  })
+  model({
+    ka <- exp(tka + eta.ka)
+    cl <- exp(tcl + eta.cl)
+    v <- exp(tv + eta.v)
+    linCmt() ~ add(add.sd)
+  })
+}
+nlmixr2(noPriors, theo_sd, est="nuts")
+```
+
+Those suggested priors come from the model's own `ini()` values and
+bounds -- a starting point to edit, not a recommendation.
+
+This is on purpose. Bayesian output built on silently-invented priors
+looks every bit as publishable as the real thing, and is wrong. The
+one place we do supply a default is the `omega` blocks, where a block
+without a `prior()` gets `lkj_corr_cholesky(2)` on the correlation and
+a half-Cauchy on each SD -- and even then it is *announced* in a
+message rather than assumed quietly.
+
+## What linking buys you
+
+The interesting part is not that this saves typing (though roughly 200
+lines of Stan becomes the 20-line model function you already had). It
+is that the linked likelihood can do things Stan's own ODE interface
+cannot express at all:
+
+- **Dosing events.** Boluses, infusions, `addl`, `ss`, multiple
+  compartments, exact event timing -- the rxode2 event table, not a
+  hand-rolled reimplementation inside a Stan program.
+
+- **Derivatives with respect to estimated dose handling.** An estimated
+  `alag()`, `f()`, `dur()` or `rate()` has a derivative that has to carry
+  the jump condition at the dose event. rxode2 already computes it.
+
+- **Delay differential equations.** `d/dt(R) <- kin - kout * delay(R, tau)`
+  is an ordinary model here, with `tau` estimated like any other theta.
+  Stan has no DDE solver; it never needs one, because it never sees the
+  ODE system.
+
+- **The residual-error and censoring machinery.** M2/M3/M4 censoring,
+  the full residual catalog, user-written `ll()` endpoints, an estimated
+  Box-Cox/Yeo-Johnson lambda -- all of it already validated in
+  `nlmixr2est`.
+
+- **`linCmt()`.** Closed-form solutions evaluate 5-10x cheaper than an
+  ODE solve, and a native Stan ODE implementation has no way to opt in.
+
+Everything on that list is a consequence of the same decision: Stan is
+handed a likelihood, not a differential equation.
+
+## Is it fast?
+
+Reasonably, yes -- and faster than the hand-written Stan version of the
+same model, which was not the outcome I expected when I started.
+
+|                                             | native Stan | nlmixr2bayes (linked) |
+|---------------------------------------------|-------------|-----------------------|
+| wall clock                                  | 142.7 s     | **80.8 s**            |
+| worst bulk ESS                              | 236         | **286-378**           |
+| worst ESS / s                               | 1.66        | **4.04**              |
+| gradient evaluation                         | 1.98 ms     | 1.36 ms (C level)     |
+| posterior means                             | agree to < 0.01 on every parameter |
+
+That is **2.4x native Stan's effective samples per second** on a
+pure-ODE model, with the same posterior. Three things get it there:
+the chains run in forked processes by default on unix (each fork gets a
+copy-on-write duplicate of the linked state, and the draws are
+bit-identical to a sequential run); the whole tier-2 gradient comes
+from *one* solve per subject through a fused sensitivity entry, rather
+than two; and `Omega^-1` is rebuilt on the C side instead of by
+evaluating an R closure every single evaluation.
+
+Note there is no Stan threading in that story. Layering Stan's
+threading runtime on top of rxode2's would just have the two contend
+with each other. Parallelism has two axes instead: chains across
+forked processes (`chainCores`), or -- with `chainCores = 1` --
+subject-parallel OpenMP *inside* each likelihood evaluation (`cores`).
+The ODE solve is the rate-limiting step either way, so that is where
+the cores go.
+
+You can reproduce the table with `Rscript inst/bench/native-vs-linked.R`
+in the package.
+
+## A fast first look: ADVI and Pathfinder
+
+The same generated program and the same linked likelihood also run
+Stan's variational approximations and multi-path Pathfinder:
+
+```{r advi}
+fitAdvi := nlmixr2(one.cmt, theo_sd, est="advi",
+                   control=adviControl(seed=42))
+fitPf := nlmixr2(one.cmt, theo_sd, est="pathfinder",
+                 control=pathfinderControl(seed=42))
+```
+
+Each is sugar for `stanControl(algorithm=)`, and each has its own
+control object -- `nutsControl()`, `adviControl()`,
+`pathfinderControl()` -- so passing the control *is* the `est=`, the
+way `foceControl()` implies `est="foce"`:
+
+```{r sugar, eval=FALSE}
+nlmixr2(one.cmt, theo_sd, adviControl(seed=42))  # same fit
+```
+
+On the benchmark model above, ADVI finishes in about 30-40 seconds and
+Pathfinder in about 90 -- 3-10x faster than the corresponding NUTS run,
+and returning the same complete nlmixr2 fit. The population parameters
+line up:
+
+```{r compare}
+cbind(NUTS=fit$parFixedDf$Estimate,
+      ADVI=fitAdvi$parFixedDf$Estimate,
+      Pathfinder=fitPf$parFixedDf$Estimate) |>
+  `rownames<-`(rownames(fit$parFixedDf)) |>
+  round(3)
+```
+
+But ADVI is an approximation, and it understates tails and posterior
+correlations. Instead of Rhat and ESS, those fits carry the Pareto
+$\hat{k}$ diagnostic of the importance ratios:
+
+```{r khat}
+fitAdvi$stanDiagnostics$khat
+fitPf$stanDiagnostics$khat
+```
+
+$\hat{k} \le 0.7$ means the approximation supports importance
+correction; above that you get a warning that says so. Hierarchical PK
+posteriors routinely exceed it. Treat ADVI and Pathfinder as the fast
+first look and NUTS as the answer.
+
+## Reading the fit
+
+Beyond the usual nlmixr2 accessors, a Stan fit carries the posterior
+itself. `$parFixed`'s confidence intervals are a Wald approximation
+built from the posterior covariance; for anything skewed -- SDs, small
+omegas -- use the exact quantiles:
+
+```{r posteriorSummary}
+fit$posteriorSummary
+```
+
+The `om.<eta>` rows are omega variances on the natural scale and
+`cov.<eta1>.<eta2>` rows carry the covariances, so you can find what
+you are looking for without counting rows.
+
+`$objDf` grows two Bayesian rows next to the frequentist one:
+
+```{r objDf}
+fit$objDf
+```
+
+The FOCEi row is a plug-in objective evaluated at the posterior point
+estimate -- a bridge to the likelihoodist world for comparability, not
+a Bayesian quantity. WAIC and LOO are computed from the per-subject
+conditional log-likelihood draws, which makes them
+**leave-one-subject-out**: the subject is the exchangeable unit of a
+hierarchical model. The full `loo` objects are at `fit$loo` and
+`fit$waic`.
+
+And the whole `rstan::stanfit` is right there, so the rest of the
+Bayesian ecosystem works unchanged:
+
+```{r stanfit, fig.height=3, fig.width=7}
+sf <- fit$stanfit
+rstan::traceplot(sf, pars=c("tka", "tcl", "tv"))
+```
+
+```{r pairs, fig.height=5, fig.width=6}
+bayesplot::mcmc_pairs(sf, pars=c("tka", "tcl", "tv"))
+```
+
+One detail I am quietly proud of: the generated program's parameters
+read like your model. `tka` is `tka`, `add.sd` is `add_sd`, and an
+omega block's internal parameters are suffixed by the etas that are in
+it (`sd_eta_ka`), not by an anonymous block index. `fit$stanCode` and
+`fit$stanData` hold the exact program and data list that produced the
+draws, and `stanControl(run = FALSE)` will hand you the program without
+compiling anything if you just want to read it.
+
+```{r diagnostics}
+fit$stanDiagnostics
+```
+
+Divergences, Rhat, bulk/tail ESS and treedepth saturation are checked
+right after sampling and again at print time, each with a message that
+names the knob to turn. Do not use estimates from a run with
+divergences or Rhat above 1.01.
+
+## When you do want to write Stan
+
+Sometimes the model really is outside what the nlmixr2 ui can say --
+an exotic hierarchy, a hand-tuned prior structure, derived quantities
+you want computed inside the sampler. The same package ships a second,
+independent bridge for that: **rxstan**. You write the `.stan` program
+yourself and declare rxode2 as the ODE solver backend:
+
+```{r rxstan, eval=FALSE}
+h <- rxsRegister(pkModel, events=ev, sens=c("lka", "lcl", "lv"),
+                 output="center", atol=1e-10, rtol=1e-10)
+sm <- rxsStanModel("my_model.stan", modelName="my_model")
+fit2 <- rstan::sampling(sm, data=list(handle=h, ...), chains=2, iter=1000)
+```
+
+Inside the Stan program, `rx_solve(handle, p)` returns the ODE states
+*and* rxode2's analytic derivatives of them; Stan differentiates
+whatever you build on top of that itself. It is Torsten-shaped
+hand-written Stan, with rxode2 underneath instead of Stan's `ode_*`
+functions -- so the dosing events, the jump-condition sensitivities and
+the DDEs are still there. `rxsCheckGradient()` will confirm the
+analytic sensitivities against finite differences, which is the check
+to re-run any time you loosen the solver tolerances. See
+`vignette("rxstan-handcoded")` and `vignette("rxstan-dde")`.
+
+## Is it right?
+
+This is the part that took the longest, and the part I would want to
+see before trusting somebody else's Bayesian package. Because the
+bridge operates at the likelihood level, the oracles are
+likelihood-level too. The independent ones -- checks against something
+the bridge shares no code with:
+
+| check | agreement |
+|---|---|
+| Stan's assembled gradient vs. Richardson finite differences of its own log density | ~3e-8 |
+| `d/d(eta)` and `d/d(theta)` vs. central differences of the linked conditional | ~3e-8 |
+| quadrature marginal over the linked conditional vs. `est="agq"` (nAGQ=101) | 3e-7 |
+| censored (M2/M3/M4) and `ll()` conditionals vs. hand-computed textbook densities | exact up to a parameter-free constant |
+| prior-only sampling (likelihood stripped) vs. every declared prior | one-sample KS per parameter |
+| full posterior vs. a hand-written **native-Stan** implementation of the same model | within 3x combined MCSE on every parameter |
+| the linked likelihood engine itself | NONMEM-validated upstream in `nlmixr2est` |
+
+Plus exact internal identities (the mu-referenced theta gradient column
+must equal the eta gradient; the assembled gradient must be unchanged
+by `Omega^-1` swaps spanning four orders of magnitude; 500+ interleaved
+evaluations must be bitwise identical, since NUTS's reversibility
+assumes the target is a pure function of state), simulate-and-recover
+fits including a correlated omega block, and simulation-based
+calibration.
+
+And the wrong-by-construction variants are asserted to *fail*: a
+sign-flipped gradient assembly fails the finite-difference test, and
+`likelihood="focep"` -- whose value and gradient are gradients of
+different functions -- is refused outright by capability flags.
+
+## Scope, and what is refused
+
+Supported today: mixed *and* population-only models (a single-subject
+Bayesian fit runs through its own path with one external scalar
+carrying the whole data log-likelihood), ODE, DDE and `linCmt()`
+models, the normal residual family, censored data, user `ll()`
+endpoints, mu-referenced and non-mu etas, mu-referenced covariates
+(subject-constant and time-varying), estimated dose-handling
+parameters, estimated transform-both-sides lambda, IOV
+(`iov.x ~ v | OCC`), 2-component finite mixtures with per-subject
+membership posteriors, and all 39 real-valued priors in the lotri
+catalog including LKJ and inverse-Wishart on omega blocks.
+
+Refused with an explanatory error rather than silently approximated:
+mixtures with more than two components (for now), and the eight
+discrete distributions, since every `ini({})` parameter is real-valued.
+
+The bridge is also deliberately first-order. `precomputed_gradients()`
+builds a reverse-mode `var` and Stan Math has no forward-mode
+counterpart for externally supplied partials, so Riemannian HMC and the
+embedded-Laplace machinery are out of scope. In practice that costs
+nothing: NUTS, ADVI, Pathfinder and optimization are all first-order,
+and a Laplace-*marginalized* target is exactly what nlmixr2est's own
+FOCEi/Laplace machinery already computes natively.
+
+## Try it
+
+```{r install2, eval=FALSE}
+pak::pak("nlmixr2/nlmixr2bayes")
+```
+
+If you have an nlmixr2 model you already trust, adding a handful of
+`prior()` lines and changing `est="focei"` to `est="nuts"` is the whole
+migration. The posterior you get back is sampled against the identical
+likelihood code your FOCEi run used -- which means that for the first
+time, "what does the Bayesian version say?" is a question about the
+data and the priors, and not about whether you translated the model
+correctly.
+
+Issues, and the list of what is still open, are at
+[github.com/nlmixr2/nlmixr2bayes](https://github.com/nlmixr2/nlmixr2bayes/issues).
+
+## References
+
+Zhang L, Carpenter B, Gelman A, Vehtari A. Pathfinder: Parallel
+quasi-Newton variational inference. *J Mach Learn Res*.
+2022;23(306):1-49.
