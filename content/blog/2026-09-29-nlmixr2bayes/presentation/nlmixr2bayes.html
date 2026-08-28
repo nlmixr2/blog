@@ -281,7 +281,7 @@ Matthew Fidler
 </figure>
 </div>
 <aside class="notes">
-<p>Three things I will talk about toady</p>
+<p>Three things I will talk about today</p>
 <p>First, how nlmixr2 bayes works</p>
 <p>Second, what that buys you.</p>
 <p>And third, how we checked that it is right.</p>
@@ -457,7 +457,7 @@ Matthew Fidler
 </div>
 <aside class="notes">
 <p>This is the standard toy model with the four new prior lines.</p>
-<p>Priors live right next to the parameters they describe, in the same syntax as everything else in the initialization block.</p>
+<p>Priors are right next to the parameters they describe, in the same syntax as everything else in the initialization block.</p>
 <p>The distribution catalog is deliberately one to one with Stan’s – all thirty nine real valued distributions.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
@@ -490,7 +490,7 @@ Matthew Fidler
 </div>
 <aside class="notes">
 <p>Fitting is one call. The estimation method is nuts.</p>
-<p>Nuts names the algorithm – Stan’s no U turn sampler – rather than the software tool, the same way FOCE and FOCEI name algorithms rather than naming nlmixr.</p>
+<p>Nuts names the algorithm – Stan’s no U turn sampler – rather than the software tool.</p>
 <p>And what comes back is an ordinary nlmixr2 fit object. The sampler diagnostics are in the header, the posterior is summarized in the usual par fixed table with all the other features of a nlmixr2 fit</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
@@ -519,8 +519,8 @@ Matthew Fidler
 <p>The one default is on <code>omega</code> blocks – <code>lkj_corr_cholesky(2)</code> on the correlation, half-Cauchy on each SD – and even that is <em>announced</em> in a message rather than assumed quietly.</p>
 <aside class="notes">
 <p>Note that a model with no priors errors.</p>
-<p>However, the error message suggests pior lines to put in your initialization block, derived from the model’s own starting values and bounds.</p>
-<p>The one place we do supply a default is on the omega blocks, which will be gets announced in a message rather than assumed quietly.</p>
+<p>However, the error message suggests prior lines to put in your initialization block, derived from the model’s own starting values and bounds.</p>
+<p>The one place we do supply a default is on the omega blocks which will be announced when running the fit</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -584,7 +584,7 @@ Matthew Fidler
   </defs>
 </svg>
 <aside class="notes">
-<p>One of the main thing this provides is dose handling in a pharmacometrics dataset is handled for you. No more hand-coding datasets to work with stan, it is done for you. Not only that, it is tested by everything that our package has been using for years</p>
+<p>This provides dose handling for pharmacometrics datasets. No more hand-coding stan. Not only that, it is tested by everything that our package has been using for years</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -616,7 +616,7 @@ Matthew Fidler
 <aside class="notes">
 <p>One of the other consequences is that if you have a new feature in nlmixr2 it is inherited in stan.</p>
 <p>For example, the new delay differential equations can now be expressed in stan with this linkage, something you couldn’t do in stan at all without this linkage.</p>
-<p>The same argument covers the censoring machinery, the residual error catalog, the closed form solved solutions, mu referenced covariates, and an estimated box cox lambda. None of that needed special handling on the Stan side. It was already in the likelihood.</p>
+<p>The same argument covers the censoring machinery, the residual error catalog, and the closed form solved solutions. None of that needed special handling on the Stan side. It was already in the likelihood.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -676,7 +676,7 @@ Matthew Fidler
 <p>I did not expect this result, so let me be clear about what is being compared. This is the same model, with the same priors, fitted two ways: once as a hand written native Stan program, and once linked.</p>
 <p>The posterior means agree to better than a hundredth on every parameter. So we are comparing two routes to the same answer.</p>
 <p>The linked run is about twice as fast in wall clock, and – more importantly – it extracts more effective samples per draw. Put together, that is two point four times the effective samples per second.</p>
-<p>Three things got it there. The chains run in forked processes, and those draws are bit identical to a sequential run. The whole gradient now comes from one solve per subject.</p>
+<p>Three things got it there. The chains run in forked processes, and those draws are bit identical to a sequential run.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -735,7 +735,7 @@ Matthew Fidler
 <aside class="notes">
 <p>A word on parallelism, because it works differently here.</p>
 <p>We deliberately do not engage Stan’s threading. Layering Stan’s threading runtime on top of our own would just have the two of them contend with each other for the same cores.</p>
-<p>So there are two axes instead. By default, on unix, the chains run in forked processes. Each fork gets a copy on write duplicate of the linked state, and the draws are bit identical to a sequential run.</p>
+<p>So there are two axes instead. By default, on unix, the chains run in forked processes.</p>
 <p>Or, if you set chain cores to one, the chains run sequentially and each individual likelihood evaluation is split across threads by subject instead.</p>
 <p>Either way the O-D-E solve is the rate limiting step in a pharmacometric model, so that is where the cores go.</p>
 <style type="text/css">
@@ -808,8 +808,8 @@ bayesplot::mcmc_pairs(sf, ...)</code></pre>
 </div></div>
 <aside class="notes">
 <p>Beyond the usual accessors, the fit carries the posterior itself.</p>
-<p>Two things worth knowing. The confidence intervals in par fixed are a Wald approximation built from the posterior covariance, so for anything skewed – standard deviations, small omegas – you want the exact quantiles from posterior summary instead.</p>
-<p>And the W-A-I-C and L-O-O rows are leave one subject out, not leave one observation out, because the subject is the exchangeable unit of a hierarchical model.</p>
+<p>Two things worth knowing. The confidence intervals are a Wald approximation built from the posterior covariance, so for anything skewed – standard deviations, small omegas – you want the exact quantiles from posterior summary instead.</p>
+<p>And the typical bayesian statistics are leave one subject out, not leave one observation out, because the subject is the exchangeable unit of a hierarchical model.</p>
 <p>The whole R Stan fit object is kept, so trace plots, bayesplot, posterior, and the rest of that ecosystem all work unchanged.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
@@ -827,7 +827,7 @@ bayesplot::mcmc_pairs(sf, ...)</code></pre>
 <h2>3. Is it right?</h2>
 <p><img data-src="images/sec-right.jpg" class=""></p>
 <aside class="notes">
-<p>Which brings me to validation section</p>
+<p>Which brings me to the validation section</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -889,8 +889,7 @@ bayesplot::mcmc_pairs(sf, ...)</code></pre>
 <aside class="notes">
 <p>Because the bridge works at the likelihood level, the checks have to be at the likelihood level too.</p>
 <p>These are the independent ones – each is a check against something the bridge shares no code with.</p>
-<p>Every gradient is finite difference verified. A quadrature marginalization over the linked conditional reproduces our own adaptive Gauss Hermite method. The censored and user likelihood conditionals tie to hand computed textbook densities. If you strip the likelihood out and sample the priors alone, you get every declared prior back. And the full posterior matches a hand written native Stan implementation of the same model to within three times the combined Monte Carlo standard error.</p>
-<p>And underneath all of it, the linked likelihood engine is the one already validated against NONMEM upstream in nlmixr2 est.</p>
+<p>And underneath all of it, the linked likelihood engine is the one already validated against NONMEM upstream in nlmixr2.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -917,8 +916,8 @@ bayesplot::mcmc_pairs(sf, ...)</code></pre>
 </div><div class="column" style="width:45%;">
 <p><strong>Refused with an explanation</strong></p>
 <ul>
-<li>mixtures beyond two components, for now</li>
-<li>the 8 discrete distributions – every <code>ini({})</code> parameter is real-valued</li>
+<li><p>mixtures beyond two components, for now</p></li>
+<li><p>the 8 discrete distributions</p></li>
 </ul>
 <div class="rule">
 
@@ -993,12 +992,10 @@ bayesplot::mcmc_pairs(sf, ...)</code></pre>
 <div class="rule">
 
 </div>
-<p>I would rather find these here than in a paper.</p>
 <aside class="notes">
 <p>Before the thank you slide, this is the part I actually want from this room.</p>
 <p>Everything I am about to show comes out of stan control with run equals false, which builds the Stan program and its data list without compiling or sampling anything. So each of these takes a few seconds to reproduce, and you can read the generated program yourself.</p>
 <p>There are three places where I want a second opinion. I-O-V. Mixtures. And the two eta parameterizations.</p>
-<p>I would much rather find a problem in this room than in a paper.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -1011,8 +1008,8 @@ bayesplot::mcmc_pairs(sf, ...)</code></pre>
           display:block!important;
       }</style></aside>
 </section>
-<section id="iov-prioriov.cl-now-lands-on-the-magnitude" class="slide level2">
-<h2>IOV: <code>prior(iov.cl)</code> now lands on the magnitude</h2>
+<section id="iov-prioriov.cl" class="slide level2">
+<h2>IOV: <code>prior(iov.cl)</code>?</h2>
 <pre class="stan number-lines"><code>parameters {
   real&lt;lower=0&gt; iov_cl;               // estimated magnitude, on the sd scale
   matrix[N, 1] z_rx_iov_cl_1;         // occasion 1
@@ -1027,16 +1024,15 @@ model {
   iov_cl ~ cauchy(0, 1);              // &lt;-- the declared prior(iov.cl)
 }</code></pre>
 <div class="smaller">
-<p>The slide used to read <code>normal(0.45, 1)</code> here – <code>prior(tka)</code>, silently substituted. The IOV rewrite built its rows by copying an unrelated parameter’s row as a template and never cleared the <code>prior</code> field (<a href="https://github.com/nlmixr2/nlmixr2est/pull/1025">nlmixr2est #1025</a>, <a href="https://github.com/nlmixr2/nlmixr2bayes/issues/15">issue #15</a>). <strong>Still worth your eyes:</strong> is the per-occasion structure the one you would write by hand; <code>prior(iov.cl)</code> describes the <strong>sd</strong> (the <code>iovXform</code> scale), not the variance – right convention?; and with no prior declared the magnitude is left <strong>flat and improper</strong> (warned, not substituted) while omega diagonals get a default half-Cauchy – should it get one too?</p>
+<p>Is the per-occasion structure the one you would write by hand; <code>prior(iov.cl)</code> describes the <strong>sd</strong> (the <code>iovXform</code> scale), not the variance – right convention?; and with no prior declared the magnitude is left <strong>flat and improper</strong> (warned, not substituted) while omega diagonals get a default half-Cauchy – should it get one too?</p>
 </div>
 <aside class="notes">
-<p>Start with I-O-V, because I found something while building this slide – and it has since been fixed, so you are looking at the after picture.</p>
-<p>The structure is what the documentation says: each occasion gets its own eta with a fixed unit variance – that is the L equals one one matrix – and those are scaled by an estimated magnitude theta, here called I-O-V underscore C-L.</p>
-<p>What was wrong was the prior on that magnitude. It read normal, zero point four five, one, which is the prior I had put on T-K-A. I never wrote it for I-O-V. The cause was mundane: the rewrite that turns I-O-V dot C-L into a magnitude theta plus per occasion etas builds its new rows by copying an existing row as a template, and it never cleared the prior field off the copy. So the magnitude inherited the first theta’s prior, and the prior I actually declared was thrown away with the row the rewrite deletes.</p>
-<p>That is fixed in nlmixr2est pull request one thousand twenty five. The copied rows now start with no prior, and the magnitude carries the prior you declared on the occasion eta. What you see on this slide is the real generated program: cauchy zero one, which is what I asked for.</p>
-<p>Three things I would still like checked. First, is the per occasion structure what you would have written by hand? That question never depended on the bug.</p>
-<p>Second, the magnitude is on the standard deviation scale by default – the I-O-V transform – so prior of I-O-V dot C-L is a prior on an S-D, not on a variance. Is that the convention you would expect?</p>
-<p>And third, if you declare no prior at all, the magnitude is now left flat and improper. It does warn you. But the omega diagonals get a default half Cauchy in that situation. Should an I-O-V magnitude get a default too, and if so, which one?</p>
+<p>Each occasion gets its own eta with a fixed unit variance and those are scaled by an estimated magnitude theta, here called I-O-V underscore C-L.</p>
+<p>Three things I would still like checked. First, is the per occasion structure what you would have written by hand?</p>
+<p>Second, the magnitude is on the standard deviation scale by default, is that the convention you would expect?</p>
+<p>And third, if you declare no prior at all, the magnitude is now left flat and improper. It does warn you.</p>
+<p>In contrast, the omega diagonals get a default in that situation.</p>
+<p>Should an I-O-V magnitude get a default too, and if so, which one?</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -1063,9 +1059,8 @@ for (i in 1:N)
 </div>
 <aside class="notes">
 <p>Second: mixtures. Two components only, for now.</p>
-<p>The etas are stacked component major – subjects one through N are component one, N plus one through two N are component two – and the marginalization is the log sum exp pattern out of the Stan Users Guide.</p>
-<p>Here is what I want checked. The eta priors sit OUTSIDE the log sum exp. The argument is that they factor out of the marginalization, so only the conditional likelihoods go inside. Is that the marginal you actually want, given that both components’ etas carry a prior whether or not the subject belongs to that component?</p>
-<p>Two smaller things while you are in there. The mixing probability is passed into the theta vector even though we assert the conditional does not depend on it. And the per subject log likelihood used for L-O-O is the marginalized value, not a component conditional one.</p>
+<p>Here is what I want checked. The eta priors sit OUTSIDE the log sum exp.</p>
+<p>Does that marginal make sense given that both components’ etas carry a prior whether or not the subject belongs to that component?</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -1103,9 +1098,9 @@ for (i in 1:N)
 </div>
 <aside class="notes">
 <p>Third: the two eta parameterizations.</p>
-<p>On the left, the default, non centered. We sample a standard normal z and form eta as z times L transpose.</p>
-<p>On the right, centered. We sample the etas directly and give them a multi normal Cholesky prior.</p>
-<p>Both hand the same eta matrix to the external conditional, so on our side neither one needs a Jacobian – Stan owns the entire eta prior in both cases.</p>
+<p>On the left, the default, non centered. Is it correct?</p>
+<p>On the right, centered. Is it correct?</p>
+<p>Stan owns the entire eta prior in both cases.</p>
 <p>So: is that reasoning right? And would you expect these two to agree to within Monte Carlo standard error on a real hierarchical P-K posterior, rather than just in principle?</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
@@ -1136,7 +1131,7 @@ for (i in 1:N)
 <p>And then, questions.</p>
 <p>Three things I am specifically listening for. Anything above that looks wrong. Anything that looks right but for the wrong reason. And anywhere you would want to see the generated program before you trusted a number that came out of it.</p>
 <p>The last one is the real question: what would you need to see before you would run this on an actual analysis?</p>
-<p>If you have a model of your own, run stan control with run equals false on it and the whole program comes back as text. Please do bring one.</p>
+<p>If you have a model of your own, run stan control with run equals false on it and the whole program comes back as text.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -1153,11 +1148,10 @@ for (i in 1:N)
 <section id="thank-you" class="slide level2 thanks">
 <h2>Thank you</h2>
 <div class="credit">
-<p>Section illustrations are AI-generated artwork, not photographs.</p>
+<p>Section illustrations are Gemini Nano Banana-generated artwork</p>
 </div>
 <aside class="notes">
-<p>Thank you. And a particular thank you to Lukas who wrote the prototype rxode2 integration with Stan.</p>
-<p>The package, and the list of what is still open, are on GitHub.</p>
+<p>Thank you. And a particular thank you to Lukas who wrote the prototype integration with Stan and I followed it up with likelihoods and estimation methods.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
