@@ -225,7 +225,7 @@ the hex says, powered with Stan rather than replacing it.
 :::
 
 ::: {.notes}
-Three things I will talk about toady
+Three things I will talk about today
 
 First, how nlmixr2 bayes works
 
@@ -397,7 +397,7 @@ what Stan means by it. `lotri::lotriPriorDists()` lists them.
 ::: {.notes}
 This is the standard toy model with the four new prior lines.
 
-Priors live right next to the parameters they describe, in the same
+Priors are right next to the parameters they describe, in the same
 syntax as everything else in the initialization block.
 
 The distribution catalog is deliberately one to one with Stan's -- all
@@ -435,8 +435,7 @@ does not know Stan produced the numbers.
 Fitting is one call. The estimation method is nuts.
 
 Nuts names the algorithm -- Stan's no U turn sampler -- rather than the
-software tool, the same way FOCE and FOCEI name algorithms rather than
-naming nlmixr.
+software tool.
 
 And what comes back is an ordinary nlmixr2 fit object. The sampler
 diagnostics are in the header, the posterior is summarized in the
@@ -467,12 +466,12 @@ message rather than assumed quietly.
 ::: {.notes}
 Note that a model with no priors errors.
 
-However, the error message suggests pior lines to put in your
+However, the error message suggests prior lines to put in your
 initialization block, derived from the model's own starting values and
 bounds.
 
-The one place we do supply a default is on the omega blocks, which
-will be gets announced in a message rather than assumed quietly.
+The one place we do supply a default is on the omega blocks which will
+be announced when running the fit
 :::
 
 ## 2. What linking buys you {.sectionbreak}
@@ -524,9 +523,8 @@ Now, what does linking Stan to nlmixr2 actually buy you?
 
 ::: {.notes}
 
-One of the main thing this provides is dose handling in a
-pharmacometrics dataset is handled for you.  No more hand-coding
-datasets to work with stan, it is done for you.  Not only that, it is
+This provides dose handling for pharmacometrics datasets.  No more hand-coding
+ stan.  Not only that, it is
 tested by everything that our package has been using for years
 
 :::
@@ -562,8 +560,7 @@ in stan with this linkage, something you couldn't do in stan at all
 without this linkage.
 
 The same argument covers the censoring machinery, the residual error
-catalog, the closed form solved  solutions, mu referenced
-covariates, and an estimated box cox lambda. None of that needed
+catalog, and the closed form solved  solutions. None of that needed
 special handling on the Stan side. It was already in the likelihood.
 :::
 
@@ -600,8 +597,7 @@ together, that is two point four times the effective samples per
 second.
 
 Three things got it there. The chains run in forked processes, and
-those draws are bit identical to a sequential run. The whole gradient
-now comes from one solve per subject.
+those draws are bit identical to a sequential run.
 :::
 
 ## Parallelism has two axes, and neither one is Stan's threading
@@ -659,8 +655,7 @@ threading runtime on top of our own would just have the two of them
 contend with each other for the same cores.
 
 So there are two axes instead. By default, on unix, the chains run in
-forked processes. Each fork gets a copy on write duplicate of the
-linked state, and the draws are bit identical to a sequential run.
+forked processes.
 
 Or, if you set chain cores to one, the chains run sequentially and each
 individual likelihood evaluation is split across threads by subject
@@ -740,12 +735,12 @@ bayesplot::mcmc_pairs(sf, ...)
 ::: {.notes}
 Beyond the usual accessors, the fit carries the posterior itself.
 
-Two things worth knowing. The confidence intervals in par fixed are a
-Wald approximation built from the posterior covariance, so for anything
+Two things worth knowing. The confidence intervals are a Wald
+approximation built from the posterior covariance, so for anything
 skewed -- standard deviations, small omegas -- you want the exact
 quantiles from posterior summary instead.
 
-And the W-A-I-C and L-O-O rows are leave one subject out, not leave one
+And the typical bayesian statistics are leave one subject out, not leave one
 observation out, because the subject is the exchangeable unit of a
 hierarchical model.
 
@@ -759,7 +754,7 @@ posterior, and the rest of that ecosystem all work unchanged.
 ![](images/sec-right.jpg){.nostretch}
 
 ::: {.notes}
-Which brings me to validation section
+Which brings me to the validation section
 :::
 
 ## Every claim is checked against something that shares no code with it
@@ -783,17 +778,8 @@ at the likelihood level too.
 These are the independent ones -- each is a check against something the
 bridge shares no code with.
 
-Every gradient is finite difference verified. A quadrature
-marginalization over the linked conditional reproduces our own adaptive
-Gauss Hermite method. The censored and user likelihood conditionals tie
-to hand computed textbook densities. If you strip the likelihood out
-and sample the priors alone, you get every declared prior back. And the
-full posterior matches a hand written native Stan implementation of the
-same model to within three times the combined Monte Carlo standard
-error.
-
 And underneath all of it, the linked likelihood engine is the one
-already validated against NONMEM upstream in nlmixr2 est.
+already validated against NONMEM upstream in nlmixr2.
 :::
 
 ## What is in scope is stated, and everything else is refused
@@ -813,8 +799,9 @@ already validated against NONMEM upstream in nlmixr2 est.
 **Refused with an explanation**
 
 - mixtures beyond two components, for now
-- the 8 discrete distributions -- every `ini({})` parameter is
-  real-valued
+
+
+- the 8 discrete distributions
 
 ::: rule
 :::
@@ -898,8 +885,6 @@ these is a few seconds to reproduce and read for yourself.
 ::: rule
 :::
 
-I would rather find these here than in a paper.
-
 ::: {.notes}
 Before the thank you slide, this is the part I actually want from this
 room.
@@ -912,10 +897,9 @@ and you can read the generated program yourself.
 There are three places where I want a second opinion. I-O-V. Mixtures.
 And the two eta parameterizations.
 
-I would much rather find a problem in this room than in a paper.
 :::
 
-## IOV: `prior(iov.cl)` now lands on the magnitude
+## IOV: `prior(iov.cl)`?
 
 ```stan
 parameters {
@@ -942,21 +926,22 @@ default half-Cauchy -- should it get one too?
 :::
 
 ::: {.notes}
-The structure is what the documentation says: each occasion gets its own eta
-with a fixed unit variance -- that is the L equals one one matrix -- and those
-are scaled by an estimated magnitude theta, here called I-O-V underscore C-L.
+Each occasion gets its own eta with a fixed unit variance and those
+are scaled by an estimated magnitude theta, here called I-O-V
+underscore C-L.
 
 Three things I would still like checked. First, is the per occasion structure
 what you would have written by hand?
 
-Second, the magnitude is on the standard deviation scale by default -- the
-I-O-V transform -- so prior of I-O-V dot C-L is a prior on an S-D, not on a
-variance. Is that the convention you would expect?
+Second, the magnitude is on the standard deviation scale by default,
+is that the convention you would expect?
 
 And third, if you declare no prior at all, the magnitude is now left flat and
-improper. It does warn you. But the omega diagonals get a default half Cauchy
-in that situation. Should an I-O-V magnitude get a default too, and if so,
-which one?
+improper. It does warn you.
+
+In contrast, the omega diagonals get a default in that situation.
+
+hould an I-O-V magnitude get a default too, and if so, which one?
 :::
 
 ## Mixtures: is the eta prior on the right side of the `log_sum_exp`?
@@ -983,20 +968,11 @@ though the conditional is asserted to be p-free, and the per-subject
 ::: {.notes}
 Second: mixtures. Two components only, for now.
 
-The etas are stacked component major -- subjects one through N are
-component one, N plus one through two N are component two -- and the
-marginalization is the log sum exp pattern out of the Stan Users Guide.
-
 Here is what I want checked. The eta priors sit OUTSIDE the log sum exp.
-The argument is that they factor out of the marginalization, so only the
-conditional likelihoods go inside. Is that the marginal you actually
-want, given that both components' etas carry a prior whether or not the
-subject belongs to that component?
 
-Two smaller things while you are in there. The mixing probability is
-passed into the theta vector even though we assert the conditional does
-not depend on it. And the per subject log likelihood used for L-O-O is
-the marginalized value, not a component conditional one.
+Is that the marginal make sense given that both components' etas carry
+a prior whether or not the subject belongs to that component?
+
 :::
 
 ## Two eta styles: do these target the same posterior?
@@ -1040,19 +1016,16 @@ principle)?
 ::: {.notes}
 Third: the two eta parameterizations.
 
-On the left, the default, non centered. We sample a standard normal z and
-form eta as z times L transpose.
+On the left, the default, non centered. Is it correct?
 
-On the right, centered. We sample the etas directly and give them a multi
-normal Cholesky prior.
+On the right, centered. Is it correc?
 
-Both hand the same eta matrix to the external conditional, so on our side
-neither one needs a Jacobian -- Stan owns the entire eta prior in both
-cases.
+Stan owns the entire eta prior in both cases.
 
 So: is that reasoning right? And would you expect these two to agree to
 within Monte Carlo standard error on a real hierarchical P-K posterior,
 rather than just in principle?
+
 :::
 
 ## Questions
@@ -1082,7 +1055,7 @@ The last one is the real question: what would you need to see before you
 would run this on an actual analysis?
 
 If you have a model of your own, run stan control with run equals false on
-it and the whole program comes back as text. Please do bring one.
+it and the whole program comes back as text.
 :::
 
 <!-- ======================= END REVIEW ONLY ============================= -->
@@ -1090,14 +1063,13 @@ it and the whole program comes back as text. Please do bring one.
 ## Thank you {.thanks}
 
 ::: {.credit}
-Section illustrations are AI-generated artwork, not photographs.
+Section illustrations are Gemeni Nano Banna-generated artwork
 :::
 
 ::: {.notes}
 Thank you. And a particular thank you to Lukas who wrote the prototype
-rxode2 integration with Stan.
-
-The package, and the list of what is still open, are on GitHub.
+integration with Stan and I followed it up with likelihoods and
+estimation methods.
 :::
 
 ## {.videoslide background-color="black" background-video="nlmixr2bayes-anim.mp4" background-video-muted="true" background-size="contain"}
