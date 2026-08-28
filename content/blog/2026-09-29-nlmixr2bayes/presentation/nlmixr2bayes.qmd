@@ -941,7 +941,7 @@ improper. It does warn you.
 
 In contrast, the omega diagonals get a default in that situation.
 
-hould an I-O-V magnitude get a default too, and if so, which one?
+Should an I-O-V magnitude get a default too, and if so, which one?
 :::
 
 ## Mixtures: is the eta prior on the right side of the `log_sum_exp`?
@@ -970,7 +970,7 @@ Second: mixtures. Two components only, for now.
 
 Here is what I want checked. The eta priors sit OUTSIDE the log sum exp.
 
-Is that the marginal make sense given that both components' etas carry
+Does that marginal make sense given that both components' etas carry
 a prior whether or not the subject belongs to that component?
 
 :::
@@ -1018,7 +1018,7 @@ Third: the two eta parameterizations.
 
 On the left, the default, non centered. Is it correct?
 
-On the right, centered. Is it correc?
+On the right, centered. Is it correct?
 
 Stan owns the entire eta prior in both cases.
 
@@ -1063,7 +1063,7 @@ it and the whole program comes back as text.
 ## Thank you {.thanks}
 
 ::: {.credit}
-Section illustrations are Gemeni Nano Banna-generated artwork
+Section illustrations are Gemini Nano Banana-generated artwork
 :::
 
 ::: {.notes}
