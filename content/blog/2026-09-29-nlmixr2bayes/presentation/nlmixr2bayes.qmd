@@ -294,11 +294,10 @@ So let's start with what the package actually does.
 ```
 
 ::: {.notes}
-Bayesian estimation one of the many features we have been asked about the
-for awhile.
+Can you do Bayesian estimation? This is a common question I get.
 
-Until now the answer was some version of: write it again in Stan. Hand
-code the model with Torsten, or move it over to NONMEM's bayes
+Until now the answer was not yet.  For now you have to write it again in Stan. Hand
+code the model with Torsten, or if you have NONMEM move it over to NONMEM's bayes
 methods.
 
 Either way you end up maintaining two models. The nlmixr2 one, and the Stan one.

@@ -133,10 +133,7 @@ function stillChunk(png, mp3, secs, out) {
 // `mp3` null      -> the video speaks for itself: its own audio is used, or
 //                    silence if it has none.
 function videoChunk(video, mp3, secs, out) {
-  const args = ['-y', '-loglevel', 'error'];
-  // -stream_loop repeats the input so a short sting can cover a longer
-  // narration; -t below is what actually ends the chunk.
-  args.push('-stream_loop', '-1', '-i', video);
+  const args = ['-y', '-loglevel', 'error', '-i', video];
 
   let afilter, amap;
   if (mp3) {
@@ -154,7 +151,14 @@ function videoChunk(video, mp3, secs, out) {
     amap = '1:a';
   }
 
-  const filter = `[0:v]${VFIT}[v]` + (afilter ? `;${afilter}` : '');
+  // Hold the LAST FRAME once the film ends, rather than looping back to the
+  // start.  The chunk always outruns the video -- by the tail gap when the
+  // slide speaks for itself, by however long the narration is when it does
+  // not -- and restarting the animation for that remainder reads as a glitch,
+  // like the clip stuttering.  tpad clones the final frame instead, so the
+  // logo simply sits there; -t below is still what ends the chunk.
+  const filter = `[0:v]${VFIT},tpad=stop_mode=clone:stop_duration=${secs.toFixed(3)}[v]`
+               + (afilter ? `;${afilter}` : '');
   args.push('-filter_complex', filter, '-map', '[v]', '-map', amap,
             ...VENC, ...AENC, '-t', secs.toFixed(3), out);
   run('ffmpeg', args);
