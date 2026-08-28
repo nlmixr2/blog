@@ -397,12 +397,13 @@ def refine_bounds(full, slides, bounds, key):
                 files={"file": open(full, "rb")}, timeout=600)
     if r.status_code != 200:
         print(f"  (boundary refine skipped: STT HTTP {r.status_code})")
-        return bounds
+        return bounds, [0.0] * len(bounds)
     words = [w for w in r.json().get("words", []) if w.get("type") == "word"]
     norm = lambda x: re.sub(r"[^a-z0-9]", "", x.lower())
     heard = [norm(w["text"]) for w in words]
 
     out, cursor = list(bounds), 0
+    floors = [0.0] * len(bounds)
     for k in range(1, len(slides)):
         want = [norm(x) for x in slides[k]["say"].split()[:3] if norm(x)]
         if len(want) < 2:
@@ -419,10 +420,18 @@ def refine_bounds(full, slides, bounds, key):
                 best, bd = j, d
         if best is not None:
             out[k] = max(out[k - 1] + 0.30, words[best]["start"] - 0.18)
+            # Where the PREVIOUS slide's last word ended.  The 0.18 back-off
+            # above (plus the 0.10 lead at cut time) is there so the opening
+            # word is not clipped, but when the previous word ends close to
+            # the boundary that same 0.28s reaches back over it: slide 3 ends
+            # "...that it is right." and slide 4 opened "Right. So let's
+            # start...", the word audible in both clips.
+            if best > 0:
+                floors[k] = words[best - 1]["end"]
             cursor = best
     moved = sum(1 for a, b in zip(bounds, out) if abs(a - b) > 0.05)
     print(f"  boundary refine: {moved} of {len(slides) - 1} moved onto the spoken word")
-    return out
+    return out, floors
 
 
 def api_key() -> str:
@@ -546,7 +555,7 @@ def single_take(slides, key):
             if bounds and b <= bounds[-1] + 0.30:
                 b = max(h, bounds[-1] + 0.30)
             bounds.append(min(max(b, 0.0), total - 0.05))
-        bounds = refine_bounds(full, slides, bounds, key)
+        bounds, floors = refine_bounds(full, slides, bounds, key)
         bounds.append(total)
         assert all(bounds[i] < bounds[i + 1] for i in range(len(bounds) - 1)), \
             f"non-monotonic cut boundaries: {bounds}"
@@ -554,7 +563,8 @@ def single_take(slides, key):
 
         for idx, (s, (a, b)) in enumerate(zip(slides, spans)):
             t0, t1 = bounds[idx], bounds[idx + 1]
-            t0 = max(0.0, t0 - 0.10)
+            # never reach back over the previous slide's last word
+            t0 = max(0.0, t0 - 0.10, floors[idx])
             t1 = min(total, t1 + 0.10)
             dest = OUT / f"slide{s['h']}.0.mp3"
             # -ss/-to MUST come before -i.  As output options they make ffmpeg
