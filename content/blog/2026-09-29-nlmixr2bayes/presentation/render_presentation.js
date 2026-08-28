@@ -234,6 +234,7 @@ function videoChunk(video, mp3, secs, out) {
 
     const chunks = [];
     let totalAudio = 0;
+    let openerNarrated = false;
 
     for (const { h, id, video, videoMuted } of slides) {
       const chunk = path.join(BUILD, `chunk${h}.mp4`);
@@ -297,7 +298,21 @@ function videoChunk(video, mp3, secs, out) {
         console.log(`  slide${h}  ${secs.toFixed(1)}s speech + ${(LEAD_S + TAIL_S).toFixed(2)}s pad = ${chunkSecs.toFixed(1)}s  ${id.slice(0, 34)}`);
       }
 
+      if (h === 1) openerNarrated = hasMp3;
       chunks.push(chunk);
+    }
+
+    // An opening animation has to LEAD the video, ahead of the title slide.
+    // The deck cannot say that: reveal generates its title slide from the YAML
+    // and always puts it first, so the earliest a slide can be authored is
+    // index 1 -- which is where an opening sting ends up, one slide too late.
+    // Move it here instead of contorting the deck, which still presents
+    // correctly live.  Only an UNNARRATED background video at index 1
+    // qualifies: with a clip it is a slide with something to say, not a sting.
+    const opener = slides[1];
+    if (opener && opener.video && !openerNarrated) {
+      chunks.unshift(chunks.splice(1, 1)[0]);
+      console.log(`\nopening animation moved ahead of the title slide`);
     }
 
     const list = path.join(root, BUILD, 'concat.txt');
