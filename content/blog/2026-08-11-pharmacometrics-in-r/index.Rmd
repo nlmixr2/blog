@@ -1,7 +1,7 @@
 ---
-title: "What dose for a 900-gram newborn?"
+title: "Tiny Doses for Tiny Babies -- How much is too much?"
 subtitle: "A hands-on introduction to pharmacometrics in R"
-author: Matthew Fidler
+author: Matthew Fidler & Janice Goh Jai Ni
 date: '2026-08-11'
 slug: []
 categories: [nlmixr2]
@@ -19,8 +19,14 @@ rxode2::rxSetSilentErr(1L)
 theme_set(theme_bw())
 ```
 
-Consider a preterm infant with seizures -- what can we do in data
-analytics to support the right drug and dose the first time?  Too
+Preterm infants are highly susceptible to seizures primarily due to
+brain immaturity and an increased vulnerability to acute brain
+injuries and systemic imbalances, so if an infant is delivered
+pre-term they may be likely to have seizures.
+
+So, with a preterm infant with seizures -- what can we do in data
+analytics to support the right drug and dose the first time?  As
+stated by Paracelsus, the dose makes the poison: Too
 little and the seizures continue, too much and the infant stops
 breathing. What information do we have -- the birth weight (900 g) and
 the [APGAR
@@ -51,30 +57,26 @@ dosing label while using an open-source tool for drug-development.
 
 ## If you have fit a mixed model, you have done half of this
 
-The machinery of pharmacometrics is familiar to applied statisticsians
+Drug exposure is a dynamic process. As a drug is being absorbed, it is
+also being distributed throughout the body, and cleared at the same
+time. Pharmacometric (PMX) models help us to address these dynamic
+processes acting together via ordinary differential equations (ODE). Think
+like a filling a bucket of water with a hole at the bottom - how fast
+the bucket fills depends on how fast the rate of water flows in vs
+flows out.
 
-If you have fit a mixed-effects model -- per-store demand, per-player
-shooting percentage, per-school test scores -- you have analyzed the
-first part of what pharmacometrics does.  The core idea is the same:
-individuals differ, you estimate a population distribution and let
-each individual borrow and inform the overall population parameters.
-
-If you have ever solved a system of differential equations, you have
-done second part of the analysis. Pharmacometrics is what happens when
-you have to do both **at the same time**: the mean function inside the
+In pharmacometrics we understand, like other fields, we have different
+infant sizes, and different ways the drug flows, which means a method
+to solve differential equations, and characterize differences between
+individuals **at the same time**: the mean function inside the
 nonlinear mixed model that is not a line or a spline, it is the solution to
 a system of ODEs describing how drug moves through the body.
 
-While you can fit a spline to concentration-versus-time and get a
-description of the data you collected, you would not be able to answer
-the question that was actually asked. There is no inherit knowledge
-about the mechanism of the drug being eliminated or how it works.
-Rather everything is descriptive.
-
-By having the ODE parameterize the *clearance* (volume of blood
-elimited of drug per hour) and *volume of distribution* (how
-widely the drug spreads through tissue), you can use these are physiological
-quantities to inform the mechanism of how the drug works:
+These movements and concentrations are characterized by two parameters
+the *clearance* (volume of blood eliminated of drug per hour) and
+*volume of distribution* (how widely the drug spreads through tissue),
+you can use these are physiological quantities to inform the mechanism
+of how the drug works:
 
 - **They extrapolate.** Once you know clearance, you know the
   concentration for a dose nobody in your study ever received.
@@ -98,9 +100,9 @@ is missed; how much exposure produces the effect and how much starts
 producing harm; and whether the Phase III trial is worth running at
 all, at which dose.
 
-The reach is larger than it sounds. Dosing sections of drug labels are
-built from these models. Pediatric doses are routinely approved by
-adult model extrapolation rather than and unjustified pediatric trial.
+Dosing sections of drug labels are built from these models. Pediatric
+doses are routinely approved by adult model extrapolation rather than
+and unjustified pediatric trial.
 
 
 In the clinic, these models help therapeutic drug monitoring --
@@ -241,7 +243,7 @@ next question is whether any of it is explainable.
 
 ## One line, and half the variability disappears
 
-These infants weigh between 0.6 and 3.6 kg — a six-fold range in body
+These infants weigh between 0.6 and 3.6 kg -- a six-fold range in body
 size. It would be strange if that did not matter. Larger bodies have
 larger livers and kidneys and more water to distribute drug into, and
 the standard way to encode that is allometric scaling: clearance scales
