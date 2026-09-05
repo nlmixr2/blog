@@ -27,19 +27,31 @@ these pre-term infants. They only have less than a teacup of blood in
 their entire body! What exists is scraps of concentrations, one here
 another 3+ days later across only a few infants. All on different
 doses, measured with different people and labs.</p>
-<p>Even with these limitations, we now know that the correct dose of a
-drug,
-<a href="https://medlineplus.gov/druginfo/meds/a682007.html">phenobarbital</a>,
-used to treat seizures in these infants. It is in the drug label, a
-dose given in mg/kg.</p>
-<p>Getting a defensible dose out of that is what pharmacometrics does.
-It helps understand what the drug does to the body and what the body
-does to the drug. It helps understand the concentrations of doses in
-individuals and populations and helps pick the right drug for the
-population and in some instances for the individual.</p>
+<p>A doctor read recently that a single flat dose might be sufficient to
+prevent seizures in neonates, instead of traditional weight based
+dosing. A flat dose would help ease medication administration as all
+the babies get the same dose, saving time of doing dose calculations
+and needing to measure medications individually. However, pre term
+babies can vary in weight quite a bit. Would a flat dose optimized for
+the average per term 1.5kg baby be appropriate for our 900g baby?</p>
+<p>The gold standard for examining drug exposure and thus appropriate
+dosing is via blood sampling (a term clinicians call therapeutic drug
+monitoring) to check the drug levels. However, it is inherently
+difficult to draw multiple samples from a little baby.</p>
+<p>As pharmacometricians, we know that weight can impact drug clearance
+(i.e. how fast a drug is removed from the body). What we need is to
+capture the relationship between weight and clearance using prior data
+(building a PK model) to be able to inform our decision of flat vs
+weight based dosing (via simulation using the PK model). This way, we
+can forecast the right dose to give, lessening the number of blood
+draws a preterm neonate would have to receive (please double check
+this as I am unsure how much TDM is done in neonates).</p>
 <p>This post works through the analysis of this dataset end to end in R with
 <a href="https://nlmixr2.org">nlmixr2</a> – from 155 scattered measurements to a defensible
 dosing label while using an open-source tool for drug-development.</p>
+<p>Even with these limitations, we can explore the dosing
+<a href="https://medlineplus.gov/druginfo/meds/a682007.html">phenobarbital</a>,
+used to treat seizures in these infants.</p>
 <div id="if-you-have-fit-a-mixed-model-you-have-done-half-of-this" class="section level2">
 <h2>If you have fit a mixed model, you have done half of this</h2>
 <p>Drug exposure is a dynamic process. As a drug is being absorbed, it is
@@ -59,7 +71,9 @@ a system of ODEs describing how drug moves through the body.</p>
 the <em>clearance</em> (volume of blood eliminated of drug per hour) and
 <em>volume of distribution</em> (how widely the drug spreads through tissue),
 you can use these are physiological quantities to inform the mechanism
-of how the drug works:</p>
+of how the drug works. In the field the movement of concentrtaions in
+the model is called a pharmacokinetic (PK) model.</p>
+<p>PK models are great because they:</p>
 <ul>
 <li><p><strong>They extrapolate.</strong> Once you know clearance, you know the
 concentration for a dose nobody in your study ever received.</p></li>
@@ -93,10 +107,9 @@ direct path from a model object to what happens to a patient.</p>
 </div>
 <div id="the-data" class="section level2">
 <h2>The data</h2>
-<p>In this example, the dataset is real and famous: 59 preterm infants
+<p>In this example we are using this dataset: 59 preterm infants
 given phenobarbital, published by Grasela and Donn in 1985. It ships
-with nlmixr2 as <code>pheno_sd</code>, and if you have <code>nlme</code> installed you
-already have a copy of it as <code>nlme::Phenobarb</code>.</p>
+with nlmixr2 as <code>pheno_sd</code>.</p>
 <pre class="r"><code>library(nlmixr2)
 head(pheno_sd, 4)</code></pre>
 <pre><code>##   ID TIME  AMT  WT APGR   DV MDV EVID
@@ -127,10 +140,11 @@ dosed relentlessly and sampled infrequently during routine care.</p>
 <p>You can see this clearly with the following exploratory plot:</p>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/fig-data-1.png" alt="" width="100%" /></p>
 </div>
-<div id="a-first-model" class="section level2">
-<h2>A first model</h2>
-<p>To describe the model you can use an ordinary R function with two
-blocks – an <code>ini({})</code> and a <code>model({})</code> block:</p>
+<div id="step-1-a-first-nlmixr2-model" class="section level2">
+<h2>Step 1: A first nlmixr2 model</h2>
+<p>First, we need to build a PK model. To describe the model you can
+use an ordinary R function with two blocks – an <code>ini({})</code> and a
+<code>model({})</code> block:</p>
 <pre class="r"><code>pheno &lt;- function() {
   ini({
     tcl &lt;- log(0.008)   # log typical clearance (L/h)
@@ -329,13 +343,11 @@ data looks like a plausible draw:</p>
 sit inside the simulated bands across the study. With 155 observations
 the percentiles are noisy but it is not misspecified.</p>
 </div>
-<div id="answering-the-actual-question" class="section level2">
-<h2>Answering the actual question</h2>
-<p>This analysis showed we have
-a model that says how clearance and volume change with body weight, so
-we can simulate regimens for infants across the weight range and ask
-which regimen actually keeps them in the therapeutic window of roughly
-15-40 mg/L.</p>
+<div id="step-2-answering-the-actual-question" class="section level2">
+<h2>Step 2: Answering the actual question</h2>
+<p>Since we have captured the relationship of weight and CL, we can run
+the simulation of both weight based and flat dosing to see if both
+regimens are similar. The therapeutic target is roughly 15-40 mg/L.</p>
 <p>Two candidates. A <strong>flat</strong> regimen — one dose for every infant, chosen
 to be correct for the average 1.5 kg baby in this study. And a
 <strong>weight-based</strong> regimen in mg/kg. Both use a loading dose (which

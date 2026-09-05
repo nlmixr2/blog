@@ -39,21 +39,37 @@ their entire body!  What exists is scraps of concentrations, one here
 another 3+ days later across only a few infants.  All on different
 doses, measured with different people and labs.
 
-Even with these limitations, we now know that the correct dose of a
-drug,
-[phenobarbital](https://medlineplus.gov/druginfo/meds/a682007.html),
-used to treat seizures in these infants.  It is in the drug label, a
-dose given in mg/kg.
+A doctor read recently that a single flat dose might be sufficient to
+prevent seizures in neonates, instead of traditional weight based
+dosing. A flat dose would help ease medication administration as all
+the babies get the same dose, saving time of doing dose calculations
+and needing to measure medications individually. However, pre term
+babies can vary in weight quite a bit. Would a flat dose optimized for
+the average per term 1.5kg baby be appropriate for our 900g baby?
 
-Getting a defensible dose out of that is what pharmacometrics does.
-It helps understand what the drug does to the body and what the body
-does to the drug.  It helps understand the concentrations of doses in
-individuals and populations and helps pick the right drug for the
-population and in some instances for the individual.
+The gold standard for examining drug exposure and thus appropriate
+dosing is via blood sampling (a term clinicians call therapeutic drug
+monitoring) to check the drug levels. However, it is inherently
+difficult to draw multiple samples from a little baby.
+
+As pharmacometricians, we know that weight can impact drug clearance
+(i.e. how fast a drug is removed from the body). What we need is to
+capture the relationship between weight and clearance using prior data
+(building a PK model) to be able to inform our decision of flat vs
+weight based dosing (via simulation using the PK model). This way, we
+can forecast the right dose to give, lessening the number of blood
+draws a preterm neonate would have to receive (please double check
+this as I am unsure how much TDM is done in neonates).
+
 
 This post works through the analysis of this dataset end to end in R with
 [nlmixr2](https://nlmixr2.org) -- from 155 scattered measurements to a defensible
 dosing label while using an open-source tool for drug-development.
+
+Even with these limitations, we can explore the dosing
+[phenobarbital](https://medlineplus.gov/druginfo/meds/a682007.html),
+used to treat seizures in these infants.
+
 
 ## If you have fit a mixed model, you have done half of this
 
@@ -76,7 +92,11 @@ These movements and concentrations are characterized by two parameters
 the *clearance* (volume of blood eliminated of drug per hour) and
 *volume of distribution* (how widely the drug spreads through tissue),
 you can use these are physiological quantities to inform the mechanism
-of how the drug works:
+of how the drug works.  In the field the movement of concentrtaions in
+the model is called a pharmacokinetic (PK) model.
+
+
+PK models are great because they:
 
 - **They extrapolate.** Once you know clearance, you know the
   concentration for a dose nobody in your study ever received.
@@ -104,7 +124,6 @@ Dosing sections of drug labels are built from these models. Pediatric
 doses are routinely approved by adult model extrapolation rather than
 and unjustified pediatric trial.
 
-
 In the clinic, these models help therapeutic drug monitoring --
 vancomycin (for MRSA infections), busulfan (for cancer), infliximab
 (Autoimmune/inflamitory) -- where the need of the drug is great and
@@ -115,10 +134,9 @@ direct path from a model object to what happens to a patient.
 
 ## The data
 
-In this example, the dataset is real and famous: 59 preterm infants
+In this example we are using this dataset: 59 preterm infants
 given phenobarbital, published by Grasela and Donn in 1985. It ships
-with nlmixr2 as `pheno_sd`, and if you have `nlme` installed you
-already have a copy of it as `nlme::Phenobarb`.
+with nlmixr2 as `pheno_sd`.
 
 ```{r data-head}
 library(nlmixr2)
@@ -171,10 +189,11 @@ ggplot() +
 ```
 
 
-## A first model
+## Step 1: A first nlmixr2 model
 
-To describe the model you can use an ordinary R function with two
-blocks -- an `ini({})` and a `model({})` block:
+First, we need to build a PK model. To describe the model you can
+use an ordinary R function with two blocks -- an `ini({})` and a
+`model({})` block:
 
 ```{r model-1}
 pheno <- function() {
@@ -375,13 +394,11 @@ The observed median and 5th/95th percentiles (solid and dashed lines)
 sit inside the simulated bands across the study. With 155 observations
 the percentiles are noisy but it is not misspecified.
 
-## Answering the actual question
+## Step 2: Answering the actual question
 
-This analysis showed we have
-a model that says how clearance and volume change with body weight, so
-we can simulate regimens for infants across the weight range and ask
-which regimen actually keeps them in the therapeutic window of roughly
-15-40 mg/L.
+Since we have captured the relationship of weight and CL, we can run
+the simulation of both weight based and flat dosing to see if both
+regimens are similar. The therapeutic target is roughly 15-40 mg/L.
 
 Two candidates. A **flat** regimen — one dose for every infant, chosen
 to be correct for the average 1.5 kg baby in this study. And a
