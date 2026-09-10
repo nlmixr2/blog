@@ -1,0 +1,506 @@
+---
+title: "Adaptive dosing in rxode2"
+subtitle: "When the protocol depends on the patient, the event table cannot be written in advance"
+author: Matthew Fidler
+date: '2026-09-09'
+slug: []
+categories: [rxode2]
+tags: []
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      cache = TRUE, fig.width = 7.8, fig.height = 4.6,
+                      dpi = 110, out.width = "100%")
+library(rxode2)
+library(dplyr)
+library(ggplot2)
+theme_set(theme_bw())
+```
+
+Every `rxode2` simulation you have ever run started the same way: you
+wrote down the doses first, and then you solved.  The event table is
+fixed before the solver takes its first step.
+
+That is fine for a phase I schedule.  It is not fine for most of what
+actually happens in the clinic.  Real protocols read a lab value and
+then decide: hold this cycle, cut the dose one level, start the
+rescue infusion, draw an extra sample.  The dose that a patient
+receives on day 42 is a *function of the trajectory* between day 0 and
+day 42 -- which means you cannot write it into an event table, because
+you do not know it until you have solved.
+
+`rxode2` can now modify an individual's event history *while the model
+is being solved*.  The new [adaptive dosing
+vignette](https://nlmixr2.github.io/rxode2/articles/adaptive-dosing.html)
+covers the whole feature; this post is about why you would want it,
+using a published myelosuppression model and a real dose-modification
+table from a product label.  Everything below needs `rxode2` >= 5.1.7 --
+several fixes in that release are load-bearing for these numbers.
+
+## The idea in three lines
+
+Decision logic goes inside the `model({})` block, it runs at the times
+the solver visits, and when a condition is met you push a new event:
+
+```{r taste}
+titrate <- function() {
+  ini({
+    ka <- 0.5; cl <- 1; v <- 10
+  })
+  model({
+    d/dt(depot)   <- -ka*depot
+    d/dt(central) <-  ka*depot - cl/v*central
+    cp <- central/v
+    # from day 1 on, top up if the daily check finds us below target
+    if (t > 0 && t %% 24 == 0 && cp < 1) {
+      bolus(50)
+    }
+  })
+}
+
+titrateSolve <- titrate |>
+  rxSolve(et(amt = 100, time = 0) |> et(seq(0, 96, by = 1)))
+
+ggplot(titrateSolve, aes(time, cp)) +
+  geom_hline(yintercept = 1, linetype = 2, colour = "grey50") +
+  geom_line(linewidth = 0.7, colour = "#2166ac") +
+  labs(x = "time (h)", y = "concentration",
+       title = "Top up whenever the daily check finds us below target")
+```
+
+The helpers all push a standard NONMEM-style event, so there is
+nothing exotic downstream:
+
+| helper | `evid` | what it pushes |
+|---|---|---|
+| `bolus()` | 1 | a bolus dose, optionally with `ii`/`addl`/`ss` |
+| `infuse()` | 1 | a fixed-**rate** infusion |
+| `infuseDur()` | 1 | a fixed-**duration** infusion |
+| `reset()` | 3 | a system reset |
+| `replace()` | 5 | set a compartment to a value |
+| `multiply()` | 6 | scale a compartment |
+| `phantom()` | 7 | transit dosing bookkeeping (`tad()`, `podo()`) without mass |
+| `obs()` | 0 | extra observation rows |
+| `evid_()` | any | the low-level interface |
+
+(`reset()`, `replace()` and `multiply()` are model-block functions
+only -- they are not exported, so `?replace` will show you base R's.)
+
+Two things are worth knowing before you write anything serious.
+First, the condition is only tested at times the solver actually stops
+at, so the decision times have to be in the event table, or pinned
+with an `mtime()` assignment:
+
+```r
+mtime(check48) <- 48        # note the assignment -- mtime(48) will not parse
+if (t == check48 && cp < 1) {
+  bolus(50)
+}
+```
+
+Second, a condition like `cp < 1` stays true for many steps in a row,
+so anchor it to a visit -- `t %% 24 == 0`, `t == check48` -- or you
+will push a dose at every output time.  `rxSolve()`'s `maxExtra`
+argument is the seatbelt for when you get that wrong.
+
+The `t > 0` above matters too: at time zero `cp` is still `0`, so
+without it the model tops up on top of the dose in the event table.
+And a decision taken at the *last* output time has nowhere to put its
+event, so it is silently dropped -- the top-up the model wants at hour
+96 never happens here.
+
+## A model that needs this
+
+For a worked example we want a published model where the protocol is
+genuinely closed-loop.  Chemotherapy-induced neutropenia is the
+canonical one.
+
+[Friberg et al.
+(2002)](https://ascopubs.org/doi/10.1200/JCO.2002.02.140) described
+myelosuppression with a proliferating compartment under a linear drug
+effect, three transit compartments for maturation, and a feedback term
+$(\mathrm{Circ}_0/\mathrm{Circ})^\gamma$ that drives the rebound.  For
+docetaxel we can take a self-consistent set of estimates from [Ozawa,
+Minami and Sato (2007)](https://pubmed.ncbi.nlm.nih.gov/17888031/),
+who fit a three-compartment PK model together with the Friberg
+neutropenia model in Japanese cancer patients: `CL` 35.7 L/h, `V1`
+6.94 L, `Q2` 5.58 L/h, `V2` 7.39 L, `Q3` 12.5 L/h, `V3` 225 L, mean
+transit time 113 h, $\gamma$ 0.196 and a slope of 17.9 mL/µg.  Their
+baseline neutrophil count was each patient's own observed value, so
+for the typical subject we simply take 5.05 × 10⁹/L.  (`gam` rather
+than `gamma`, because `gamma()` is a function `rxode2` supports and
+you do not want a parameter shadowing it.)
+
+```{r model}
+doce <- function() {
+  ini({
+    cl <- 35.7; v1 <- 6.94; q2 <- 5.58; v2 <- 7.39; q3 <- 12.5; v3 <- 225
+    circ0 <- 5.05; mtt <- 113; gam <- 0.196; slope <- 17.9
+  })
+  model({
+    ktr <- 4/mtt
+    cp  <- central/v1
+
+    d/dt(central) <- -(cl/v1)*central - (q2/v1)*central + (q2/v2)*periph1 -
+                      (q3/v1)*central + (q3/v3)*periph2
+    d/dt(periph1) <-  (q2/v1)*central - (q2/v2)*periph1
+    d/dt(periph2) <-  (q3/v1)*central - (q3/v3)*periph2
+
+    circS <- max(circ, 1e-4)
+    d/dt(prol) <- ktr*prol*(1 - slope*cp)*(circ0/circS)^gam - ktr*prol
+    d/dt(tr1)  <- ktr*(prol - tr1)
+    d/dt(tr2)  <- ktr*(tr1  - tr2)
+    d/dt(tr3)  <- ktr*(tr2  - tr3)
+    d/dt(circ) <- ktr*(tr3  - circ)
+
+    prol(0) <- circ0; tr1(0) <- circ0; tr2(0) <- circ0
+    tr3(0) <- circ0; circ(0) <- circ0
+
+    anc <- circ
+  })
+}
+```
+
+Six cycles of docetaxel 100 mg/m² as a one-hour infusion every three
+weeks, in a 1.8 m² typical patient, is an ordinary event table:
+
+```{r typical}
+bsa <- 1.8
+
+fixedEv <- et(amt = 100*bsa, dur = 1, cmt = "central", ii = 21*24, addl = 5) |>
+  et(seq(0, 126*24, by = 6))
+
+typical <- rxSolve(doce, fixedEv)
+
+ggplot(typical, aes(time/24, anc)) +
+  geom_line(linewidth = 0.7) +
+  geom_hline(yintercept = c(0.5, 1.5), linetype = 2, colour = "grey40") +
+  labs(x = "day", y = "ANC (10^9/L)",
+       title = "Docetaxel 100 mg/m2 q3w, typical patient")
+```
+
+The nadir is `r round(min(typical$anc), 3)` × 10⁹/L on day
+`r round(typical$time[which.min(typical$anc)]/24, 1)`, sitting just
+above the grade-4 line, and the count is back over 1.5 × 10⁹/L well
+before the next cycle: deep grade 3, no dose held, no dose cut.  (The
+label puts the median nadir nearer day 7; the 113 h mean transit time
+of this parameterisation is slower than the ~89 h Friberg reported for
+docetaxel, and it shows.)  Nothing here needs adaptive dosing.
+
+## The protocol only matters for the patients in the tail
+
+The reason the label carries a dose-modification table is the other
+patients.  Add between-subject variability -- 30% on clearance, 35% on
+the slope, 25% on baseline and 20% on mean transit time, illustrative
+rather than taken from the paper -- and simulate 50 subjects on the
+same fixed schedule:
+
+```{r pop-fixed}
+set.seed(20260909)
+n <- 50
+pop <- data.frame(
+  id    = 1:n,
+  cl    = 35.7*exp(rnorm(n, 0, 0.30)),
+  slope = 17.9*exp(rnorm(n, 0, 0.35)),
+  circ0 = 5.05*exp(rnorm(n, 0, 0.25)),
+  mtt   =  113*exp(rnorm(n, 0, 0.20)))
+
+popEv <- fixedEv |> et(id = 1:n)
+
+popFixed <- rxSolve(doce, popEv, params = pop) |> as.data.frame()
+
+doseDays <- (0:5)*21*24
+
+popFixed |>
+  filter(time %in% doseDays) |>
+  summarise(`doses at ANC < 1.5` = sum(anc < 1.5), n = n())
+
+popFixed |>
+  mutate(cycle = pmin(6, floor(time/504) + 1)) |>
+  group_by(id, cycle) |>
+  summarise(days = sum(anc < 0.5)*6/24, .groups = "drop") |>
+  summarise(`cycles with >7 d grade 4` = sum(days > 7),
+            `subjects affected` = n_distinct(id[days > 7]))
+```
+
+Nine of the 300 planned doses land on a day when the neutrophil count
+is below 1500 cells/mm³, and 19 cycles across four subjects sit at
+grade 4 for more than a week.  The [Taxotere
+label](https://products.sanofi.us/taxotere/taxotere.pdf) tells you
+what to do about both: do not dose below 1500 cells/mm³, and after
+febrile neutropenia or neutrophils under 500 cells/mm³ for more than
+one week, step 100 mg/m² down to 75 mg/m², and then to 55 mg/m² if it
+happens again.
+
+That is three coupled rules, and none of them can be written into
+`et()` because the answer depends on the solution.
+
+## Writing the label into the model
+
+The bookkeeping the protocol needs -- how long this cycle has been at
+grade 4, which dose level we are on, when the next cycle is due --
+lives in compartments with zero derivatives, which the adaptive
+helpers can then update with `replace()`.  Weekly assessments come
+from the output grid, and the `t %% 168 == 0` guard makes sure each
+one fires exactly once.
+
+```{r protocol}
+doceProtocol <- function() {
+  ini({
+    cl <- 35.7; v1 <- 6.94; q2 <- 5.58; v2 <- 7.39; q3 <- 12.5; v3 <- 225
+    circ0 <- 5.05; mtt <- 113; gam <- 0.196; slope <- 17.9
+    bsa <- 1.8
+  })
+  model({
+    ktr <- 4/mtt
+    cp  <- central/v1
+
+    d/dt(central) <- -(cl/v1)*central - (q2/v1)*central + (q2/v2)*periph1 -
+                      (q3/v1)*central + (q3/v3)*periph2
+    d/dt(periph1) <-  (q2/v1)*central - (q2/v2)*periph1
+    d/dt(periph2) <-  (q3/v1)*central - (q3/v3)*periph2
+
+    circS <- max(circ, 1e-4)
+    d/dt(prol) <- ktr*prol*(1 - slope*cp)*(circ0/circS)^gam - ktr*prol
+    d/dt(tr1)  <- ktr*(prol - tr1)
+    d/dt(tr2)  <- ktr*(tr1  - tr2)
+    d/dt(tr3)  <- ktr*(tr2  - tr3)
+    d/dt(circ) <- ktr*(tr3  - circ)
+
+    prol(0) <- circ0; tr1(0) <- circ0; tr2(0) <- circ0
+    tr3(0) <- circ0; circ(0) <- circ0
+
+    anc <- circ
+
+    ## --- protocol bookkeeping -------------------------------------
+    d/dt(dayLow)  <- (anc < 0.5)/24   # days at grade 4 since last dose
+    d/dt(level)   <- 0                # 1 = 100, 2 = 75, 3 = 55 mg/m2
+    d/dt(nextDue) <- 0                # hour the next cycle is due
+    level(0)   <- 1
+    nextDue(0) <- 21*24
+
+    ## dose level for the cycle we are about to start
+    newLevel <- level
+    if (dayLow > 7) {
+      newLevel <- level + 1
+    }
+    if (newLevel > 3) {
+      newLevel <- 3
+    }
+    mgm2 <- 100
+    if (newLevel > 1.5) {
+      mgm2 <- 75
+    }
+    if (newLevel > 2.5) {
+      mgm2 <- 55
+    }
+
+    doseMg  <- mgm2*bsa
+    startMg <- 100*bsa
+    zeroDay <- 0
+    dueNext <- t + 21*24
+    dueHold <- t + 7*24
+
+    ## --- cycle 1, then a weekly assessment ------------------------
+    if (t == 0) {
+      infuseDur(startMg, 1, central)
+    }
+    if (t > 0 && t %% 168 == 0 && t >= nextDue) {
+      if (anc >= 1.5) {
+        infuseDur(doseMg, 1, central)
+        replace(newLevel, level)
+        replace(zeroDay,  dayLow)
+        replace(dueNext,  nextDue)
+      } else {
+        replace(dueHold, nextDue)   # hold a week and reassess
+      }
+    }
+
+    doseLevel <- level
+  })
+}
+```
+
+Note that the amounts are assigned to plain variables first --
+`infuseDur()` wants a single symbol for `amt`, not an expression --
+and that the event table now carries *no doses at all*.  Every dose is
+pushed by the model:
+
+```{r pop-adaptive}
+popAdapt <- rxSolve(doceProtocol,
+                    et(seq(0, 126*24, by = 6)) |> et(id = 1:n),
+                    params = pop, maxExtra = 500) |>
+  as.data.frame()
+```
+
+This is a deliberately literal reading of two lines of the label, not
+a full protocol.  `dayLow` counts days below 0.5 × 10⁹/L whether or
+not they are consecutive, where "for more than one week" implies a
+single episode; febrile neutropenia, the label's other trigger, is not
+modelled at all; and a patient still in trouble at 55 mg/m² should be
+considered for discontinuation, whereas this model caps the level and
+keeps dosing.  Each of those is a few more lines in the same block.
+
+Because `nextDue` moves by 504 h when a dose is given and 168 h when a
+cycle is held, the decisions the model made can be read straight back
+out of the solution.  One subtlety: a pushed event takes effect in the
+row *after* the record that pushed it, so we look ahead rather than
+behind -- otherwise every ANC we report is one output step stale.
+
+```{r decisions}
+decisions <- popAdapt |>
+  group_by(id) |>
+  arrange(time) |>
+  mutate(step = c(diff(nextDue), 0)) |>   # look ahead, not behind
+  ungroup()
+
+given <- decisions |> filter(step == 504)
+held  <- decisions |> filter(step == 168)
+
+data.frame(what = c("doses given (cycles 2+)", "lowest ANC at a dose",
+                    "cycles held", "subjects ever held"),
+           value = c(nrow(given), round(min(given$anc), 2),
+                     nrow(held), n_distinct(held$id)))
+
+table(`mg/m2 given` = given$mgm2)
+```
+
+No dose is now given below 1500 cells/mm³ -- the lowest count at any
+administration is `r round(min(given$anc), 2)` × 10⁹/L -- and twenty
+of the 249 later doses are given at a reduced level.  Counting 21-day
+windows the same way as before, the number spent at grade 4 for more
+than a week falls from 19 to four:
+
+```{r grade4}
+decisions |>
+  mutate(window = pmin(6, floor(time/504) + 1)) |>
+  group_by(id, window) |>
+  summarise(days = sum(anc < 0.5)*6/24, .groups = "drop") |>
+  summarise(`windows with >7 d grade 4` = sum(days > 7))
+```
+
+Two caveats, because that number flatters the protocol.  All four
+survivors are *cycle 1*, which is identical in both arms by
+construction -- the protocol cannot act until it has seen a cycle go
+badly.  And once a cycle is delayed a fixed 21-day window stops
+lining up with a cycle, so this is a calendar comparison rather than a
+cycle-by-cycle one.  The blunter summary is that total time at grade 4
+across the trial falls from `r sum(popFixed$anc < 0.5)*6/24` to
+`r sum(popAdapt$anc < 0.5)*6/24` days, about 9%: the protocol turns
+nine-day episodes into six-day ones, which happens to straddle the
+seven-day threshold.
+
+## The five patients it happened to
+
+Four subjects were dose-reduced and one had cycles held.  Two of them
+are worth looking at.
+
+Subject 47 is slow to recover (mean transit time 203 h): under the
+fixed schedule the count is still between 1.1 and 1.5 × 10⁹/L on every
+planned dosing day from cycle 2 onwards, so every one of those doses
+is one the label says not to give.  Subject 24 clears docetaxel slowly
+(`CL` 20.3 L/h) and is sensitive to it (slope 31.7 mL/µg), spends over
+nine days at grade 4 in cycle 1 and again after the first reduction --
+the only subject in the trial to walk the whole 100 → 75 → 55 ladder.
+
+```{r compare, fig.height=5.2}
+ids <- c(24, 47)
+
+lab <- c("24" = "subject 24 -- dose reduced 100 -> 75 -> 55 mg/m2",
+         "47" = "subject 47 -- each cycle delayed one week")
+
+bind_rows(
+  popFixed |> filter(id %in% ids) |> mutate(schedule = "fixed q3w"),
+  popAdapt |> filter(id %in% ids) |> mutate(schedule = "label protocol")) |>
+  mutate(who = lab[as.character(id)]) |>
+  ggplot(aes(time/24, anc, colour = schedule)) +
+  geom_hline(yintercept = c(0.5, 1.5), linetype = 2, colour = "grey50") +
+  geom_line(linewidth = 0.7) +
+  facet_wrap(~who, ncol = 1, scales = "free_y") +
+  scale_colour_manual(values = c("fixed q3w" = "grey45",
+                                 "label protocol" = "#2166ac")) +
+  labs(x = "day", y = "ANC (10^9/L)", colour = NULL)
+```
+
+The two panels show the two things a protocol can change.  Subject 47
+is about *when*: the blue curve's cycles are 28 days apart instead of
+21, and each dose is given from a count around 3--4 × 10⁹/L rather
+than 1.1--1.5.  Subject 24 is about *how much*, and it is a more
+sober picture -- reducing the dose does not lift the nadir off the
+floor, it shortens the time spent there, from 9.2 days at grade 4 per
+cycle to 5.8.
+
+Either way, the grey and blue curves are the same model, the same
+parameters and the same 126 days.  The only difference is that in the
+blue one the event history was written by the solver.
+
+## Notes from actually using it
+
+A few things that will save you an afternoon:
+
+- **Decision times must exist.**  The logic runs at output times.  If
+  the assessment is not in `et()`, pin it with `mtime()`.
+
+- **Guard against re-triggering.**  `anc >= 1.5` is true for weeks.
+  Anchoring on `t %% 168 == 0` is what turns a standing condition into
+  a single decision.
+
+- **Bookkeeping is just a compartment with a zero derivative.**
+  Counters, dose levels and "when is the next visit" all live in the
+  state vector, and `replace()` is how you set them.
+
+- **`amt` wants a symbol.**  Compute `doseMg <- mgm2*bsa` on its own
+  line; `infuseDur(mgm2*bsa, ...)` will not parse.
+
+- **Set `maxExtra`.**  It is a cheap way to find out that your
+  condition fires 4000 times instead of six.
+
+- **A pushed event lands in the row after the one that pushed it.**
+  That is why the read-out above looks ahead with
+  `c(diff(nextDue), 0)`.  Look behind instead and every value you
+  report is one output step stale -- here that turned the lowest ANC
+  at a dose into 1.90 instead of 1.72.
+
+- **A decision at the last output time is dropped**, because there is
+  no row left to put the event in.  Check that your horizon runs past
+  the last decision you care about.
+
+- **Reading decisions back out of the state vector only works if the
+  decision times are on the grid.**  `filter(step == 504)` is exact
+  equality on a float; it survives here because 168 and 504 land
+  exactly on a 6 h grid.  Solve on `by = 5` and the summary silently
+  reports zero doses rather than erroring.
+
+- **`linCmt()` works too**, and `odeToLin()` will convert a *linear*
+  ODE model that uses adaptive dosing into the analytic form -- worth
+  it when you are running that kind of model over many trial designs.
+  It cannot help the example above, whose PD is nonlinear.
+
+## Where to read more
+
+The [adaptive dosing
+vignette](https://nlmixr2.github.io/rxode2/articles/adaptive-dosing.html)
+is the reference: every helper, the `evid_()` low-level interface,
+phantom dosing for transit models, adaptive sampling with `obs()`, and
+the `linCmt()` and `odeToLin()` story.
+
+The obvious next step is that these protocol rules are now part of the
+model, which means they can be part of a trial simulation -- compare
+two dose-modification tables, or ask what a different assessment
+schedule would have bought you, without leaving `rxode2`.
+
+## References
+
+- Friberg LE, Henningsson A, Maas H, Nguyen L, Karlsson MO. [Model of
+  chemotherapy-induced myelosuppression with parameter consistency
+  across drugs](https://ascopubs.org/doi/10.1200/JCO.2002.02.140).
+  *J Clin Oncol*. 2002;20(24):4713-4721.
+- Ozawa K, Minami H, Sato H. [Population pharmacokinetic and
+  pharmacodynamic analysis for time courses of docetaxel-induced
+  neutropenia in Japanese cancer
+  patients](https://pubmed.ncbi.nlm.nih.gov/17888031/).
+  *Cancer Sci*. 2007;98(12):1985-1992.
+- [TAXOTERE (docetaxel) prescribing
+  information](https://products.sanofi.us/taxotere/taxotere.pdf),
+  Sanofi-Aventis.
