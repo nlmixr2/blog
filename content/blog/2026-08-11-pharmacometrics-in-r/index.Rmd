@@ -1,7 +1,7 @@
 ---
 title: "Tiny Doses for Tiny Babies -- How much is too much?"
 subtitle: "A hands-on introduction to pharmacometrics in R"
-author: Matthew Fidler & Janice Goh Jai Ni
+author: Matthew Fidler & Janice Goh
 date: '2026-08-11'
 slug: []
 categories: [nlmixr2]
