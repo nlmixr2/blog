@@ -19,6 +19,16 @@ dir.create(cacheDir, showWarnings = FALSE)
 knitr::opts_knit$set(root.dir = cacheDir)
 ```
 
+<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;max-width:100%;">
+<iframe src="https://www.youtube.com/embed/TD7yhaaQToE"
+        title="nlmixr2save: fits you can read, runs you don't repeat"
+        style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen></iframe>
+</div>
+
+[Watch on YouTube](https://youtu.be/TD7yhaaQToE)
+
 If you are at [ACoP 2026](https://acop2026.eventscribe.net/) (October
 11-14, National Harbor, Maryland), come find the `nlmixr2save` poster.
 This post covers the same material, with code you can run.

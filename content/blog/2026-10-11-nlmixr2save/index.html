@@ -10,6 +10,11 @@ tags: []
 
 
 
+<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;max-width:100%;">
+<iframe src="https://www.youtube.com/embed/TD7yhaaQToE" title="nlmixr2save: fits you can read, runs you don&#39;t repeat" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
+</iframe>
+</div>
+<p><a href="https://youtu.be/TD7yhaaQToE">Watch on YouTube</a></p>
 <p>If you are at <a href="https://acop2026.eventscribe.net/">ACoP 2026</a> (October
 11-14, National Harbor, Maryland), come find the <code>nlmixr2save</code> poster.
 This post covers the same material, with code you can run.</p>
@@ -74,7 +79,7 @@ zip::zip_list(&quot;fit.zip&quot;)[, c(&quot;filename&quot;, &quot;uncompressed_
 #&gt; # A data frame: 19 × 2
 #&gt;    filename            uncompressed_size
 #&gt;    &lt;chr&gt;                           &lt;dbl&gt;
-#&gt;  1 fit-env.R                       20373
+#&gt;  1 fit-env.R                       20423
 #&gt;  2 fit-etaObf.csv                    971
 #&gt;  3 fit-foceiModel.R                 3246
 #&gt;  4 fit-iniDf0.csv                    544
@@ -87,9 +92,9 @@ zip::zip_list(&quot;fit.zip&quot;)[, c(&quot;filename&quot;, &quot;uncompressed_
 #&gt; 11 fit-phiH.R                       2029
 #&gt; 12 fit-ranef.csv                     761
 #&gt; 13 fit-scaleInfo.rds                 477
-#&gt; 14 fit-sessioninfo.rds               960
+#&gt; 14 fit-sessioninfo.rds               959
 #&gt; 15 fit-shrink.csv                    793
-#&gt; 16 fit-time.csv                      224
+#&gt; 16 fit-time.csv                      223
 #&gt; 17 fit-ui.R                          679
 #&gt; 18 fit.csv                         40955
 #&gt; 19 fit.R                            3617</code></pre>
@@ -146,14 +151,14 @@ same random numbers it would have seen if the call had run.</li>
 #&gt; [====|====|====|====|====|====|====|====|====|====] 0:00:00
 #&gt; [====|====|====|====|====|====|====|====|====|====] 0:00:00
 #&gt;    user  system elapsed 
-#&gt;  19.219   2.921   7.834</code></pre>
+#&gt;  23.976   3.322  10.841</code></pre>
 <p>The same call again loads from disk:</p>
 <pre class="r"><code>system.time(
   fitS := nlmixr2(one.cmt, theo_sd, est = &quot;saem&quot;,
                   control = list(print = 0))
 )
 #&gt;    user  system elapsed 
-#&gt;   0.315   0.000   0.315</code></pre>
+#&gt;   0.384   0.001   0.386</code></pre>
 <p>Change anything that matters and it runs again. Here, the number of
 burn-in iterations changes:</p>
 <pre class="r"><code>system.time(
@@ -165,7 +170,7 @@ burn-in iterations changes:</p>
 #&gt; [====|====|====|====|====|====|====|====|====|====] 0:00:00
 #&gt; [====|====|====|====|====|====|====|====|====|====] 0:00:00
 #&gt;    user  system elapsed 
-#&gt;  18.049   2.632   6.446</code></pre>
+#&gt;  23.275   3.172   9.875</code></pre>
 <p>Hashing the data is smarter than hashing the whole data frame. The
 hash only uses the columns that affect estimation: standard columns,
 model covariates, and <code>table$keep</code> columns. If you add a notes column
