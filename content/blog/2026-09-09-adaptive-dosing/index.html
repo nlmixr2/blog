@@ -1,6 +1,6 @@
 ---
 title: "Adaptive dosing in rxode2"
-subtitle: "When the protocol depends on the patient, the event table cannot be written in advance"
+subtitle: "Some patients don't follow a script — neither should your event table"
 author: Matthew Fidler
 date: '2026-09-09'
 slug: []
@@ -10,16 +10,17 @@ tags: []
 
 
 
-<p>Every <code>rxode2</code> simulation you have ever run started the same way: you
-coded down the doses first, and then you solved. The event table is
-fixed before the solver takes its first step.</p>
-<p>That is fine for a fixed schedule. It is not fine for most adaptive
-dosing in the clinic. Real protocols may read a lab value and then
-decide: hold this cycle, cut the dose one level, start the rescue
-infusion, draw an extra sample. The dose that a patient receives on
-day 42 is a <em>function of the trajectory</em> between day 0 and day 42 –
-which means you cannot write it into an event table, because you do
-not know it until you have solved.</p>
+<p>In the past, every <code>rxode2</code> simulation started the same way: you coded
+down the doses first, and then you solved. The event table is fixed
+before the solver takes its first step.</p>
+<p>That is fine for a fixed schedule. It is not fine clinical adaptive
+dosing. Real protocols have clinical endpoints decide: hold
+this cycle, cut the dose one level, start the rescue infusion, draw an
+extra sample.</p>
+<p>This means that dose that a patient receives on day 42 is a <em>function
+of the trajectory</em> between day 0 and day 42 – which means you cannot
+write it into an event table, because you do not know it until you
+have solved.</p>
 <p><code>rxode2</code> can now modify an individual’s event history <em>while the model
 is being solved</em>. The new <a href="https://nlmixr2.github.io/rxode2/articles/adaptive-dosing.html">adaptive dosing
 vignette</a>
@@ -159,13 +160,7 @@ transit compartments, and a rebound feedback term
 docetaxel from <a href="https://pubmed.ncbi.nlm.nih.gov/17888031/">Ozawa, Minami and Sato
 (2007)</a>, who fit a
 three-compartment PK model together with the Friberg neutropenia model
-in Japanese cancer patients: <code>CL</code> 35.7 L/h, <code>V1</code> 6.94 L, <code>Q2</code> 5.58
-L/h, <code>V2</code> 7.39 L, <code>Q3</code> 12.5 L/h, <code>V3</code> 225 L, mean transit time 113 h,
-<span class="math inline">\(\gamma\)</span> 0.196 and a slope of 17.9 mL/µg. Their baseline neutrophil
-count was each patient’s own observed value, so for the typical
-subject we simply take 5.05 × 10⁹/L. (<code>gam</code> rather than <code>gamma</code>,
-because <code>gamma()</code> is a function <code>rxode2</code> supports and you do not want
-a parameter shadowing it.)</p>
+in Japanese cancer patients:</p>
 <pre class="r"><code>doce &lt;- function() {
   ini({
     cl &lt;- 35.7 # L/h
@@ -201,7 +196,7 @@ a parameter shadowing it.)</p>
     tr3(0) &lt;- circ0
     circ(0) &lt;- circ0
 
-    anc &lt;- circ
+    anc &lt;- circ # Absolute Neutrophil Count (ANC)
   })
 }</code></pre>
 <p>Six cycles of docetaxel 100 mg/m^2 as a one-hour infusion every three
@@ -223,19 +218,12 @@ ggplot(typical, aes(time/24, anc)) +
 <p>The nadir is 0.504 * 10^9/L on day
 10, sitting just
 above the grade-4 line, and the count is back over 1.5 *10^9/L well
-before the next cycle: deep grade 3, no dose held, no dose cut.
-(The label puts the median nadir nearer day 7; the 113 h mean transit
-time of this parameterisation is slower than the ~89 h Friberg
-reported for docetaxel) Nothing here needs adaptive
-dosing.</p>
+before the next cycle: deep grade 3, no dose held, no dose cut.</p>
 </div>
 <div id="the-protocol-only-matters-for-the-patients-in-the-tail" class="section level2">
 <h2>The protocol only matters for the patients in the tail</h2>
-<p>The reason the label carries a dose-modification table is the other
-patients. Add between-subject variability – 30% on clearance, 35% on
-the slope, 25% on baseline and 20% on mean transit time, illustrative
-rather than taken from the paper – and simulate 50 subjects on the
-same fixed schedule:</p>
+<p>As with all mixed effects models, for some patients it does matter.
+If we simulate 50 subjects on the same fixed schedule:</p>
 <pre class="r"><code>set.seed(20260909)
 n &lt;- 50
 pop &lt;- data.frame(
@@ -247,7 +235,7 @@ pop &lt;- data.frame(
 
 popEv &lt;- fixedEv |&gt; et(id = 1:n)
 
-popFixed &lt;- rxSolve(doce, popEv, params = pop) |&gt; as.data.frame()
+popFixed &lt;- rxSolve(doce, popEv, params = pop, returnType=&quot;data.frame&quot;)
 
 doseDays &lt;- (0:5)*21*24
 
@@ -270,7 +258,7 @@ popFixed |&gt;
 is below 1500 cells/mm^3, and 19 cycles across four subjects sit at
 grade 4 for more than a week. The <a href="https://products.sanofi.us/taxotere/taxotere.pdf">Taxotere
 label</a> tells you
-what to do about both: do not dose below 1500 cells/mm^3, and after
+what to do: don’t dose below 1500 cells/mm^3, and after
 febrile neutropenia or neutrophils under 500 cells/mm^3 for more than
 one week, step 100 mg/m^2 down to 75 mg/m^2, and then to 55 mg/m^2 if it
 happens again.</p>
@@ -280,16 +268,9 @@ happens again.</p>
 <div id="writing-the-label-into-the-model" class="section level2">
 <h2>Writing the label into the model</h2>
 <p>The protocol needs a memory: how long this cycle has been at grade 4,
-which dose level we are on, when the next cycle is due. The obvious
-place to put those is the state vector – two compartments with zero
-derivatives for the level and the schedule, updated with <code>replace()</code>,
-and a third integrating <code>(anc &lt; 0.5)</code> for the counter. That works,
-but it is a poor trade. Two of the three states store a number that
-never changes between doses, and the third asks the solver to
-integrate a step function, which is exactly the shape adaptive step
-sizing hates.</p>
-<p><code>rxode2</code> has a better place for them. Most left-hand-side variables
-in a model block are
+which dose level we are on, when the next cycle is due.</p>
+<p><code>rxode2</code> can track this using sticky variables. Most left-hand-side
+variables in a model block are
 <a href="https://nlmixr2.github.io/rxode2/articles/rxode2-sticky.html"><strong>sticky</strong></a>:
 rather than being recomputed from nothing at each time point, they
 keep whatever value you last gave them, and they start out <code>NA</code> for
@@ -298,31 +279,26 @@ to initialise, then update in place:</p>
 <pre class="r"><code>if (is.na(level)) {
   level &lt;- 1        # NA only at the first time point of each subject
 }</code></pre>
-<p>Sticky variables make the protocol both cheaper and easier to read:
-updating one is an ordinary assignment, where updating a compartment
-needs a pushed <code>replace()</code> event.</p>
-<p>Two details in the code below are load-bearing. The block runs once
-per <em>record</em>, not at internal solver steps – which is what makes both
-the counter and the weekly guard meaningful – but a single time can
-carry several records, an observation and a dose among them. So the
-counter accumulates <code>(time - lastT)</code> rather than a fixed step: a
-repeat evaluation at the same time adds exactly zero, where the naive
-<code>dayLow + (anc &lt; 0.5)*6/24</code> would double-count on every dosing day.
-And what makes a weekly assessment fire once is not <code>t %% 168 == 0</code> by
-itself but <code>t &gt;= nextDue</code> together with <code>nextDue</code> being pushed forward
-inside the branch.</p>
-<p>None of this touches the PK or the PD, so there is no reason to retype
-them – model piping appends the protocol to <code>doce</code> and leaves the
-model underneath alone:</p>
+<p>Sticky variables make the protocol easy to read:
+updating one is an ordinary assignment.</p>
+<p>Some things you need to keep in mind:</p>
+<ul>
+<li><p>The block runs once per <em>record</em>, not at internal solver steps</p>
+<ul>
+<li>The weekly assessment fires with both <code>t %% 168 == 0</code> and <code>t &gt;= nextDue</code>.
+Then the <code>nextDue</code> assessment is incremented.</li>
+</ul></li>
+</ul>
+<p>None of this touches the PK or the PD. To make sure that the model
+isn’t mis-typed, or copied or even so that if it i it will retain the
+dosing schedule, the best solution is to use model piping to appends the
+dosing protocol to <code>doce</code> and leave the model alone:</p>
 <pre class="r"><code>## Pipe the protocol onto the model we already have instead of writing
-## the PK/PD out a second time.  Two copies of the same twenty lines
-## are two copies to keep in step, and the one that drifts is always
-## the one you are not looking at.
+## the PK/PD out a second time.
 ##
-## `auto = FALSE` matters here: without it the pipe promotes every new
-## symbol to a population parameter, `t` included, and the model then
-## fails to parse.  `bsa` is the one genuinely new parameter, so it
-## gets added on purpose afterwards.
+## `auto = FALSE` keeps the auto selection of parameters off, so you
+## can set the one new `bsa` parameter
+
 doceProtocol &lt;- doce |&gt;
   model({
     ## --- protocol memory, in sticky variables ---------------------
@@ -376,21 +352,12 @@ doceProtocol &lt;- doce |&gt;
 and that the event table now carries <em>no doses at all</em>. Every dose is
 pushed by the model:</p>
 <pre class="r"><code>popAdapt &lt;- rxSolve(doceProtocol,
-                    et(seq(0, 126*24, by = 6)) |&gt; et(id = 1:n),
-                    params = pop, maxExtra = 500) |&gt;
-  as.data.frame()</code></pre>
-<p>The whole protocol – three pieces of memory, a dose ladder and a
-scheduler – added no states at all:</p>
-<pre class="r"><code>rxState(doce)</code></pre>
-<pre><code>## [1] &quot;central&quot; &quot;periph1&quot; &quot;periph2&quot; &quot;prol&quot;    &quot;tr1&quot;     &quot;tr2&quot;     &quot;tr3&quot;    
-## [8] &quot;circ&quot;</code></pre>
-<pre class="r"><code>rxState(doceProtocol)</code></pre>
-<pre><code>## [1] &quot;central&quot; &quot;periph1&quot; &quot;periph2&quot; &quot;prol&quot;    &quot;tr1&quot;     &quot;tr2&quot;     &quot;tr3&quot;    
-## [8] &quot;circ&quot;</code></pre>
-<p>Written with states instead, the same model carries 11 rather than 8,
-and solving this trial takes about a third longer for bookkeeping the
-solver should never have seen. The
-<a href="https://nlmixr2.github.io/rxode2/articles/rxode2-sticky.html">sticky variable
+                    et(seq(0, 126*24, by = 6)) |&gt;
+                      et(id = 1:n),
+                    params = pop,
+                    maxExtra = 500,
+                    returnType=&quot;data.frame&quot;)</code></pre>
+<p>The <a href="https://nlmixr2.github.io/rxode2/articles/rxode2-sticky.html">sticky variable
 vignette</a>
 has the other standard uses – running <span class="math inline">\(C_{max}\)</span> and <span class="math inline">\(T_{max}\)</span>, time
 after dose, anything you would otherwise reach for a state to
@@ -403,32 +370,17 @@ if (cp &gt; cMax) {
   cMax &lt;- cp
   tMax &lt;- time
 }</code></pre>
-<p>One consequence worth being explicit about: <code>dayLow</code> is now summed
-over the output grid instead of integrated, so it counts what the
-assessment schedule sees rather than the exact area under the
-indicator. That makes it mildly grid-dependent. Everything that
-follows – 249 doses, the lowest count at a dose, four cycles held in
-one subject, four subjects reduced – is identical whether you solve
-on a 1, 2, 4, 6 or 12 h grid. What moves is the pair of numbers
-sitting on the seven-day line: the 55/75 mg/m^2 split is 3/17 here and
-4/16 on a 1 or 4 h grid, and the count of 21-day windows over a week
-at grade 4 is five here and four on a 4 h grid. In the same way,
-subject 24 below reaches its second reduction one cycle later than the
-ODE version did.</p>
-<p>This is a deliberately literal reading of two lines of the label, not
-a full protocol. <code>dayLow</code> counts days below 0.5 × 10⁹/L whether or
-not they are consecutive, where “for more than one week” implies a
-single episode; febrile neutropenia, the label’s other trigger, is not
-modelled at all; and a patient still in trouble at 55 mg/m² should be
-considered for discontinuation, whereas this model caps the level and
-keeps dosing. Each of those is a few more lines in the same block.</p>
+<p>One thing to keep in mind: <code>dayLow</code> is mildly grid-dependent.</p>
+<p>One nice thing is the model’s decisions can be read straight back out
+of the solution, because <code>nextDue</code> advances by 504 h when a dose is
+given and 168 h when a cycle is held. It’s a sticky variable, so it
+changes on the same row where the decision was made — look behind, and
+the ANC you report is the one the protocol actually acted on.</p>
 <p>Because <code>nextDue</code> moves by 504 h when a dose is given and 168 h when a
 cycle is held, the decisions the model made can be read straight back
 out of the solution. <code>nextDue</code> is a sticky variable, so it changes on
 the row the decision was taken – look behind, and the ANC you report
-is the one the protocol actually acted on. (Had it been a compartment
-updated by <code>replace()</code>, the change would land one row <em>later</em>, and
-this would have to look ahead instead.)</p>
+is the one the protocol actually acted on.</p>
 <pre class="r"><code>decisions &lt;- popAdapt |&gt;
   group_by(id) |&gt;
   arrange(id, time) |&gt;
@@ -451,13 +403,13 @@ data.frame(what = c(&quot;doses given (cycles 2+)&quot;, &quot;lowest ANC at a d
 <pre><code>## mg/m2 given
 ##  55  75 100 
 ##   3  17 229</code></pre>
-<p>No dose is now given below 1500 cells/mm³ – the lowest count at any
-administration is 1.72 × 10⁹/L – and twenty
-of the 249 later doses are given at a reduced level. (249, not 250,
-because subject 47’s four one-week holds push its sixth cycle past the
-end of the trial.) Counting 21-day
-windows the same way as before, the number spent at grade 4 for more
-than a week falls from 19 to five:</p>
+<p>This can be handy in summarizing what happened in the simulated
+protocol.</p>
+<p>In this case, no dose is now given below 1500 cells/mm^3 – the lowest
+count at any administration is 1.72 × 10^9/L
+– and twenty of the 249 later doses are given at a reduced level.</p>
+<p>Counting 21-day windows the same way as before, the number spent at
+grade 4 for more than a week falls from 19 to five:</p>
 <pre class="r"><code>decisions |&gt;
   mutate(window = pmin(6, floor(time/504) + 1)) |&gt;
   group_by(id, window) |&gt;
@@ -467,26 +419,14 @@ than a week falls from 19 to five:</p>
 ##   `windows with &gt;7 d grade 4`
 ##                         &lt;int&gt;
 ## 1                           5</code></pre>
-<p>Two caveats, because that number flatters the protocol. Four of the
-five survivors are <em>cycle 1</em>, which is identical in both arms by
-construction – the protocol cannot act until it has seen a cycle go
-badly – and the fifth is subject 24’s cycle 3, before its second
-reduction took effect. And once a cycle is delayed a fixed 21-day
-window stops lining up with a cycle, so this is a calendar comparison
-rather than a cycle-by-cycle one. The blunter summary is that total
-time at grade 4 across the trial falls from
-515.5 to 470.25
-days, about 9%: the protocol turns nine-day episodes into six-day
-ones, which happens to straddle the seven-day threshold.</p>
 </div>
 <div id="the-five-patients-it-happened-to" class="section level2">
 <h2>The five patients it happened to</h2>
 <p>Four subjects were dose-reduced and one had cycles held. Two of them
 are worth looking at.</p>
 <p>Subject 47 is slow to recover (mean transit time 203 h): under the
-fixed schedule the count is still between 1.1 and 1.5 × 10⁹/L on every
-planned dosing day from cycle 2 onwards, so every one of those doses
-is one the label says not to give. Subject 24 clears docetaxel slowly
+fixed schedule the count is still between 1.1 and 1.5 × 10^9/L on every
+planned dosing day from cycle 2 onwards. Subject 24 clears docetaxel slowly
 (<code>CL</code> 20.3 L/h) and is sensitive to it (slope 31.7 mL/µg), spends over
 nine days at grade 4 in cycle 1 and is still over the line two cycles
 after the first reduction – the only subject in the trial to walk the
@@ -508,22 +448,16 @@ bind_rows(
                                  &quot;label protocol&quot; = &quot;#2166ac&quot;)) +
   labs(x = &quot;day&quot;, y = &quot;ANC (10^9/L)&quot;, colour = NULL)</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/compare-1.png" alt="" width="100%" /></p>
-<p>The two panels show the two things a protocol can change. Subject 47
-is about <em>when</em>: the blue curve’s cycles are 28 days apart instead of
-21, and each dose is given from a count around 3–4 × 10⁹/L rather
-than 1.1–1.5. Subject 24 is about <em>how much</em>, and it is a more
-sober picture – reducing the dose does not lift the nadir off the
-floor, it shortens the time spent there. Its own cycles go from 9.2
-days at grade 4 before the first reduction to 5.8 after the second;
-set against the fixed arm, which sits near 8.8 days a cycle
-throughout, that is a couple of days a cycle rather than a rescue.</p>
+<p>The two panels show the two things a protocol can change: when and how-much.</p>
+<p>Subject 47 illustrates <em>when</em>: the blue curve’s cycles are 28 days apart instead of 21.</p>
+<p>Subject 24 is about <em>how much</em> – reducing the dose does not lift the nadir, it shortens the time spent there. Its own cycles go from 9.2 days at grade 4 before the first reduction to 5.8 after the second; s</p>
 <p>Either way, the grey and blue curves are the same model, the same
 parameters and the same 126 days. The only difference is that in the
 blue one the event history was written by the solver.</p>
 </div>
 <div id="notes-from-actually-using-it" class="section level2">
 <h2>Notes from actually using it</h2>
-<p>A few things that will save you an afternoon:</p>
+<p>A few things that will save you an some time:</p>
 <ul>
 <li><p><strong>Decision times must exist.</strong> The logic runs at output times. If
 the assessment is not in <code>et()</code>, pin it with <code>mtime()</code>.</p></li>
@@ -532,31 +466,17 @@ Anchoring on <code>t %% 168 == 0</code> is what turns a standing condition into
 a single decision.</p></li>
 <li><p><strong>Bookkeeping belongs in sticky variables, not states.</strong> Counters,
 dose levels and “when is the next visit” carry over from one time
-point to the next on their own; <code>is.na()</code> is how you initialise
-them. A zero-derivative compartment does the same job, but the
-solver then has to carry it.</p></li>
-<li><p><strong><code>amt</code> wants a symbol.</strong> Compute <code>doseMg &lt;- mgm2*bsa</code> on its own
-line; <code>infuseDur(mgm2*bsa, ...)</code> will not parse.</p></li>
+point to the next on their own, you could use states instead but it
+takes more time to solve the system. <code>is.na()</code> is how you
+initialise them.</p></li>
+<li><p><strong>Currently the dose <code>amt</code> wants a symbol.</strong> Compute <code>doseMg &lt;-   mgm2*bsa</code> on its own line; <code>infuseDur(mgm2*bsa, ...)</code> will not
+parse. In the future this may change.</p></li>
 <li><p><strong>Set <code>maxExtra</code>.</strong> It is a cheap way to find out that your
 condition fires 4000 times instead of six.</p></li>
-<li><p><strong>A pushed event lands in the row after the one that pushed it; a
-sticky assignment does not.</strong> Reading state back out, that
-difference decides which way you look: <code>c(0, diff(x))</code> for a sticky
-variable, <code>c(diff(x), 0)</code> for a compartment set by <code>replace()</code>. Get
-it backwards and every value you report is one output step stale –
-here that would turn the lowest ANC at a dose into 1.56 instead of
-1.72.</p></li>
 <li><p><strong>At the last output time the event is dropped but the sticky
 assignment is not.</strong> There is no row left to put a pushed event in,
 so the dose never happens – but <code>nextDue</code> and <code>dayLow</code> are ordinary
-assignments and go through anyway, leaving the model’s own record
-claiming a dose it never gave. That is what the <code>t &lt; 126*24</code> guard
-in the protocol is for: it changes no trajectory at all (drop it and
-the solution is bit-identical), it stops the read-out reporting 298
-doses instead of 249. Note the asymmetry is new with sticky
-variables – when the bookkeeping was a <code>replace()</code> event it was
-dropped along with the dose, and the counts came out right by
-accident.</p></li>
+assignments and go through anyway.</p></li>
 <li><p><strong>Reading decisions back out of the state vector only works if the
 decision times are on the grid.</strong> <code>filter(step == 504)</code> is exact
 equality on a float; it survives here because 168 and 504 land

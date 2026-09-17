@@ -65,3 +65,5 @@ term-speed-samples/
 
 # Rendered presentation video -- uploaded to YouTube, not stored here
 **/presentation/*.mp4
+*.wav
+/.vexp/
