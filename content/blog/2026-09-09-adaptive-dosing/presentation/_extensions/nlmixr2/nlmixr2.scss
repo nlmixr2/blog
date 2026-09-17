@@ -1,0 +1,535 @@
+/*-- scss:defaults --*/
+//
+// nlmixr2 reveal.js theme
+//
+// Ported from the "nlmixr2 Template" PowerPoint master used for
+// presentations/2026-04-17-FDA/FDA-Automation-and-import_export-2026-final.pptx
+//
+// Everything below that carries a PowerPoint provenance comment is taken
+// verbatim from ppt/theme/theme1.xml, ppt/slideMasters/slideMaster1.xml or
+// ppt/slideLayouts/slideLayout1.xml of that deck.
+//
+
+// ---------------------------------------------------------------- palette --
+// The deck is built on two colours: a dark red for titles, bullets and
+// accents, and the Office "Text 2" navy for body copy.
+$nlmixr2-red: #b40000 !default; // titleStyle / buClr / sldNum
+$nlmixr2-blue: #1f497d !default; // theme dk2 -- the "nlmixr" wordmark blue
+$nlmixr2-body: #0f243e !default; // tx2 lumMod 50% -- body text
+$nlmixr2-footer-color: #17375d !default; // tx2 lumMod 75% -- footer text
+$nlmixr2-grey: #3b3b3b !default; // theme dk1
+$nlmixr2-cream: #eeece1 !default; // theme lt2
+
+// theme accent1..accent6
+$nlmixr2-accent1: #4f81bd !default;
+$nlmixr2-accent2: #902c10 !default;
+$nlmixr2-accent3: #9bbb59 !default;
+$nlmixr2-accent4: #8064a2 !default;
+$nlmixr2-accent5: #4bacc6 !default;
+$nlmixr2-accent6: #e08836 !default;
+
+$nlmixr2-hlink: #902c10 !default; // theme hlink / folHlink
+$nlmixr2-green: #92d050 !default; // the green check marks on slide 6
+
+// Table fills, from the Medium Style 2 - Accent 1 table style
+$nlmixr2-table-header-bg: $nlmixr2-accent1 !default;
+$nlmixr2-table-band-bg: #dce6f1 !default; // accent1, 80% lighter
+
+// ------------------------------------------------------------------ fonts --
+// The PowerPoint theme font is Century Gothic (major *and* minor), while the
+// master body style pins Calibri and every code run uses Courier New.
+//
+// Century Gothic and Calibri ship with Microsoft Office, so they are tried
+// first; the web fallbacks below are metric- or shape-compatible stand-ins for
+// machines that do not have them.
+@import url("https://fonts.googleapis.com/css2?family=Questrial&family=Carlito:ital,wght@0,400;0,700;1,400;1,700&display=swap");
+
+$nlmixr2-font-display:
+  "Century Gothic",
+  "Questrial",
+  "URW Gothic",
+  "Didact Gothic",
+  "Futura",
+  "Trebuchet MS",
+  sans-serif !default;
+
+$nlmixr2-font-body:
+  "Calibri",
+  "Carlito",
+  "Segoe UI",
+  "Lato",
+  "Helvetica Neue",
+  Arial,
+  sans-serif !default;
+
+$nlmixr2-font-mono:
+  "Courier New",
+  "Nimbus Mono PS",
+  "Cousine",
+  "Liberation Mono",
+  monospace !default;
+
+$font-family-sans-serif: $nlmixr2-font-body !default;
+$font-family-monospace: $nlmixr2-font-mono !default;
+$presentation-heading-font: $nlmixr2-font-display !default;
+
+// ------------------------------------------------------------- typography --
+// 24 pt on a 7.5 in slide == 32 px at 720 px tall; body copy autofits down a
+// little, so the root is set slightly smaller and headings scale back up.
+$presentation-font-size-root: 28px !default;
+$presentation-line-height: 1.3 !default;
+
+$presentation-h1-font-size: 1.6em !default; // 32 pt ctrTitle on the title slide
+$presentation-h2-font-size: 1.15em !default; // 24 pt slide titles
+$presentation-h3-font-size: 1em !default;
+$presentation-h4-font-size: 0.9em !default;
+
+$presentation-heading-color: $nlmixr2-red !default;
+$presentation-heading-font-weight: 700 !default; // titleStyle b="1"
+$presentation-heading-line-height: 1.15 !default;
+$presentation-heading-text-transform: none !default;
+
+// ---------------------------------------------------------------- surfaces --
+$body-bg: #ffffff !default; // master bg is bg1 (white)
+$body-color: $nlmixr2-body !default;
+$link-color: $nlmixr2-hlink !default;
+$link-color-hover: $nlmixr2-red !default;
+$selection-bg: rgba($nlmixr2-accent1, 0.35) !default;
+
+$code-color: $nlmixr2-body !default;
+$code-block-bg: transparent !default;
+$code-block-border-color: transparent !default;
+$code-block-font-size: 0.9em !default; // 20 pt Courier New on the import slides
+
+// Callout accents pulled from the theme accent ramp
+$callout-color-note: $nlmixr2-accent1 !default;
+$callout-color-tip: $nlmixr2-accent3 !default;
+$callout-color-important: $nlmixr2-red !default;
+$callout-color-caution: $nlmixr2-accent6 !default;
+$callout-color-warning: $nlmixr2-accent4 !default;
+
+/*-- scss:mixins --*/
+
+// Centre a slide's content and hang an nlmixr2 logo underneath it, the way
+// the Title Slide and the closing "Thank you" slide are laid out.
+//
+// On the Title Slide layout the logo occupies 69.8%-95.5% of the slide
+// height (1763448 EMU tall, 3513536 EMU wide, horizontally centred), with the
+// title and subtitle sharing the space above it.
+// Lengths are in the reveal coordinate space (1280x720), which reveal then
+// scales as a whole -- so they behave exactly like the EMU offsets do in
+// PowerPoint.
+@mixin nlmixr2-logo-slide($logo-height, $logo-bottom, $pad-top) {
+  // NB: do not set `position` here.  reveal lays every slide out as
+  // `position: absolute`, and making one of them relative drops it back into
+  // normal flow, which pushes the static position of every following slide
+  // down by a full slide height.  Absolute already establishes the containing
+  // block the ::after below needs.
+  //
+  // reveal sections are content-box, so the padding below has to be told to
+  // stay inside the 720px slide instead of growing it.
+  box-sizing: border-box;
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding-top: $pad-top;
+  padding-bottom: $logo-height + $logo-bottom + 32px;
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: $logo-bottom;
+    height: $logo-height;
+    background: $nlmixr2-logo no-repeat center bottom;
+    background-size: contain;
+  }
+}
+
+/*-- scss:rules --*/
+
+.reveal {
+  font-family: $nlmixr2-font-body;
+}
+
+// -------------------------------------------------------------- headings --
+// Slide titles are left aligned, bold and red; the wordmark inside them is
+// navy (use [nlmixr2]{.nlmixr} in your markdown).
+.reveal h1,
+.reveal h2,
+.reveal h3,
+.reveal h4,
+.reveal h5,
+.reveal h6 {
+  font-family: $nlmixr2-font-display;
+  color: $nlmixr2-red;
+  font-weight: 700;
+  text-align: left;
+  margin-bottom: 0.5em;
+  text-transform: none;
+  word-wrap: normal;
+}
+
+.reveal h3,
+.reveal h4 {
+  color: $nlmixr2-blue;
+}
+
+// ----------------------------------------------------------- title slide --
+#title-slide {
+  // 1763448 EMU tall == 185px, sitting 32px above the slide foot
+  @include nlmixr2-logo-slide(185px, 32px, 80px);
+
+  .title {
+    font-family: $nlmixr2-font-display;
+    color: $nlmixr2-red;
+    font-weight: 700;
+    text-align: center;
+    font-size: $presentation-h1-font-size;
+    line-height: 1.15;
+    margin: 0 auto 0.6em auto;
+    max-width: 90%;
+  }
+
+  .subtitle {
+    font-family: $nlmixr2-font-display;
+    color: $nlmixr2-body;
+    font-weight: 700;
+    text-align: center;
+    font-size: 1em;
+    margin-bottom: 0.4em;
+  }
+
+  .quarto-title-authors,
+  .author,
+  .quarto-title-author-name {
+    color: $nlmixr2-body;
+    font-weight: 700;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .institute,
+  .quarto-title-affiliation,
+  .date {
+    color: $nlmixr2-body;
+    font-weight: 400;
+    font-size: 0.72em;
+    text-align: center;
+  }
+}
+
+// The title slide carries the big centred logo, so suppress the little
+// corner one that the master puts on every other slide.
+body.reveal-viewport:has(#title-slide.present) .slide-logo {
+  display: none !important;
+}
+
+// A closing slide: `## Thank you {.thanks}`
+.reveal section.thanks {
+  @include nlmixr2-logo-slide(230px, 36px, 180px);
+
+  h1,
+  h2,
+  h3 {
+    color: $nlmixr2-blue;
+    text-align: center;
+    font-size: 1.6em;
+    margin: 0;
+  }
+}
+
+body.reveal-viewport:has(section.thanks.present) .slide-logo {
+  display: none !important;
+}
+
+// ---------------------------------------------------------------- lists --
+// buChar "•" with buClr B40000: red markers, dark navy text.
+.reveal ul,
+.reveal ol {
+  margin-bottom: 0.4em;
+
+  li {
+    margin-bottom: 0.35em; // spcBef 20%
+
+    &::marker {
+      color: $nlmixr2-red;
+      font-weight: 700;
+    }
+  }
+
+  ul,
+  ol {
+    font-size: 0.92em; // lvl2 22pt vs lvl1 24pt
+    margin-top: 0.3em;
+  }
+}
+
+// A green-check list, as used on the "hard work is made easy" slide:
+//
+// ::: {.checks}
+// - nlmixr2autoinit is here to help
+// :::
+.reveal .checks ul,
+.reveal ul.checks {
+  list-style: none;
+  margin-left: 0.6em;
+
+  li {
+    position: relative;
+
+    &::marker {
+      content: "";
+    }
+
+    &::before {
+      content: "\2713";
+      position: absolute;
+      left: -1em;
+      color: $nlmixr2-green;
+      font-weight: 700;
+    }
+  }
+}
+
+// ------------------------------------------------------------------ code --
+// Courier New, no chrome around the block -- the deck simply drops monospace
+// text onto the white slide.
+.reveal code,
+.reveal pre,
+.reveal pre code {
+  font-family: $nlmixr2-font-mono;
+  color: $nlmixr2-body;
+  background: transparent;
+}
+
+.reveal pre {
+  box-shadow: none;
+  border: none;
+  width: 100%;
+  margin: 0.5em 0;
+
+  code {
+    padding: 0;
+    line-height: 1.25;
+    border: none;
+    box-shadow: none;
+  }
+}
+
+.reveal code {
+  font-size: 0.92em;
+}
+
+// Bolded call-out lines inside a chunk keep the deck's emphasis trick:
+// use ` ```{.r code-line-numbers="3"} ` or wrap the line in **…**.
+.reveal pre code .highlight-line,
+.reveal .code-highlight strong {
+  font-weight: 700;
+  color: $nlmixr2-body;
+}
+
+// ----------------------------------------------------------------- rules --
+// The red dash-dot separator that splits the call from the printed output on
+// the import slides.  In markdown `---` starts a new slide, so write it as an
+// empty div instead:
+//
+//     ::: {.rule}
+//     :::
+.reveal hr,
+.reveal .rule {
+  border: 0;
+  height: 3px;
+  width: 100%;
+  margin: 0.6em 0;
+  background-image: repeating-linear-gradient(
+    to right,
+    $nlmixr2-red 0 22px,
+    transparent 22px 31px,
+    $nlmixr2-red 31px 36px,
+    transparent 36px 45px
+  );
+}
+
+// ---------------------------------------------------------------- tables --
+.reveal table {
+  border-collapse: collapse;
+  font-size: 0.72em;
+  margin: 0.5em 0;
+  width: 100%;
+
+  th {
+    background-color: $nlmixr2-table-header-bg;
+    color: #ffffff;
+    font-weight: 700;
+    text-align: left;
+    border: none;
+    padding: 0.25em 0.5em;
+  }
+
+  td {
+    border: none;
+    padding: 0.25em 0.5em;
+    color: $nlmixr2-body;
+  }
+
+  tbody tr:nth-child(odd) td {
+    background-color: $nlmixr2-table-band-bg;
+  }
+
+  tbody tr:nth-child(even) td {
+    background-color: #ffffff;
+  }
+}
+
+// ----------------------------------------------------------- quotes etc. --
+.reveal blockquote {
+  border-left: 4px solid $nlmixr2-red;
+  background: rgba($nlmixr2-cream, 0.6);
+  box-shadow: none;
+  font-style: normal;
+  color: $nlmixr2-body;
+  padding: 0.4em 0.8em;
+  margin: 0.5em 0;
+  width: auto;
+}
+
+.reveal a {
+  color: $link-color;
+  text-decoration: none;
+
+  &:hover {
+    color: $link-color-hover;
+    text-decoration: underline;
+  }
+}
+
+.reveal strong,
+.reveal b {
+  color: inherit;
+  font-weight: 700;
+}
+
+// --------------------------------------------------------------- chrome --
+// Footer: 8 pt, centred, tx2 lumMod 75% -- "nlmixr development team".
+.reveal .footer,
+.reveal .footer p {
+  color: $nlmixr2-footer-color;
+  font-family: $nlmixr2-font-body;
+  font-size: 0.4em;
+  text-align: center;
+}
+
+// Slide number: 8 pt red, bottom left, bare number.  Kept clear of the
+// reveal menu button, which lives in the same corner.
+.reveal .slide-number,
+.reveal .slide-number a {
+  background-color: transparent;
+  color: $nlmixr2-red;
+  font-family: $nlmixr2-font-body;
+  font-size: 0.4em;
+  right: auto;
+  left: 62px;
+  bottom: 12px;
+}
+
+.reveal .slide-menu-button {
+  opacity: 0.35;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+// Corner logo: 1044116 x 524043 EMU == 8.6% x 7.6% of the slide.
+.reveal .slide-logo {
+  display: block;
+  position: fixed;
+  bottom: 12px;
+  right: 40px;
+  max-height: 7.6% !important;
+  height: 100%;
+  width: auto;
+  max-width: unset !important;
+  z-index: 20;
+}
+
+// If no `logo:` is set in the document, fall back to the master's own logo.
+.reveal-viewport:not(:has(.slide-logo))::after {
+  content: "";
+  position: fixed;
+  right: 40px;
+  bottom: 12px;
+  width: 8.6%;
+  height: 7.6%;
+  background: $nlmixr2-logo-small no-repeat right bottom;
+  background-size: contain;
+  pointer-events: none;
+  z-index: 20;
+}
+
+body.reveal-viewport:has(#title-slide.present)::after,
+body.reveal-viewport:has(section.thanks.present)::after {
+  content: none;
+}
+
+.reveal .progress {
+  color: $nlmixr2-red;
+}
+
+.reveal .controls {
+  color: $nlmixr2-blue;
+}
+
+// ------------------------------------------------------- helper classes --
+// Inline colour helpers.  The deck writes the wordmark inside red titles as
+// navy "nlmixr" plus a superscript 2, which in markdown is
+// `[nlmixr]{.nlmixr}[^2^]{.nlmixr}` -- or just `[nlmixr2]{.nlmixr}`.
+.nlmixr,
+.blue {
+  color: $nlmixr2-blue;
+  font-weight: inherit;
+}
+
+.red {
+  color: $nlmixr2-red;
+}
+
+.green {
+  color: $nlmixr2-green;
+}
+
+.muted {
+  color: $nlmixr2-footer-color;
+  font-size: 0.8em;
+}
+
+.smaller {
+  font-size: 0.8em;
+}
+
+.credit {
+  font-size: 0.45em;
+  color: $nlmixr2-body;
+  text-align: center;
+}
+
+// Centre a whole slide's content: `## Some title {.center-slide}`
+.reveal section.center-slide {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+
+  h1,
+  h2,
+  h3 {
+    text-align: center;
+  }
+}
