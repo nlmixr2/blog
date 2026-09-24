@@ -124,15 +124,14 @@ There are five parts to this talk.
 First, why the diagram and the equations in a report are so easy to
 get wrong.
 
-Second, how nlmixr2 plot draws a compartment diagram straight from the
-model.
+Second, how nlmixr2 plot draws a compartment diagram for you.
 
 Third, how nlmixr2 extra writes the model equations for you.
 
 Fourth, putting it all together in one report that knits to Word,
 HTML and PDF.
 
-And fifth, adding the diagram and the equations to nlmixr2 R P T
+And fifth, adding the diagram and the equations to nlmixr2
 reports.
 :::
 
@@ -201,7 +200,7 @@ equations that define it.
 
 They're also two of the easiest things to get wrong. The diagram gets
 drawn by hand early in the analysis. The equations are typed into Word
-from the control stream. Then the model changes. A transit compartment
+from the analysis scripts. Then the model changes. A transit compartment
 gets added, or a covariate moves. The code is updated, but the figure
 and the math are not.
 
@@ -250,14 +249,10 @@ Here's a two compartment model with first order absorption. One call
 to model diagram draws it.
 
 There's no layout information anywhere in the model. Model diagram
-reads the d d t equations, works out which terms move mass between
-compartments, and then places the compartments the way a
-pharmacometrician would draw them by hand. The dosing compartment is
-on top with a heavy border, the peripheral compartment is to the left,
-and elimination leaves the central compartment going down.
+reads the O-D-E equations, works out which terms move mass between
+compartments, and then places both the compartments and arrows.
 
-With labels set to true, each arrow also carries the model term that
-drives it. That's usually what you want in a methods section.
+With labels set to true, each arrow also carries the model terms.
 :::
 
 ## Each term in a d/dt equation is classified by what it does to mass
@@ -315,23 +310,15 @@ drives it. That's usually what you want in a methods section.
 ```
 
 ::: {.notes}
-How does it know? Every d d t equation is split into its terms, and
+How does it know? Every ODE equation is split into its terms, and
 each term is classified by what it does to mass.
 
-Here's the central compartment. k a times depot is also subtracted
-from depot, so it's a transfer in from depot. c l over v times central
-contains central's own amount, and nothing else gains it, so it's an
-elimination. q over v times central is subtracted here and added to the
-peripheral compartment, so it's a transfer out. And the last term is
-the transfer back in from the peripheral compartment.
+The central compartment has mass transfer between depot, central and
+peripheral compartments, and so arrows are drawn to represent that action.
 
-There are two more kinds. A gain that depends on no other compartment,
-like a zero order k in, is an input. And a term that depends on
-another compartment without moving any mass, like an effect
-compartment or a drug effect on turnover, is an interaction. It's
+Terms depending on another compartment without moving any mass, like either an effect
+compartment or a drug effect on turnover, are
 drawn as a dashed or dotted arrow.
-Intermediate variables are followed, so it doesn't matter if you
-compute a concentration first.
 :::
 
 ## The direction of a drug effect is read from the equation, not declared
@@ -361,18 +348,12 @@ d/dt(effect) <-  kin*PD - kout*effect
 ::::
 
 ::: {.notes}
-Pharmacodynamic models are where hand-drawn diagrams get fiddly, and
-where this saves the most time.
+Pharmacodynamic models are where this saves the most time.
 
 This is an indirect response model where the drug inhibits production
-of the response. Nobody told model diagram that effect is a turnover
-response, that gut is a transit compartment, or that the drug is
-inhibitory.
-
-It followed P D back through the concentration to the center
-compartment, saw that P D falls as the concentration rises, and drew
-an inhibition, the dotted arrow. If you later change the model to a
-stimulatory effect, the diagram changes with it.
+of the response. It followed P D back through the concentration to the
+center compartment as an inhibition without mass transfer, so it drew the dotted
+arrow. The diagram would be different if it was a stimulatory effect.
 :::
 
 ## Binding and unbinding are mass transfer, so a TMDD model draws itself
@@ -388,10 +369,8 @@ d/dt(complex) <-  kon*central*target - koff*complex - kint*complex
 [Checked against all 3043 models in [nlmixr2lib]{.nlmixr}, including large QSP and PBPK models]{style="font-size: 0.75em;"}
 
 ::: {.notes}
-Target mediated drug disposition works the same way. The binding term,
-k on times central times target, is lost from both the drug and the
-target, and gained by the complex. So both partners get an arrow into
-the complex, and unbinding gets arrows back out again.
+Target mediated drug disposition works the same way. The mass transfer
+drives all the arrows.
 
 Before release, the diagrams were checked against all three thousand
 forty three models in nlmixr2 lib, including large Q S P and P B P K
@@ -417,7 +396,7 @@ models.
 The same graph can be drawn three ways, and each fits a different kind
 of report.
 
-The g g plot two engine gives you an ordinary g g plot object. You can theme it to
+The plot engine gives you an ordinary plot object. You can theme it to
 match your other figures, save it at whatever resolution your
 publisher wants, or put it next to a goodness of fit plot. That's the
 one to use in Word and PDF reports.
@@ -425,11 +404,10 @@ one to use in Word and PDF reports.
 Diagrammer gives you an interactive Graphviz widget, which is nice in
 HTML reports and dashboards.
 
-And dot gives you the Graphviz source as text. When the automatic
-layout is ninety five percent of the way there, that's your escape
-hatch. Edit the dot, instead of starting a drawing from scratch.
+And dot gives you the Graphviz source as text. This allows tweaking
+the diagram instead of starting a drawing from scratch.
 
-And if you want to see how the equations were read, model graph gives
+If you want to see how the equations were read, model graph gives
 you the compartments and flows as data frames.
 :::
 
@@ -478,7 +456,7 @@ $$
 ::::
 
 ::: {.notes}
-nlmixr2 extra has a knit print method for model objects and for fits.
+nlmixr2 has a knit print method for model objects and for fits.
 In practice, that means when a model or a fit is the last thing in an
 R Markdown or Quarto chunk, the chunk prints the model as aligned
 latex equations instead of as R code.
@@ -490,13 +468,13 @@ is kept.
 If you want the R code back, call print explicitly.
 :::
 
-## Covariate switches survive the translation, and so does the error model
+## Covariate switches survive the translation, even on character values
 
 :::: columns
 ::: {.column width="44%"}
 ```r
 model({
-  if (SEX == 1) {
+  if (SEX == "Female") {
     cl <- exp(tcl) * 0.8
   } else {
     cl <- exp(tcl)
@@ -513,7 +491,7 @@ The `model()` block of `covmod`, printed with `rxode2::rxode2(covmod)`
 ::: {.column width="56%" .eqs .eqsbig}
 $$
 \begin{aligned}
-\mathrm{if} & \left({SEX}{\equiv}{1}\right) \{ \\
+\mathrm{if} & \left({SEX}{\equiv}\text{"Female"}\right) \{ \\
 & {cl}  = \exp\left({tcl}\right) {\times} {0.8} \\
 \}  \quad & \mathrm{else} \: {cl}  = \exp\left({tcl}\right) \\
 {v} & = \exp\left({tv}\right) \\
@@ -525,18 +503,22 @@ $$
 ::: rule
 :::
 
+Character covariates compare directly: no recoding `SEX` as 0/1
+
 Variable names are the symbols: `eta.cl` stays ${eta.cl}$, so name them well
 :::
 ::::
 
 ::: {.notes}
 Conditional logic survives too, which matters for models with
-covariate switches. Here, the clearance depends on sex, and the if and
-else branches come through as they're written. The double equals shows
-up as an equivalence sign.
+covariate switches. Here, the clearance depends on sex, and sex is
+compared to the word female directly. Character covariates work in the
+model as they are, so there's no need to recode them as numbers first.
+The if and else branches come through as they're written, the double
+equals shows up as an equivalence sign, and female shows up as text.
 
 One thing to keep in mind is that the variable names are the symbols.
-The name eta dot c l stays eta dot c l. It isn't turned into a Greek letter. So
+Names aren't turned into Greek letters: what you type is what the equation shows. So
 meaningful names in your code give readable equations in the report.
 :::
 
@@ -603,8 +585,8 @@ dosing compartment from the data the model was fit to. The equations
 come from the same fit, through a small helper called model equations
 that I'll show next, and so does the parameter table.
 
-If the final model changes during review, you re-knit, and all three
-update. The report can't describe one model while its tables report
+If the final model changes during review, you render the report
+again, and all three update. The report can't describe one model while its tables report
 another. For regulatory work, that also means the Q C of the methods
 section is mostly the Q C of the code. There's no separate hand-typed
 copy to reconcile.
@@ -658,7 +640,7 @@ For Word, the helper also drops the alignment points. Word handles
 aligned equations, but LibreOffice garbles them, and a report often
 gets opened in both.
 
-For the diagram, use the g g plot two engine, so it's a static image
+For the diagram, use the plot engine, so it's a static image
 that every format can embed.
 :::
 
@@ -690,7 +672,7 @@ blog post.
 ![](images/sec-rpt.jpg){.nostretch fig-alt="Illustration: a bookbinding machine turning loose diagram, equation and table pages into a bound report and a stack of slides"}
 
 ::: {.notes}
-If your reports already come from nlmixr2 R P T, the diagram and the
+If your reports already come from the nlmixr2 report package, the diagram and the
 equations fit right in.
 :::
 
@@ -723,14 +705,13 @@ Abridged: the full entries (with `title:` and `orientation:`) are in the blog po
 ::::
 
 ::: {.notes}
-nlmixr2 R P T builds Word and PowerPoint reports from a fit, using your
-organization's templates. It reads its figures and tables from a YAML
-file, and each one is just R code that has the fit available.
+The nlmixr2 report package builds Word and PowerPoint reports from a fit, using your
+organization's templates. It reads its figures and tables from a configuration file, and each one is just R code that has the fit available.
 
 So the model diagram is one new figure that calls model diagram. The
 equations are one new table. Then you list them first in the document
 content, and the model opens the report, ahead of the parameter table
-and the goodness of fit figures that nlmixr2 R P T already makes.
+and the goodness of fit figures that the nlmixr2 report package already makes.
 
 On the right are the first two pages of the Word report it produced.
 :::
@@ -776,8 +757,7 @@ modelEquationTable <- function(fit, obnd) {
 ::::
 
 ::: {.notes}
-The equations table uses a small helper, defined once in the YAML's
-table preamble.
+The equations table uses a small helper, defined once in the configuration file's table preamble.
 
 It takes the same knit print output, and splits it into one equation
 per row of a flex table. Then flex table's as equation function writes
@@ -789,7 +769,7 @@ points, so Word and LibreOffice show the report the same way. In the
 PowerPoint deck, the equations render natively too. There's no
 fallback image, though, so LibreOffice Impress shows that slide blank.
 
-The one extra requirement is the equa tags package. Without it, the
+It needs one extra package, shown on the slide. Without it, the
 cells come out blank.
 :::
 
@@ -820,8 +800,7 @@ Model diagram and model graph are in nlmixr2 plot five point two. The
 equations are in nlmixr2 extra. The model diagrams vignette covers
 every rule for how terms are read, and the current limitations.
 
-And for Word and PowerPoint reports, add two entries to your nlmixr2
-R P T YAML.
+And for Word and PowerPoint reports, add two entries to your configuration file.
 
 So point them at the model you're writing up this week, and see how
 close they get you to the figure and equations you would have drawn by

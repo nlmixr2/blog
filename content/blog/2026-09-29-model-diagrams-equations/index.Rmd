@@ -213,7 +213,9 @@ $\frac{d \: depot}{dt}$, `exp()` and `log()` become proper functions
 with sized parentheses, divisions become fractions, and the residual
 error line is kept as a $\sim$ statement.  Conditional logic survives
 too (`==` is shown as $\equiv$), which matters for models with
-covariate switches:
+covariate switches.  A character covariate can be compared to its
+value directly, with no need to recode it as a number first, and the
+string carries through to the equation:
 
 ```{r eq-if}
 covmod <- function() {
@@ -223,7 +225,7 @@ covmod <- function() {
     add.sd <- 0.2
   })
   model({
-    if (SEX == 1) {
+    if (SEX == "Female") {
       cl <- exp(tcl) * 0.8
     } else {
       cl <- exp(tcl)

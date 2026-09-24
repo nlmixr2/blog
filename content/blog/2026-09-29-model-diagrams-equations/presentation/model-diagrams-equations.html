@@ -254,10 +254,10 @@ Matthew Fidler
 <aside class="notes">
 <p>There are five parts to this talk.</p>
 <p>First, why the diagram and the equations in a report are so easy to get wrong.</p>
-<p>Second, how nlmixr2 plot draws a compartment diagram straight from the model.</p>
+<p>Second, how nlmixr2 plot draws a compartment diagram for you.</p>
 <p>Third, how nlmixr2 extra writes the model equations for you.</p>
 <p>Fourth, putting it all together in one report that knits to Word, HTML and PDF.</p>
-<p>And fifth, adding the diagram and the equations to nlmixr2 R P T reports.</p>
+<p>And fifth, adding the diagram and the equations to nlmixr2 reports.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -335,7 +335,7 @@ Matthew Fidler
 </svg>
 <aside class="notes">
 <p>Most pharmacometric reports have the same two things near the top of the methods section: a compartment diagram of the final model, and the equations that define it.</p>
-<p>They’re also two of the easiest things to get wrong. The diagram gets drawn by hand early in the analysis. The equations are typed into Word from the control stream. Then the model changes. A transit compartment gets added, or a covariate moves. The code is updated, but the figure and the math are not.</p>
+<p>They’re also two of the easiest things to get wrong. The diagram gets drawn by hand early in the analysis. The equations are typed into Word from the analysis scripts. Then the model changes. A transit compartment gets added, or a covariate moves. The code is updated, but the figure and the math are not.</p>
 <p>A reviewer who reads the equations in the report, and the code in the appendix, finds two different models.</p>
 <p>The fix is to generate both from the model itself. If they come from the same object you fit, they can’t drift away from it.</p>
 <style type="text/css">
@@ -389,8 +389,8 @@ modelDiagram(two.cmt,
 </div></div>
 <aside class="notes">
 <p>Here’s a two compartment model with first order absorption. One call to model diagram draws it.</p>
-<p>There’s no layout information anywhere in the model. Model diagram reads the d d t equations, works out which terms move mass between compartments, and then places the compartments the way a pharmacometrician would draw them by hand. The dosing compartment is on top with a heavy border, the peripheral compartment is to the left, and elimination leaves the central compartment going down.</p>
-<p>With labels set to true, each arrow also carries the model term that drives it. That’s usually what you want in a methods section.</p>
+<p>There’s no layout information anywhere in the model. Model diagram reads the O-D-E equations, works out which terms move mass between compartments, and then places both the compartments and arrows.</p>
+<p>With labels set to true, each arrow also carries the model terms.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -454,9 +454,9 @@ modelDiagram(two.cmt,
   <text class="sm" x="150" y="448">Intermediate variables like cp &lt;- central/v are followed; if/else blocks keep their conditions.</text>
 </svg>
 <aside class="notes">
-<p>How does it know? Every d d t equation is split into its terms, and each term is classified by what it does to mass.</p>
-<p>Here’s the central compartment. k a times depot is also subtracted from depot, so it’s a transfer in from depot. c l over v times central contains central’s own amount, and nothing else gains it, so it’s an elimination. q over v times central is subtracted here and added to the peripheral compartment, so it’s a transfer out. And the last term is the transfer back in from the peripheral compartment.</p>
-<p>There are two more kinds. A gain that depends on no other compartment, like a zero order k in, is an input. And a term that depends on another compartment without moving any mass, like an effect compartment or a drug effect on turnover, is an interaction. It’s drawn as a dashed or dotted arrow. Intermediate variables are followed, so it doesn’t matter if you compute a concentration first.</p>
+<p>How does it know? Every ODE equation is split into its terms, and each term is classified by what it does to mass.</p>
+<p>The central compartment has mass transfer between depot, central and peripheral compartments, and so arrows are drawn to represent that action.</p>
+<p>Terms depending on another compartment without moving any mass, like either an effect compartment or a drug effect on turnover, are drawn as a dashed or dotted arrow.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -491,9 +491,8 @@ d/dt(effect) &lt;-  kin*PD - kout*effect</code></pre>
 <p><img data-src="images/fig-turnover.png" class="plot" alt="Turnover diagram: depot, gut and center stacked, with a dotted inhibition arrow from center to effect"></p>
 </div></div>
 <aside class="notes">
-<p>Pharmacodynamic models are where hand-drawn diagrams get fiddly, and where this saves the most time.</p>
-<p>This is an indirect response model where the drug inhibits production of the response. Nobody told model diagram that effect is a turnover response, that gut is a transit compartment, or that the drug is inhibitory.</p>
-<p>It followed P D back through the concentration to the center compartment, saw that P D falls as the concentration rises, and drew an inhibition, the dotted arrow. If you later change the model to a stimulatory effect, the diagram changes with it.</p>
+<p>Pharmacodynamic models are where this saves the most time.</p>
+<p>This is an indirect response model where the drug inhibits production of the response. It followed P D back through the concentration to the center compartment as an inhibition without mass transfer, so it drew the dotted arrow. The diagram would be different if it was a stimulatory effect.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -514,7 +513,7 @@ d/dt(target)  &lt;-  ksyn - kdeg*target - kon*central*target + koff*complex
 d/dt(complex) &lt;-  kon*central*target - koff*complex - kint*complex</code></pre>
 <p><span style="font-size: 0.75em;">Checked against all 3043 models in <span class="nlmixr">nlmixr2lib</span>, including large QSP and PBPK models</span></p>
 <aside class="notes">
-<p>Target mediated drug disposition works the same way. The binding term, k on times central times target, is lost from both the drug and the target, and gained by the complex. So both partners get an arrow into the complex, and unbinding gets arrows back out again.</p>
+<p>Target mediated drug disposition works the same way. The mass transfer drives all the arrows.</p>
 <p>Before release, the diagrams were checked against all three thousand forty three models in nlmixr2 lib, including large Q S P and P B P K models.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
@@ -569,10 +568,10 @@ d/dt(complex) &lt;-  kon*central*target - koff*complex - kint*complex</code></pr
 <p><code>modelGraph()</code> returns the parsed compartments and flows as data frames, to check how the equations were read</p>
 <aside class="notes">
 <p>The same graph can be drawn three ways, and each fits a different kind of report.</p>
-<p>The g g plot two engine gives you an ordinary g g plot object. You can theme it to match your other figures, save it at whatever resolution your publisher wants, or put it next to a goodness of fit plot. That’s the one to use in Word and PDF reports.</p>
+<p>The plot engine gives you an ordinary plot object. You can theme it to match your other figures, save it at whatever resolution your publisher wants, or put it next to a goodness of fit plot. That’s the one to use in Word and PDF reports.</p>
 <p>Diagrammer gives you an interactive Graphviz widget, which is nice in HTML reports and dashboards.</p>
-<p>And dot gives you the Graphviz source as text. When the automatic layout is ninety five percent of the way there, that’s your escape hatch. Edit the dot, instead of starting a drawing from scratch.</p>
-<p>And if you want to see how the equations were read, model graph gives you the compartments and flows as data frames.</p>
+<p>And dot gives you the Graphviz source as text. This allows tweaking the diagram instead of starting a drawing from scratch.</p>
+<p>If you want to see how the equations were read, model graph gives you the compartments and flows as data frames.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -634,7 +633,7 @@ rxode2::rxode2(two.cmt)</code></pre>
 \]</span></p>
 </div></div>
 <aside class="notes">
-<p>nlmixr2 extra has a knit print method for model objects and for fits. In practice, that means when a model or a fit is the last thing in an R Markdown or Quarto chunk, the chunk prints the model as aligned latex equations instead of as R code.</p>
+<p>nlmixr2 has a knit print method for model objects and for fits. In practice, that means when a model or a fit is the last thing in an R Markdown or Quarto chunk, the chunk prints the model as aligned latex equations instead of as R code.</p>
 <p>Each assignment becomes an aligned line. The d d t lines become proper derivatives, divisions become fractions, and the residual error line is kept.</p>
 <p>If you want the R code back, call print explicitly.</p>
 <style type="text/css">
@@ -649,12 +648,12 @@ rxode2::rxode2(two.cmt)</code></pre>
           display:block!important;
       }</style></aside>
 </section>
-<section id="covariate-switches-survive-the-translation-and-so-does-the-error-model" class="slide level2">
-<h2>Covariate switches survive the translation, and so does the error model</h2>
+<section id="covariate-switches-survive-the-translation-even-on-character-values" class="slide level2">
+<h2>Covariate switches survive the translation, even on character values</h2>
 <div class="columns">
 <div class="column" style="width:44%;">
 <pre class="r number-lines"><code>model({
-  if (SEX == 1) {
+  if (SEX == "Female") {
     cl &lt;- exp(tcl) * 0.8
   } else {
     cl &lt;- exp(tcl)
@@ -667,7 +666,7 @@ rxode2::rxode2(two.cmt)</code></pre>
 </div><div class="column eqs eqsbig" style="width:56%;">
 <p><span class="math display">\[
 \begin{aligned}
-\mathrm{if} &amp; \left({SEX}{\equiv}{1}\right) \{ \\
+\mathrm{if} &amp; \left({SEX}{\equiv}\text{"Female"}\right) \{ \\
 &amp; {cl}  = \exp\left({tcl}\right) {\times} {0.8} \\
 \}  \quad &amp; \mathrm{else} \: {cl}  = \exp\left({tcl}\right) \\
 {v} &amp; = \exp\left({tv}\right) \\
@@ -678,11 +677,12 @@ rxode2::rxode2(two.cmt)</code></pre>
 <div class="rule">
 
 </div>
+<p>Character covariates compare directly: no recoding <code>SEX</code> as 0/1</p>
 <p>Variable names are the symbols: <code>eta.cl</code> stays <span class="math inline">\({eta.cl}\)</span>, so name them well</p>
 </div></div>
 <aside class="notes">
-<p>Conditional logic survives too, which matters for models with covariate switches. Here, the clearance depends on sex, and the if and else branches come through as they’re written. The double equals shows up as an equivalence sign.</p>
-<p>One thing to keep in mind is that the variable names are the symbols. The name eta dot c l stays eta dot c l. It isn’t turned into a Greek letter. So meaningful names in your code give readable equations in the report.</p>
+<p>Conditional logic survives too, which matters for models with covariate switches. Here, the clearance depends on sex, and sex is compared to the word female directly. Character covariates work in the model as they are, so there’s no need to recode them as numbers first. The if and else branches come through as they’re written, the double equals shows up as an equivalence sign, and female shows up as text.</p>
+<p>One thing to keep in mind is that the variable names are the symbols. Names aren’t turned into Greek letters: what you type is what the equation shows. So meaningful names in your code give readable equations in the report.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -757,7 +757,7 @@ rxode2::rxode2(two.cmt)</code></pre>
 <aside class="notes">
 <p>The real payoff is in the report template.</p>
 <p>Fit the model once, and let every description of it come from the fit. Model diagram of the fit gives the figure, and it takes the dosing compartment from the data the model was fit to. The equations come from the same fit, through a small helper called model equations that I’ll show next, and so does the parameter table.</p>
-<p>If the final model changes during review, you re-knit, and all three update. The report can’t describe one model while its tables report another. For regulatory work, that also means the Q C of the methods section is mostly the Q C of the code. There’s no separate hand-typed copy to reconcile.</p>
+<p>If the final model changes during review, you render the report again, and all three update. The report can’t describe one model while its tables report another. For regulatory work, that also means the Q C of the methods section is mostly the Q C of the code. There’s no separate hand-typed copy to reconcile.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -805,7 +805,7 @@ rxode2::rxode2(two.cmt)</code></pre>
 <p>Pandoc silently drops a bare align environment when it writes a Word file. So if you just print the model, the equations simply vanish from the Word document, with no error.</p>
 <p>Wrapped as display math with an aligned block, pandoc turns it into a native Word equation that your medical writers can edit. And it still renders in HTML and PDF, so one helper serves all three formats.</p>
 <p>For Word, the helper also drops the alignment points. Word handles aligned equations, but LibreOffice garbles them, and a report often gets opened in both.</p>
-<p>For the diagram, use the g g plot two engine, so it’s a static image that every format can embed.</p>
+<p>For the diagram, use the plot engine, so it’s a static image that every format can embed.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -842,7 +842,7 @@ rxode2::rxode2(two.cmt)</code></pre>
 <h2>5. nlmixr2rpt reports can open with the model</h2>
 <p><img data-src="images/sec-rpt.jpg" class="" alt="Illustration: a bookbinding machine turning loose diagram, equation and table pages into a bound report and a stack of slides"></p>
 <aside class="notes">
-<p>If your reports already come from nlmixr2 R P T, the diagram and the equations fit right in.</p>
+<p>If your reports already come from the nlmixr2 report package, the diagram and the equations fit right in.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -877,8 +877,8 @@ tables:
 <p><img data-src="images/fig-rpt-pages.png" class="plot" alt="The first two pages of the nlmixr2rpt Word report: the model diagram under a Model heading, then the model equations as Table 1"></p>
 </div></div>
 <aside class="notes">
-<p>nlmixr2 R P T builds Word and PowerPoint reports from a fit, using your organization’s templates. It reads its figures and tables from a YAML file, and each one is just R code that has the fit available.</p>
-<p>So the model diagram is one new figure that calls model diagram. The equations are one new table. Then you list them first in the document content, and the model opens the report, ahead of the parameter table and the goodness of fit figures that nlmixr2 R P T already makes.</p>
+<p>The nlmixr2 report package builds Word and PowerPoint reports from a fit, using your organization’s templates. It reads its figures and tables from a configuration file, and each one is just R code that has the fit available.</p>
+<p>So the model diagram is one new figure that calls model diagram. The equations are one new table. Then you list them first in the document content, and the model opens the report, ahead of the parameter table and the goodness of fit figures that the nlmixr2 report package already makes.</p>
 <p>On the right are the first two pages of the Word report it produced.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
@@ -930,10 +930,10 @@ tables:
 </ul>
 </div></div>
 <aside class="notes">
-<p>The equations table uses a small helper, defined once in the YAML’s table preamble.</p>
+<p>The equations table uses a small helper, defined once in the configuration file’s table preamble.</p>
 <p>It takes the same knit print output, and splits it into one equation per row of a flex table. Then flex table’s as equation function writes each row as a native equation, in Word and in PowerPoint, so it can be edited like any other equation.</p>
 <p>Because each equation sits in its own row, there are no alignment points, so Word and LibreOffice show the report the same way. In the PowerPoint deck, the equations render natively too. There’s no fallback image, though, so LibreOffice Impress shows that slide blank.</p>
-<p>The one extra requirement is the equa tags package. Without it, the cells come out blank.</p>
+<p>It needs one extra package, shown on the slide. Without it, the cells come out blank.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -967,7 +967,7 @@ tables:
 </div></div>
 <aside class="notes">
 <p>Model diagram and model graph are in nlmixr2 plot five point two. The equations are in nlmixr2 extra. The model diagrams vignette covers every rule for how terms are read, and the current limitations.</p>
-<p>And for Word and PowerPoint reports, add two entries to your nlmixr2 R P T YAML.</p>
+<p>And for Word and PowerPoint reports, add two entries to your configuration file.</p>
 <p>So point them at the model you’re writing up this week, and see how close they get you to the figure and equations you would have drawn by hand. If a diagram looks wrong, please open an issue. The model that trips up the parser is exactly the one we want to see.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {

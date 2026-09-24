@@ -9,6 +9,8 @@ pronunciation is controlled by respelling, which works on every model.
   python3 tts_generate.py               # ONE take, cut into audio/slide<h>.0.mp3
   python3 tts_generate.py --per-slide   # legacy: one request per slide
   python3 tts_generate.py --recut       # re-cut the cached take, no API call
+  python3 tts_generate.py --verify      # transcribe audio/ clips (nlmixr2 spelled
+                                        # right) and check each opens with its words
   python3 tts_generate.py --draft       # FREE local draft via piper -- no API call,
                                         # no key needed; audio-draft/slide<h>.0.wav
                                         # plus a concatenated full-draft.wav.  Runs
@@ -164,6 +166,7 @@ SAY = [
     (r"\bBOBYQA\b",          "B-O-B-Y-Q-A"),
     (r"\bbobyqa\b",          "B-O-B-Y-Q-A"),
     (r"\bnlmixr2\b",         "N L mixer two"),
+    (r"\bO-D-E\b|\bODEs?\b",  "O-D-E"),          # not "ode"
     (r"\brxode2\b",          "RXODE2"),
     (r"\bn1qn1\b",           "N one Q N one"),
     (r"\bnlminb\b",          "N-L-M-I-N-B"),
@@ -175,6 +178,71 @@ SAY = [
     (r"\betas\b",            "eightuhz"),   # plural: "eightuhs" was heard as "ADHS"
     (r"\beta\b",             "eightuh"),
 ]
+
+# Scribe never spells nlmixr2 the way it is written: across takes it has
+# returned "NL Mixer 2", "NLMixer 2", "nlmixer2", "nl_mixer2", "nlmix2", "nl mixer. Two",
+# "And lmixer2" and "nlmixer2rpt".  This is a blog about nlmixr2, so every
+# transcript is canonicalised before anything reads it -- both the text
+# shown for verification and the word list that places the slide cuts.
+NLMIXR_TEXT = re.compile(
+    r"\b(?:an(?:d)?\s+(?=l))?(?:n\s*\.?\s*l|en\s*el|nel|l)\s*[-._]?\s*mix(?:e?r)?s?"
+    r"\s*[-.,_]?\s*(?:2|two|too|to)(?![0-9])(?:\s*-?\s*(rpt|plot|extra|lib)\b)?",
+    re.I)
+NLMIXR_TOKEN = re.compile(
+    r"(?:nl|enl|nel|andl|anl|l)mix(?:e?r)?s?(?:2|two|too|to)(rpt|plot|extra|lib|report)?")
+
+
+def expand(t: str) -> str:
+    """Contractions spelled out, so "There's" in the script and Scribe's
+    "There is" compare equal."""
+    t = re.sub(r"(?i)\b(there|here|it|that|what|let)'s\b",
+               lambda m: m.group(1) + (" us" if m.group(1).lower() == "let" else " is"), t)
+    t = re.sub(r"(?i)'re\b", " are", t)
+    t = re.sub(r"(?i)\bcan't\b", "cannot", t)
+    return re.sub(r"(?i)n't\b", " not", t)
+
+
+def canon_text(t: str) -> str:
+    """Transcript text with every nlmixr2 variant written as nlmixr2."""
+    return NLMIXR_TEXT.sub(lambda m: "nlmixr2" + (m.group(1) or "").lower(), t)
+
+
+def canon_words(words):
+    """Normalised word tokens ({"text", "start", "end"}) with runs of single
+    letters joined ("r p t" -> "rpt") and every nlmixr2 variant merged into
+    one "nlmixr2" token (plus its suffix, e.g. "plot", as the next token), so
+    the spoken script and Scribe's transcript can be compared word for word."""
+    norm = lambda x: re.sub(r"[^a-z0-9]", "", x.lower())
+    toks = [{"text": norm(w["text"]), "start": w["start"], "end": w["end"]}
+            for w in words if norm(w["text"])]
+    out, i = [], 0
+    while i < len(toks):                       # join runs of >= 2 letters
+        j = i
+        while (j < len(toks) and len(toks[j]["text"]) == 1
+               and toks[j]["text"].isalpha()):
+            j += 1
+        if j - i >= 2:
+            out.append({"text": "".join(t["text"] for t in toks[i:j]),
+                        "start": toks[i]["start"], "end": toks[j - 1]["end"]})
+            i = j
+        else:
+            out.append(toks[i]); i += 1
+    toks, out, i = out, [], 0
+    while i < len(toks):                       # merge nlmixr2 variants
+        for n in (4, 3, 2, 1):
+            m = NLMIXR_TOKEN.fullmatch("".join(t["text"] for t in toks[i:i + n]))
+            if i + n <= len(toks) and m:
+                out.append({"text": "nlmixr2", "start": toks[i]["start"],
+                            "end": toks[i + n - 1]["end"]})
+                if m.group(1):
+                    out.append({"text": m.group(1), "start": toks[i]["start"],
+                                "end": toks[i + n - 1]["end"]})
+                i += n
+                break
+        else:
+            out.append(toks[i]); i += 1
+    return out
+
 
 # No inline <break> tags.  They were what made the delivery sound clipped and
 # robotic; ordinary punctuation already gives the model natural sentence
@@ -398,28 +466,39 @@ def refine_bounds(full, slides, bounds, key):
     if r.status_code != 200:
         print(f"  (boundary refine skipped: STT HTTP {r.status_code})")
         return bounds, [0.0] * len(bounds)
-    words = [w for w in r.json().get("words", []) if w.get("type") == "word"]
-    norm = lambda x: re.sub(r"[^a-z0-9]", "", x.lower())
-    heard = [norm(w["text"]) for w in words]
+    words = canon_words([w for w in r.json().get("words", [])
+                         if w.get("type") == "word"])
+    heard = [w["text"] for w in words]
 
     out, cursor = list(bounds), 0
     floors = [0.0] * len(bounds)
-    for k in range(1, len(slides)):
-        want = [norm(x) for x in slides[k]["say"].split()[:3] if norm(x)]
+    # Slide 0 is refined too: its start is where the throwaway priming line
+    # ends, and the character alignment has put that cut after the opening
+    # "Hi." more than once.
+    for k in range(0, len(slides)):
+        want = [w["text"] for w in canon_words(
+            [{"text": x, "start": 0, "end": 0}
+             for x in slides[k]["say"].split()[:12]])][:6]
         if len(want) < 2:
             continue
         best, bd = None, 12.0            # only look near the existing estimate
         for j in range(cursor, len(heard) - len(want)):
             if heard[j] != want[0]:
                 continue
+            # Six words, not three: slide 17 ends "...the nlmixr2 report
+            # package" and slide 18 opens with the same words, and a
+            # three-word match put the cut inside slide 17.  A character-
+            # prefix match also accepts Scribe merging two words into one.
             hits = sum(1 for a, b in zip(heard[j:j + len(want)], want) if a == b)
-            if hits < max(2, len(want) - 1):
+            chars = "".join(heard[j:j + len(want) + 2]).startswith("".join(want))
+            if not chars and hits < max(2, len(want) - 1):
                 continue
             d = abs(words[j]["start"] - bounds[k])
             if d < bd:
                 best, bd = j, d
         if best is not None:
-            out[k] = max(out[k - 1] + 0.30, words[best]["start"] - 0.18)
+            prev = out[k - 1] + 0.30 if k else 0.0
+            out[k] = max(prev, words[best]["start"] - 0.18)
             # Where the PREVIOUS slide's last word ended.  The 0.18 back-off
             # above (plus the 0.10 lead at cut time) is there so the opening
             # word is not clipped, but when the previous word ends close to
@@ -657,6 +736,33 @@ def draft(slides):
           f"play the whole thing with {full}")
 
 
+def verify(slides):
+    """Transcribe every audio/slide<h>.0.mp3 with Scribe and print the
+    canonicalised text, flagging a clip whose opening words are not its own
+    slide's -- the check to run before rendering a video."""
+    key, bad = api_key(), 0
+    for s in slides:
+        f = OUT / f"slide{s['h']}.0.mp3"
+        r = requests.post("https://api.elevenlabs.io/v1/speech-to-text",
+                          headers={"xi-api-key": key},
+                          data={"model_id": "scribe_v1"},
+                          files={"file": open(f, "rb")}, timeout=600)
+        r.raise_for_status()
+        j = r.json()
+        # compare characters, not tokens: Scribe writes "target-mediated"
+        # as one word where the script has two
+        heard = "".join(w["text"] for w in canon_words(
+            [{"text": x, "start": 0, "end": 0}
+             for x in expand(j["text"]).split()]))
+        want = "".join(w["text"] for w in canon_words(
+            [{"text": x, "start": 0, "end": 0}
+             for x in expand(spoken(s["raw"])).split()[:8]])[:3])
+        ok = heard.startswith(want)
+        bad += not ok
+        print(f"{'  ' if ok else '!!'} slide{s['h']}.0 | {canon_text(j['text'])}")
+    print(f"\n{len(slides) - bad} of {len(slides)} clips open with their own words")
+
+
 def main():
     slides = slides_from(DECK)
     for s in slides:
@@ -672,6 +778,9 @@ def main():
 
     if "--draft" in sys.argv:
         return draft(slides)
+
+    if "--verify" in sys.argv:
+        return verify(slides)
 
     key = api_key()
     if "--per-slide" not in sys.argv:

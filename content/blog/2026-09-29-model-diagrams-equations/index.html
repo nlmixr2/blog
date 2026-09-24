@@ -201,7 +201,9 @@ model as aligned LaTeX equations instead of as R code:</p>
 with sized parentheses, divisions become fractions, and the residual
 error line is kept as a <span class="math inline">\(\sim\)</span> statement. Conditional logic survives
 too (<code>==</code> is shown as <span class="math inline">\(\equiv\)</span>), which matters for models with
-covariate switches:</p>
+covariate switches. A character covariate can be compared to its
+value directly, with no need to recode it as a number first, and the
+string carries through to the equation:</p>
 <pre class="r"><code>covmod &lt;- function() {
   ini({
     tcl &lt;- log(3)
@@ -209,7 +211,7 @@ covariate switches:</p>
     add.sd &lt;- 0.2
   })
   model({
-    if (SEX == 1) {
+    if (SEX == &quot;Female&quot;) {
       cl &lt;- exp(tcl) * 0.8
     } else {
       cl &lt;- exp(tcl)
@@ -221,7 +223,7 @@ covariate switches:</p>
 }
 rxode2::rxode2(covmod)</code></pre>
 <p><span class="math display">\[\begin{align*}
-\mathrm{if} &amp; \left({SEX}{\equiv}{1}\right) \{ \\
+\mathrm{if} &amp; \left({SEX}{\equiv}\text{&quot;Female&quot;}\right) \{ \\
 &amp; {cl}  = \exp\left({tcl}\right) {\times} {0.8} \\
 \}  \quad &amp; \mathrm{else} \: {cl}  = \exp\left({tcl}\right) \\
 {v} &amp; = \exp\left({tv}\right) \\
