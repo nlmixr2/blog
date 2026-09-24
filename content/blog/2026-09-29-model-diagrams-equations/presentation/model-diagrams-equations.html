@@ -892,8 +892,8 @@ tables:
           display:block!important;
       }</style></aside>
 </section>
-<section id="one-equation-per-table-row-becomes-native-editable-word-math" class="slide level2">
-<h2>One equation per table row becomes native, editable Word math</h2>
+<section id="one-equation-per-table-row-becomes-native-editable-word-and-powerpoint-math" class="slide level2">
+<h2>One equation per table row becomes native, editable Word and PowerPoint math</h2>
 <div class="columns codesm">
 <div class="column" style="width:62%;">
 <pre class="r number-lines"><code>modelEquationTable &lt;- function(fit, obnd) {
@@ -918,9 +918,9 @@ tables:
 </div><div class="column" style="width:38%;">
 <ul>
 <li>Defined once, in the YAML’s <code>tabenv_preamble</code></li>
-<li><code>as_equation()</code> writes <strong>native, editable</strong> Word math</li>
+<li><code>as_equation()</code> writes <strong>native, editable</strong> math in Word and PowerPoint</li>
 <li>One equation per row: no alignment points, so Word and LibreOffice agree</li>
-<li>PowerPoint gets Office Math, with no fallback for other viewers</li>
+<li>No fallback image: LibreOffice Impress shows the PowerPoint slide blank</li>
 </ul>
 <div class="rule">
 
@@ -931,8 +931,8 @@ tables:
 </div></div>
 <aside class="notes">
 <p>The equations table uses a small helper, defined once in the YAML’s table preamble.</p>
-<p>It takes the same knit print output, and splits it into one equation per row of a flex table. Then flex table’s as equation function writes each row as a native Word equation, so it can be edited like any other equation.</p>
-<p>Because each equation sits in its own row, there are no alignment points, so Word and LibreOffice show the report the same way. In the PowerPoint deck, the same table is written as Office math, which PowerPoint reads, but other viewers may show that slide blank.</p>
+<p>It takes the same knit print output, and splits it into one equation per row of a flex table. Then flex table’s as equation function writes each row as a native equation, in Word and in PowerPoint, so it can be edited like any other equation.</p>
+<p>Because each equation sits in its own row, there are no alignment points, so Word and LibreOffice show the report the same way. In the PowerPoint deck, the equations render natively too. There’s no fallback image, though, so LibreOffice Impress shows that slide blank.</p>
 <p>The one extra requirement is the equa tags package. Without it, the cells come out blank.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {

@@ -384,17 +384,17 @@ The diagram entry calls `modelDiagram()` directly.  The equations entry
 uses a small helper, defined in `tabenv_preamble`, that splits the
 `knit_print()` output into one equation per row of a `flextable`.
 `flextable::as_equation()` then writes each row as a native, editable
-Word equation.  It needs the
+equation in both Word and PowerPoint.  It needs the
 [`equatags`](https://cran.r-project.org/package=equatags) package;
 without it the cells come out blank.  Because each equation sits in
 its own row, there are no alignment points, so Word and LibreOffice
 show the Word report the same way.  (An `if`/`else` block takes a few
 rows: one for the condition and one for each branch.)
 
-In the PowerPoint deck the same table is written as Office Math,
-which PowerPoint reads.  It has no fallback image, though, so
-LibreOffice Impress and some other viewers show the equations slide
-blank.
+In PowerPoint, the equations slide gets the same native math, and
+PowerPoint uses single line spacing with tighter padding, since it
+sizes the math itself.  There is no fallback image, though, so
+LibreOffice Impress and some other viewers show that slide blank.
 
 Merge these entries into a copy of the package's `report_fit.yaml`
 (or paste them in by hand), and point `report_fit()` at it:

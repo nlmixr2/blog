@@ -520,16 +520,16 @@ pptx:
 uses a small helper, defined in <code>tabenv_preamble</code>, that splits the
 <code>knit_print()</code> output into one equation per row of a <code>flextable</code>.
 <code>flextable::as_equation()</code> then writes each row as a native, editable
-Word equation. It needs the
+equation in both Word and PowerPoint. It needs the
 <a href="https://cran.r-project.org/package=equatags"><code>equatags</code></a> package;
 without it the cells come out blank. Because each equation sits in
 its own row, there are no alignment points, so Word and LibreOffice
 show the Word report the same way. (An <code>if</code>/<code>else</code> block takes a few
 rows: one for the condition and one for each branch.)</p>
-<p>In the PowerPoint deck the same table is written as Office Math,
-which PowerPoint reads. It has no fallback image, though, so
-LibreOffice Impress and some other viewers show the equations slide
-blank.</p>
+<p>In PowerPoint, the equations slide gets the same native math, and
+PowerPoint uses single line spacing with tighter padding, since it
+sizes the math itself. There is no fallback image, though, so
+LibreOffice Impress and some other viewers show that slide blank.</p>
 <p>Merge these entries into a copy of the package’s <code>report_fit.yaml</code>
 (or paste them in by hand), and point <code>report_fit()</code> at it:</p>
 <pre class="r"><code>## Start from the package&#39;s report YAML and merge in model-additions.yaml:

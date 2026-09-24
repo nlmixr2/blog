@@ -735,7 +735,7 @@ and the goodness of fit figures that nlmixr2 R P T already makes.
 On the right are the first two pages of the Word report it produced.
 :::
 
-## One equation per table row becomes native, editable Word math
+## One equation per table row becomes native, editable Word and PowerPoint math
 
 :::: {.columns .codesm}
 ::: {.column width="62%"}
@@ -764,9 +764,9 @@ modelEquationTable <- function(fit, obnd) {
 
 ::: {.column width="38%"}
 - Defined once, in the YAML's `tabenv_preamble`
-- `as_equation()` writes **native, editable** Word math
+- `as_equation()` writes **native, editable** math in Word and PowerPoint
 - One equation per row: no alignment points, so Word and LibreOffice agree
-- PowerPoint gets Office Math, with no fallback for other viewers
+- No fallback image: LibreOffice Impress shows the PowerPoint slide blank
 
 ::: rule
 :::
@@ -781,13 +781,13 @@ table preamble.
 
 It takes the same knit print output, and splits it into one equation
 per row of a flex table. Then flex table's as equation function writes
-each row as a native Word equation, so it can be edited like any other
-equation.
+each row as a native equation, in Word and in PowerPoint, so it can be
+edited like any other equation.
 
 Because each equation sits in its own row, there are no alignment
 points, so Word and LibreOffice show the report the same way. In the
-PowerPoint deck, the same table is written as Office math, which
-PowerPoint reads, but other viewers may show that slide blank.
+PowerPoint deck, the equations render natively too. There's no
+fallback image, though, so LibreOffice Impress shows that slide blank.
 
 The one extra requirement is the equa tags package. Without it, the
 cells come out blank.
