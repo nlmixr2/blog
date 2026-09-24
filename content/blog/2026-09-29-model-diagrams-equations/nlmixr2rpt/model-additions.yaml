@@ -1,0 +1,54 @@
+# Merge these entries into your copy of nlmixr2rpt's report_fit.yaml:
+# put them under its existing options:, figures:, tables:, docx: and pptx:
+# keys (replacing tabenv_preamble: NULL) rather than adding new top-level keys.
+options:
+  tabenv_preamble: |-
+    # One row per model equation, as native Word/PowerPoint math.
+    # flextable::as_equation() needs the 'equatags' package; without it
+    # the cells come out blank.
+    modelEquationTable <- function(fit, obnd) {
+      requireNamespace("nlmixr2extra", quietly = TRUE)  # knit_print() method
+      eq <- as.character(knitr::knit_print(fit))
+      eq <- sub("^\\s*\\\\begin\\{align\\*\\}\\s*", "", eq)
+      eq <- sub("\\s*\\\\end\\{align\\*\\}\\s*$", "", eq)
+      eq <- strsplit(eq, " \\\\\n", fixed = TRUE)[[1]]
+      eq <- gsub("(?<!\\\\)&", "", eq, perl = TRUE)
+      ft <- flextable::flextable(data.frame(eq = eq))
+      ft <- flextable::delete_part(ft, part = "header")
+      ft <- flextable::border_remove(ft)
+      ft <- flextable::compose(ft, j = "eq",
+        value = flextable::as_paragraph(flextable::as_equation(eq)))
+      # Word needs extra line spacing so rows with fractions don't crowd;
+      # PowerPoint sizes the math itself, so keep its rows tight
+      word <- identical(obnd$rpttype, "Word")
+      ft <- flextable::line_spacing(ft, space = if (word) 2 else 1)
+      if (!word) ft <- flextable::padding(ft, padding.top = 1,
+                                          padding.bottom = 1)
+      flextable::width(ft, width = 6)
+    }
+figures:
+  model_diagram:
+    orientation: "portrait"
+    caption:     "Model structure"
+    title:       "Model structure"
+    cmd: |-
+      p_res <- nlmixr2plot::modelDiagram(fit, engine = "ggplot2", labels = TRUE)
+tables:
+  model_equations:
+    orientation: "portrait"
+    caption:     "Model equations"
+    title:       "Model equations"
+    cmd: |-
+      t_res <- list(ft = list(modelEquationTable(fit, obnd)))
+# ...and list them first in the docx and pptx content sections:
+docx:
+  content:
+    - text:
+        text:  "Model"
+        style: Heading_1
+    - figure: model_diagram
+    - table: model_equations
+pptx:
+  content:
+    - figure: model_diagram
+    - table: model_equations

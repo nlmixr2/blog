@@ -367,6 +367,52 @@ A couple of notes for your own report templates:
   the same way.  The only Word-specific piece is the `modelEquations()`
   wrapper.
 
+## Adding them to nlmixr2rpt reports
+
+If your reports come from
+[`nlmixr2rpt`](https://nlmixr2.github.io/nlmixr2rpt/), which builds Word
+and PowerPoint documents from a fit using your organization's `onbrand`
+templates, the diagram and the equations fit into the same workflow.
+`nlmixr2rpt` reads its figures and tables from a YAML file, and each
+one is just R code that has the fit available as `fit`.  So the model
+diagram is one new figure, and the equations are one new table:
+
+```{r rpt-yaml, eval = FALSE, code = readLines("nlmixr2rpt/model-additions.yaml")}
+```
+
+The diagram entry calls `modelDiagram()` directly.  The equations entry
+uses a small helper, defined in `tabenv_preamble`, that splits the
+`knit_print()` output into one equation per row of a `flextable`.
+`flextable::as_equation()` then writes each row as a native, editable
+Word equation.  It needs the
+[`equatags`](https://cran.r-project.org/package=equatags) package;
+without it the cells come out blank.  Because each equation sits in
+its own row, there are no alignment points, so Word and LibreOffice
+show the Word report the same way.  (An `if`/`else` block takes a few
+rows: one for the condition and one for each branch.)
+
+In the PowerPoint deck the same table is written as Office Math,
+which PowerPoint reads.  It has no fallback image, though, so
+LibreOffice Impress and some other viewers show the equations slide
+blank.
+
+Merge these entries into a copy of the package's `report_fit.yaml`
+(or paste them in by hand), and point `report_fit()` at it:
+
+```{r rpt-run, eval = FALSE, code = local({x <- readLines("nlmixr2rpt/make-report.R"); x[grep("^## Start from", x):length(x)]})}
+```
+
+The model now opens the report, ahead of the parameter table and the
+goodness-of-fit figures `nlmixr2rpt` already produces.  These are the
+first two pages of the Word report:
+
+![The first two pages of the nlmixr2rpt Word report: the model diagram under a "Model" heading, then the model equations as Table 1.](nlmixr2rpt/nlmixr2rpt-pages.png)
+
+Here are the generated [Word report](nlmixr2rpt/fit-report.docx) and
+[PowerPoint deck](nlmixr2rpt/fit-report.pptx), with the
+[YAML additions](nlmixr2rpt/model-additions.yaml) and the
+[script](nlmixr2rpt/make-report.R) that built them.
+
 ## Try it
 
 `modelDiagram()` and `modelGraph()` are in `nlmixr2plot` 5.2.0; the
