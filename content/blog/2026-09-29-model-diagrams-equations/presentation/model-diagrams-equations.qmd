@@ -672,105 +672,46 @@ blog post.
 ![](images/sec-rpt.jpg){.nostretch fig-alt="Illustration: a bookbinding machine turning loose diagram, equation and table pages into a bound report and a stack of slides"}
 
 ::: {.notes}
-If your reports already come from the nlmixr2 report package, the diagram and the
-equations fit right in.
+If your reports already come from the nlmixr2 report package, the
+diagram and the equations are now built in.
 :::
 
-## Two YAML entries put the diagram and equations into every nlmixr2rpt report
+## nlmixr2rpt 0.2.3 opens every report with the model diagram and equations
 
 :::: {.columns .codemid}
-::: {.column width="46%"}
-```yaml
-figures:
-  model_diagram:
-    caption: "Model structure"
-    cmd: |-
-      p_res <- nlmixr2plot::modelDiagram(
-        fit, engine = "ggplot2",
-        labels = TRUE)
-tables:
-  model_equations:
-    caption: "Model equations"
-    cmd: |-
-      t_res <- list(ft = list(
-        modelEquationTable(fit, obnd)))
-```
-
-Abridged: the full entries (with `title:` and `orientation:`) are in the blog post.  Then list both first under `docx:` and `pptx:` content
-:::
-
-::: {.column width="54%"}
-![](images/fig-rpt-pages.png){.nostretch .plot fig-alt="The first two pages of the nlmixr2rpt Word report: the model diagram under a Model heading, then the model equations as Table 1"}
-:::
-::::
-
-::: {.notes}
-The nlmixr2 report package builds Word and PowerPoint reports from a fit, using your
-organization's templates. It reads its figures and tables from a configuration file, and each one is just R code that has the fit available.
-
-So the model diagram is one new figure that calls model diagram. The
-equations are one new table. Then you list them first in the document
-content, and the model opens the report, ahead of the parameter table
-and the goodness of fit figures that the nlmixr2 report package already makes.
-
-On the right are the first two pages of the Word report it produced.
-:::
-
-## One equation per table row becomes native, editable Word and PowerPoint math
-
-:::: {.columns .codesm}
-::: {.column width="62%"}
+::: {.column width="44%"}
 ```r
-modelEquationTable <- function(fit, obnd) {
-  requireNamespace("nlmixr2extra", quietly = TRUE)
-  eq <- as.character(knitr::knit_print(fit))
-  eq <- sub("^\\s*\\\\begin\\{align\\*\\}\\s*", "", eq)
-  eq <- sub("\\s*\\\\end\\{align\\*\\}\\s*$", "", eq)
-  eq <- strsplit(eq, " \\\\\n", fixed = TRUE)[[1]]
-  eq <- gsub("(?<!\\\\)&", "", eq, perl = TRUE)
-  ft <- flextable::flextable(data.frame(eq = eq))
-  ft <- flextable::delete_part(ft, part = "header")
-  ft <- flextable::border_remove(ft)
-  ft <- flextable::compose(ft, j = "eq",
-    value = flextable::as_paragraph(
-      flextable::as_equation(eq)))
-  word <- identical(obnd$rpttype, "Word")
-  ft <- flextable::line_spacing(ft, space = if (word) 2 else 1)
-  if (!word) ft <- flextable::padding(ft, padding.top = 1,
-                                      padding.bottom = 1)
-  flextable::width(ft, width = 6)
-}
+obnd <- report_fit(fit = fit,
+                   obnd = obnd)
+save_report(obnd, "fit-report.docx")
 ```
-:::
-
-::: {.column width="38%"}
-- Defined once, in the YAML's `tabenv_preamble`
-- `as_equation()` writes **native, editable** math in Word and PowerPoint
-- One equation per row: no alignment points, so Word and LibreOffice agree
-- No fallback image: LibreOffice Impress shows the PowerPoint slide blank
 
 ::: rule
 :::
 
-- Needs the `equatags` package, or the cells come out blank
+- No configuration changes: the default report includes both
+- `gen_eqn_table()`: native, editable equations in Word and PowerPoint
+- Until it reaches CRAN, install it from GitHub
+:::
+
+::: {.column width="56%"}
+![](images/fig-rpt-pages.png){.nostretch .plot fig-alt="The first two pages of the nlmixr2rpt Word report: the model diagram under a Model Structure heading, then the model equations as Table 1"}
 :::
 ::::
 
 ::: {.notes}
-The equations table uses a small helper, defined once in the configuration file's table preamble.
+The nlmixr2 report package builds Word and PowerPoint reports from a
+fit, using your organization's templates. In its next release, the
+default report opens with the model: the diagram, then the equations,
+ahead of the parameter table and the goodness of fit figures it
+already makes.
 
-It takes the same knit print output, and splits it into one equation
-per row of a flex table. Then flex table's as equation function writes
-each row as a native equation, in Word and in PowerPoint, so it can be
-edited like any other equation.
+So reporting a fit is the same call as before, with no changes to the
+configuration file. The equations come from a new function that puts
+one equation per row of a table, and writes each row as a native,
+editable equation, in Word and in PowerPoint.
 
-Because each equation sits in its own row, there are no alignment
-points, so Word and LibreOffice show the report the same way. In the
-PowerPoint deck, the equations render natively too. There's no
-fallback image, though, so LibreOffice Impress shows that slide blank.
-
-It needs one extra package, shown on the slide. Without it, the
-cells come out blank.
+On the right are the first two pages of the Word report it produced.
 :::
 
 ## Both tools are ready for the model you are writing up this week
@@ -779,7 +720,7 @@ cells come out blank.
 ::: {.column width="50%"}
 - `modelDiagram()` and `modelGraph()`: [nlmixr2plot]{.nlmixr} 5.2.0
 - `knit_print()` equations: [nlmixr2extra]{.nlmixr}
-- Word and PowerPoint reports: add two entries to your [nlmixr2rpt]{.nlmixr} YAML
+- Word and PowerPoint reports: [nlmixr2rpt]{.nlmixr} 0.2.3 includes both by default
 - White arrow-label backgrounds: development version (nlmixr2plot#77)
 - The [model diagrams
   vignette](https://nlmixr2.github.io/nlmixr2plot/articles/model-diagrams.html)
@@ -800,7 +741,8 @@ Model diagram and model graph are in nlmixr2 plot five point two. The
 equations are in nlmixr2 extra. The model diagrams vignette covers
 every rule for how terms are read, and the current limitations.
 
-And for Word and PowerPoint reports, add two entries to your configuration file.
+And the nlmixr2 report package now puts both in its Word and PowerPoint
+reports by default.
 
 So point them at the model you're writing up this week, and see how
 close they get you to the figure and equations you would have drawn by

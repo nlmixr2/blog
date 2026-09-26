@@ -1,7 +1,7 @@
 # Announcement: Model diagrams and equations, straight from the code
 
 Post: https://blog.nlmixr2.org/blog/2026-09-29-model-diagrams-equations/
-Video: https://youtu.be/TsfkmEdiT7o
+Video: https://youtu.be/Jf9QbmuR_Xw
 
 ---
 
@@ -30,14 +30,14 @@ so they always match the model you actually ran:
 - **One report, three formats.** A complete R Markdown report that knits the
   diagram, equations and parameter table to Word, HTML and PDF, with native,
   editable Word equations.
-- **nlmixr2rpt integration.** Two entries in your nlmixr2rpt configuration
-  file put the diagram and native equations at the front of your Word and
-  PowerPoint reports.
+- **nlmixr2rpt integration.** From nlmixr2rpt 0.2.3, the default Word and
+  PowerPoint reports open with the model diagram and native, editable
+  equations, with no configuration changes.
 
 Read the post and download the example reports:
 https://blog.nlmixr2.org/blog/2026-09-29-model-diagrams-equations/
 
-Or watch the narrated walkthrough: https://youtu.be/TsfkmEdiT7o
+Or watch the narrated walkthrough: https://youtu.be/Jf9QbmuR_Xw
 
 Thanks to Bill Denney for the equation support in nlmixr2extra and to John
 Harrold for nlmixr2rpt. If a diagram looks wrong for one of your models,
@@ -65,8 +65,8 @@ from the equations)
 character values like `SEX == "Female"`
 📄 One R Markdown report that knits to Word, HTML and PDF, with native,
 editable Word equations
-📊 A two-entry nlmixr2rpt setup that opens your Word and PowerPoint reports
-with the model
+📊 nlmixr2rpt 0.2.3 opens its Word and PowerPoint reports with the model
+diagram and equations by default
 
 Re-render the report and the diagram, equations and estimates all update
 together.
@@ -75,6 +75,6 @@ Thanks to Bill Denney and John Harrold, whose work on nlmixr2extra and
 nlmixr2rpt makes this possible.
 
 Post: https://blog.nlmixr2.org/blog/2026-09-29-model-diagrams-equations/
-Narrated video: https://youtu.be/TsfkmEdiT7o
+Narrated video: https://youtu.be/Jf9QbmuR_Xw
 
 #pharmacometrics #nlmixr2 #rstats #popPK #reproducibleresearch

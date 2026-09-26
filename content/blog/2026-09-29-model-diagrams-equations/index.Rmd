@@ -18,14 +18,14 @@ library(nlmixr2extra)
 ```
 
 <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;max-width:100%;">
-<iframe src="https://youtube.com/embed/TsfkmEdiT7o"
+<iframe src="https://youtube.com/embed/Jf9QbmuR_Xw"
         title="Model diagrams and equations, straight from the code"
         style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowfullscreen></iframe>
 </div>
 
-[Watch on YouTube](https://youtu.be/TsfkmEdiT7o)
+[Watch on YouTube](https://youtu.be/Jf9QbmuR_Xw)
 
 Many pharmacometric reports have the same two items near the
 top of the methods section: a compartment diagram of the final model
@@ -384,51 +384,54 @@ A couple of notes for your own report templates:
 If your reports come from
 [`nlmixr2rpt`](https://nlmixr2.github.io/nlmixr2rpt/), which builds Word
 and PowerPoint documents from a fit using your organization's `onbrand`
-templates, the diagram and the equations fit into the same workflow.
-`nlmixr2rpt` reads its figures and tables from a YAML file, and each
-one is just R code that has the fit available as `fit`.  So the model
-diagram is one new figure, and the equations are one new table:
+templates, you get the diagram and the equations without doing
+anything.  From version 0.2.3 (currently the development version, on
+its way to CRAN) the default report opens with the model: the diagram
+from `modelDiagram()`, then the equations as native, editable Word and
+PowerPoint math, ahead of the parameter table and the goodness-of-fit
+figures `nlmixr2rpt` already produces.  Until it reaches CRAN, install
+it with `remotes::install_github("nlmixr2/nlmixr2rpt")`.
 
-```{r rpt-yaml, eval = FALSE, code = readLines("nlmixr2rpt/model-additions.yaml")}
+Reporting a fit is the same call as before:
+
+```{r rpt-run, eval = FALSE, code = local({x <- readLines("nlmixr2rpt/make-report.R"); x[grep("^## Report the fit", x):length(x)]})}
 ```
 
-The diagram entry calls `modelDiagram()` directly.  The equations entry
-uses a small helper, defined in `tabenv_preamble`, that splits the
-`knit_print()` output into one equation per row of a `flextable`.
-`flextable::as_equation()` then writes each row as a native, editable
-equation in both Word and PowerPoint.  It needs the
-[`equatags`](https://cran.r-project.org/package=equatags) package;
-without it the cells come out blank.  Because each equation sits in
-its own row, there are no alignment points, so Word and LibreOffice
-show the Word report the same way.  (An `if`/`else` block takes a few
-rows: one for the condition and one for each branch.)
+These are the first two pages of the Word report:
 
-In PowerPoint, the equations slide gets the same native math, and
-PowerPoint uses single line spacing with tighter padding, since it
-sizes the math itself.  There is no fallback image, though, so
-LibreOffice Impress and some other viewers show that slide blank.
+![The first two pages of the nlmixr2rpt Word report: the model diagram under a "Model Structure" heading, then the model equations as Table 1.](nlmixr2rpt/nlmixr2rpt-pages.png)
 
-Merge these entries into a copy of the package's `report_fit.yaml`
-(or paste them in by hand), and point `report_fit()` at it:
+The equations come from a new function, `gen_eqn_table(fit, obnd)`,
+which puts one equation per row of a `flextable` and writes each row
+as native math.  With one equation per row there are no alignment
+points, so Word and LibreOffice show the Word report the same way.  If
+you keep your own report configuration, add the diagram and the
+equations to it with the same two entries the default now uses:
 
-```{r rpt-run, eval = FALSE, code = local({x <- readLines("nlmixr2rpt/make-report.R"); x[grep("^## Start from", x):length(x)]})}
+```yaml
+figures:
+  model_diagram:
+    cmd: |-
+      p_res <- nlmixr2plot::modelDiagram(fit, engine = "ggplot2", labels = TRUE)
+tables:
+  model_equations:
+    cmd: |-
+      t_res <- list(ft = list(gen_eqn_table(fit, obnd)))
 ```
 
-The model now opens the report, ahead of the parameter table and the
-goodness-of-fit figures `nlmixr2rpt` already produces.  These are the
-first two pages of the Word report:
-
-![The first two pages of the nlmixr2rpt Word report: the model diagram under a "Model" heading, then the model equations as Table 1.](nlmixr2rpt/nlmixr2rpt-pages.png)
+In PowerPoint the equations slide gets the same native math.  There is
+no fallback image, though, so LibreOffice Impress and some other
+viewers show that slide blank.
 
 Here are the generated [Word report](nlmixr2rpt/fit-report.docx) and
 [PowerPoint deck](nlmixr2rpt/fit-report.pptx), with the
-[YAML additions](nlmixr2rpt/model-additions.yaml) and the
 [script](nlmixr2rpt/make-report.R) that built them.
 
 ## Try it
 
 `modelDiagram()` and `modelGraph()` are in `nlmixr2plot` 5.2.0; the
-`knit_print()` equations are in `nlmixr2extra`.  Point them at the
+`knit_print()` equations are in `nlmixr2extra`; and `nlmixr2rpt` 0.2.3
+puts both in its Word and PowerPoint reports by default.  Point them at the
 model you are writing up this week and see how close they get you to
 the figure and equations you would have drawn by hand.  If a diagram
 looks wrong, the [issue

@@ -482,7 +482,7 @@ def refine_bounds(full, slides, bounds, key):
         if len(want) < 2:
             continue
         best, bd = None, 12.0            # only look near the existing estimate
-        for j in range(cursor, len(heard) - len(want)):
+        for j in range(cursor, len(heard) - len(want) + 1):   # +1: the take can end on the match
             if heard[j] != want[0]:
                 continue
             # Six words, not three: slide 17 ends "...the nlmixr2 report

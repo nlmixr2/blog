@@ -11,10 +11,10 @@ tags: [reporting]
 
 
 <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;max-width:100%;">
-<iframe src="https://youtube.com/embed/TsfkmEdiT7o" title="Model diagrams and equations, straight from the code" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
+<iframe src="https://youtube.com/embed/Jf9QbmuR_Xw" title="Model diagrams and equations, straight from the code" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
 </iframe>
 </div>
-<p><a href="https://youtu.be/TsfkmEdiT7o">Watch on YouTube</a></p>
+<p><a href="https://youtu.be/Jf9QbmuR_Xw">Watch on YouTube</a></p>
 <p>Many pharmacometric reports have the same two items near the
 top of the methods section: a compartment diagram of the final model
 and the equations that define it. They are also two of the easiest
@@ -465,120 +465,55 @@ wrapper.</li>
 <p>If your reports come from
 <a href="https://nlmixr2.github.io/nlmixr2rpt/"><code>nlmixr2rpt</code></a>, which builds Word
 and PowerPoint documents from a fit using your organization’s <code>onbrand</code>
-templates, the diagram and the equations fit into the same workflow.
-<code>nlmixr2rpt</code> reads its figures and tables from a YAML file, and each
-one is just R code that has the fit available as <code>fit</code>. So the model
-diagram is one new figure, and the equations are one new table:</p>
-<pre class="r"><code># Merge these entries into your copy of nlmixr2rpt&#39;s report_fit.yaml:
-# put them under its existing options:, figures:, tables:, docx: and pptx:
-# keys (replacing tabenv_preamble: NULL) rather than adding new top-level keys.
-options:
-  tabenv_preamble: |-
-    # One row per model equation, as native Word/PowerPoint math.
-    # flextable::as_equation() needs the &#39;equatags&#39; package; without it
-    # the cells come out blank.
-    modelEquationTable &lt;- function(fit, obnd) {
-      requireNamespace(&quot;nlmixr2extra&quot;, quietly = TRUE)  # knit_print() method
-      eq &lt;- as.character(knitr::knit_print(fit))
-      eq &lt;- sub(&quot;^\\s*\\\\begin\\{align\\*\\}\\s*&quot;, &quot;&quot;, eq)
-      eq &lt;- sub(&quot;\\s*\\\\end\\{align\\*\\}\\s*$&quot;, &quot;&quot;, eq)
-      eq &lt;- strsplit(eq, &quot; \\\\\n&quot;, fixed = TRUE)[[1]]
-      eq &lt;- gsub(&quot;(?&lt;!\\\\)&amp;&quot;, &quot;&quot;, eq, perl = TRUE)
-      ft &lt;- flextable::flextable(data.frame(eq = eq))
-      ft &lt;- flextable::delete_part(ft, part = &quot;header&quot;)
-      ft &lt;- flextable::border_remove(ft)
-      ft &lt;- flextable::compose(ft, j = &quot;eq&quot;,
-        value = flextable::as_paragraph(flextable::as_equation(eq)))
-      # Word needs extra line spacing so rows with fractions don&#39;t crowd;
-      # PowerPoint sizes the math itself, so keep its rows tight
-      word &lt;- identical(obnd$rpttype, &quot;Word&quot;)
-      ft &lt;- flextable::line_spacing(ft, space = if (word) 2 else 1)
-      if (!word) ft &lt;- flextable::padding(ft, padding.top = 1,
-                                          padding.bottom = 1)
-      flextable::width(ft, width = 6)
-    }
-figures:
-  model_diagram:
-    orientation: &quot;portrait&quot;
-    caption:     &quot;Model structure&quot;
-    title:       &quot;Model structure&quot;
-    cmd: |-
-      p_res &lt;- nlmixr2plot::modelDiagram(fit, engine = &quot;ggplot2&quot;, labels = TRUE)
-tables:
-  model_equations:
-    orientation: &quot;portrait&quot;
-    caption:     &quot;Model equations&quot;
-    title:       &quot;Model equations&quot;
-    cmd: |-
-      t_res &lt;- list(ft = list(modelEquationTable(fit, obnd)))
-# ...and list them first in the docx and pptx content sections:
-docx:
-  content:
-    - text:
-        text:  &quot;Model&quot;
-        style: Heading_1
-    - figure: model_diagram
-    - table: model_equations
-pptx:
-  content:
-    - figure: model_diagram
-    - table: model_equations</code></pre>
-<p>The diagram entry calls <code>modelDiagram()</code> directly. The equations entry
-uses a small helper, defined in <code>tabenv_preamble</code>, that splits the
-<code>knit_print()</code> output into one equation per row of a <code>flextable</code>.
-<code>flextable::as_equation()</code> then writes each row as a native, editable
-equation in both Word and PowerPoint. It needs the
-<a href="https://cran.r-project.org/package=equatags"><code>equatags</code></a> package;
-without it the cells come out blank. Because each equation sits in
-its own row, there are no alignment points, so Word and LibreOffice
-show the Word report the same way. (An <code>if</code>/<code>else</code> block takes a few
-rows: one for the condition and one for each branch.)</p>
-<p>In PowerPoint, the equations slide gets the same native math, and
-PowerPoint uses single line spacing with tighter padding, since it
-sizes the math itself. There is no fallback image, though, so
-LibreOffice Impress and some other viewers show that slide blank.</p>
-<p>Merge these entries into a copy of the package’s <code>report_fit.yaml</code>
-(or paste them in by hand), and point <code>report_fit()</code> at it:</p>
-<pre class="r"><code>## Start from the package&#39;s report YAML and merge in model-additions.yaml:
-## the new figure, table and preamble, with the model listed first in
-## each document.
-rpt &lt;- yaml::read_yaml(system.file(package = &quot;nlmixr2rpt&quot;, &quot;templates&quot;,
-                                   &quot;report_fit.yaml&quot;))
-add &lt;- yaml::read_yaml(&quot;model-additions.yaml&quot;)
-rpt$options$tabenv_preamble &lt;- add$options$tabenv_preamble
-rpt$options$output_dir &lt;- &quot;file.path(tempdir(), &#39;===RUN===&#39;)&quot;
-rpt$figures &lt;- c(add$figures, rpt$figures)
-rpt$tables &lt;- c(add$tables, rpt$tables)
-rpt$docx$content &lt;- c(add$docx$content, rpt$docx$content)
-rpt$pptx$content &lt;- c(add$pptx$content, rpt$pptx$content)
-yaml::write_yaml(rpt, file.path(tempdir(), &quot;report_model.yaml&quot;))
-
+templates, you get the diagram and the equations without doing
+anything. From version 0.2.3 (currently the development version, on
+its way to CRAN) the default report opens with the model: the diagram
+from <code>modelDiagram()</code>, then the equations as native, editable Word and
+PowerPoint math, ahead of the parameter table and the goodness-of-fit
+figures <code>nlmixr2rpt</code> already produces. Until it reaches CRAN, install
+it with <code>remotes::install_github("nlmixr2/nlmixr2rpt")</code>.</p>
+<p>Reporting a fit is the same call as before:</p>
+<pre class="r"><code>## Report the fit with the package&#39;s templates and default configuration
 for (ext in c(&quot;docx&quot;, &quot;pptx&quot;)) {
   obnd &lt;- read_template(
     template = system.file(package = &quot;nlmixr2rpt&quot;, &quot;templates&quot;,
                            paste0(&quot;nlmixr_obnd_template.&quot;, ext)),
     mapping  = system.file(package = &quot;nlmixr2rpt&quot;, &quot;templates&quot;,
                            &quot;nlmixr_obnd_template.yaml&quot;))
-  obnd &lt;- report_fit(fit = fit, obnd = obnd,
-                     rptyaml = file.path(tempdir(), &quot;report_model.yaml&quot;))
+  obnd &lt;- report_fit(fit = fit, obnd = obnd)
   save_report(obnd, paste0(&quot;fit-report.&quot;, ext))
 }</code></pre>
-<p>The model now opens the report, ahead of the parameter table and the
-goodness-of-fit figures <code>nlmixr2rpt</code> already produces. These are the
-first two pages of the Word report:</p>
+<p>These are the first two pages of the Word report:</p>
 <div class="float">
-<img src="nlmixr2rpt/nlmixr2rpt-pages.png" alt="The first two pages of the nlmixr2rpt Word report: the model diagram under a “Model” heading, then the model equations as Table 1." />
-<div class="figcaption">The first two pages of the nlmixr2rpt Word report: the model diagram under a “Model” heading, then the model equations as Table 1.</div>
+<img src="nlmixr2rpt/nlmixr2rpt-pages.png" alt="The first two pages of the nlmixr2rpt Word report: the model diagram under a “Model Structure” heading, then the model equations as Table 1." />
+<div class="figcaption">The first two pages of the nlmixr2rpt Word report: the model diagram under a “Model Structure” heading, then the model equations as Table 1.</div>
 </div>
+<p>The equations come from a new function, <code>gen_eqn_table(fit, obnd)</code>,
+which puts one equation per row of a <code>flextable</code> and writes each row
+as native math. With one equation per row there are no alignment
+points, so Word and LibreOffice show the Word report the same way. If
+you keep your own report configuration, add the diagram and the
+equations to it with the same two entries the default now uses:</p>
+<pre class="yaml"><code>figures:
+  model_diagram:
+    cmd: |-
+      p_res &lt;- nlmixr2plot::modelDiagram(fit, engine = &quot;ggplot2&quot;, labels = TRUE)
+tables:
+  model_equations:
+    cmd: |-
+      t_res &lt;- list(ft = list(gen_eqn_table(fit, obnd)))</code></pre>
+<p>In PowerPoint the equations slide gets the same native math. There is
+no fallback image, though, so LibreOffice Impress and some other
+viewers show that slide blank.</p>
 <p>Here are the generated <a href="nlmixr2rpt/fit-report.docx">Word report</a> and
 <a href="nlmixr2rpt/fit-report.pptx">PowerPoint deck</a>, with the
-<a href="nlmixr2rpt/model-additions.yaml">YAML additions</a> and the
 <a href="nlmixr2rpt/make-report.R">script</a> that built them.</p>
 </div>
 <div id="try-it" class="section level2">
 <h2>Try it</h2>
 <p><code>modelDiagram()</code> and <code>modelGraph()</code> are in <code>nlmixr2plot</code> 5.2.0; the
-<code>knit_print()</code> equations are in <code>nlmixr2extra</code>. Point them at the
+<code>knit_print()</code> equations are in <code>nlmixr2extra</code>; and <code>nlmixr2rpt</code> 0.2.3
+puts both in its Word and PowerPoint reports by default. Point them at the
 model you are writing up this week and see how close they get you to
 the figure and equations you would have drawn by hand. If a diagram
 looks wrong, the <a href="https://github.com/nlmixr2/nlmixr2plot/issues">issue

@@ -842,7 +842,7 @@ rxode2::rxode2(two.cmt)</code></pre>
 <h2>5. nlmixr2rpt reports can open with the model</h2>
 <p><img data-src="images/sec-rpt.jpg" class="" alt="Illustration: a bookbinding machine turning loose diagram, equation and table pages into a bound report and a stack of slides"></p>
 <aside class="notes">
-<p>If your reports already come from the nlmixr2 report package, the diagram and the equations fit right in.</p>
+<p>If your reports already come from the nlmixr2 report package, the diagram and the equations are now built in.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -855,85 +855,28 @@ rxode2::rxode2(two.cmt)</code></pre>
           display:block!important;
       }</style></aside>
 </section>
-<section id="two-yaml-entries-put-the-diagram-and-equations-into-every-nlmixr2rpt-report" class="slide level2">
-<h2>Two YAML entries put the diagram and equations into every nlmixr2rpt report</h2>
+<section id="nlmixr2rpt-0.2.3-opens-every-report-with-the-model-diagram-and-equations" class="slide level2">
+<h2>nlmixr2rpt 0.2.3 opens every report with the model diagram and equations</h2>
 <div class="columns codemid">
-<div class="column" style="width:46%;">
-<pre class="yaml number-lines"><code>figures:
-  model_diagram:
-    caption: "Model structure"
-    cmd: |-
-      p_res &lt;- nlmixr2plot::modelDiagram(
-        fit, engine = "ggplot2",
-        labels = TRUE)
-tables:
-  model_equations:
-    caption: "Model equations"
-    cmd: |-
-      t_res &lt;- list(ft = list(
-        modelEquationTable(fit, obnd)))</code></pre>
-<p>Abridged: the full entries (with <code>title:</code> and <code>orientation:</code>) are in the blog post. Then list both first under <code>docx:</code> and <code>pptx:</code> content</p>
-</div><div class="column" style="width:54%;">
-<p><img data-src="images/fig-rpt-pages.png" class="plot" alt="The first two pages of the nlmixr2rpt Word report: the model diagram under a Model heading, then the model equations as Table 1"></p>
-</div></div>
-<aside class="notes">
-<p>The nlmixr2 report package builds Word and PowerPoint reports from a fit, using your organization’s templates. It reads its figures and tables from a configuration file, and each one is just R code that has the fit available.</p>
-<p>So the model diagram is one new figure that calls model diagram. The equations are one new table. Then you list them first in the document content, and the model opens the report, ahead of the parameter table and the goodness of fit figures that the nlmixr2 report package already makes.</p>
-<p>On the right are the first two pages of the Word report it produced.</p>
-<style type="text/css">
-        span.MJX_Assistive_MathML {
-          position:absolute!important;
-          clip: rect(1px, 1px, 1px, 1px);
-          padding: 1px 0 0 0!important;
-          border: 0!important;
-          height: 1px!important;
-          width: 1px!important;
-          overflow: hidden!important;
-          display:block!important;
-      }</style></aside>
-</section>
-<section id="one-equation-per-table-row-becomes-native-editable-word-and-powerpoint-math" class="slide level2">
-<h2>One equation per table row becomes native, editable Word and PowerPoint math</h2>
-<div class="columns codesm">
-<div class="column" style="width:62%;">
-<pre class="r number-lines"><code>modelEquationTable &lt;- function(fit, obnd) {
-  requireNamespace("nlmixr2extra", quietly = TRUE)
-  eq &lt;- as.character(knitr::knit_print(fit))
-  eq &lt;- sub("^\\s*\\\\begin\\{align\\*\\}\\s*", "", eq)
-  eq &lt;- sub("\\s*\\\\end\\{align\\*\\}\\s*$", "", eq)
-  eq &lt;- strsplit(eq, " \\\\\n", fixed = TRUE)[[1]]
-  eq &lt;- gsub("(?&lt;!\\\\)&amp;", "", eq, perl = TRUE)
-  ft &lt;- flextable::flextable(data.frame(eq = eq))
-  ft &lt;- flextable::delete_part(ft, part = "header")
-  ft &lt;- flextable::border_remove(ft)
-  ft &lt;- flextable::compose(ft, j = "eq",
-    value = flextable::as_paragraph(
-      flextable::as_equation(eq)))
-  word &lt;- identical(obnd$rpttype, "Word")
-  ft &lt;- flextable::line_spacing(ft, space = if (word) 2 else 1)
-  if (!word) ft &lt;- flextable::padding(ft, padding.top = 1,
-                                      padding.bottom = 1)
-  flextable::width(ft, width = 6)
-}</code></pre>
-</div><div class="column" style="width:38%;">
-<ul>
-<li>Defined once, in the YAML’s <code>tabenv_preamble</code></li>
-<li><code>as_equation()</code> writes <strong>native, editable</strong> math in Word and PowerPoint</li>
-<li>One equation per row: no alignment points, so Word and LibreOffice agree</li>
-<li>No fallback image: LibreOffice Impress shows the PowerPoint slide blank</li>
-</ul>
+<div class="column" style="width:44%;">
+<pre class="r number-lines"><code>obnd &lt;- report_fit(fit = fit,
+                   obnd = obnd)
+save_report(obnd, "fit-report.docx")</code></pre>
 <div class="rule">
 
 </div>
 <ul>
-<li>Needs the <code>equatags</code> package, or the cells come out blank</li>
+<li>No configuration changes: the default report includes both</li>
+<li><code>gen_eqn_table()</code>: native, editable equations in Word and PowerPoint</li>
+<li>Until it reaches CRAN, install it from GitHub</li>
 </ul>
+</div><div class="column" style="width:56%;">
+<p><img data-src="images/fig-rpt-pages.png" class="plot" alt="The first two pages of the nlmixr2rpt Word report: the model diagram under a Model Structure heading, then the model equations as Table 1"></p>
 </div></div>
 <aside class="notes">
-<p>The equations table uses a small helper, defined once in the configuration file’s table preamble.</p>
-<p>It takes the same knit print output, and splits it into one equation per row of a flex table. Then flex table’s as equation function writes each row as a native equation, in Word and in PowerPoint, so it can be edited like any other equation.</p>
-<p>Because each equation sits in its own row, there are no alignment points, so Word and LibreOffice show the report the same way. In the PowerPoint deck, the equations render natively too. There’s no fallback image, though, so LibreOffice Impress shows that slide blank.</p>
-<p>It needs one extra package, shown on the slide. Without it, the cells come out blank.</p>
+<p>The nlmixr2 report package builds Word and PowerPoint reports from a fit, using your organization’s templates. In its next release, the default report opens with the model: the diagram, then the equations, ahead of the parameter table and the goodness of fit figures it already makes.</p>
+<p>So reporting a fit is the same call as before, with no changes to the configuration file. The equations come from a new function that puts one equation per row of a table, and writes each row as a native, editable equation, in Word and in PowerPoint.</p>
+<p>On the right are the first two pages of the Word report it produced.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -953,7 +896,7 @@ tables:
 <ul>
 <li><code>modelDiagram()</code> and <code>modelGraph()</code>: <span class="nlmixr">nlmixr2plot</span> 5.2.0</li>
 <li><code>knit_print()</code> equations: <span class="nlmixr">nlmixr2extra</span></li>
-<li>Word and PowerPoint reports: add two entries to your <span class="nlmixr">nlmixr2rpt</span> YAML</li>
+<li>Word and PowerPoint reports: <span class="nlmixr">nlmixr2rpt</span> 0.2.3 includes both by default</li>
 <li>White arrow-label backgrounds: development version (nlmixr2plot#77)</li>
 <li>The <a href="https://nlmixr2.github.io/nlmixr2plot/articles/model-diagrams.html">model diagrams vignette</a> covers every rule and limitation</li>
 <li>A diagram looks wrong? <a href="https://github.com/nlmixr2/nlmixr2plot/issues">Open an issue</a></li>
@@ -967,7 +910,7 @@ tables:
 </div></div>
 <aside class="notes">
 <p>Model diagram and model graph are in nlmixr2 plot five point two. The equations are in nlmixr2 extra. The model diagrams vignette covers every rule for how terms are read, and the current limitations.</p>
-<p>And for Word and PowerPoint reports, add two entries to your configuration file.</p>
+<p>And the nlmixr2 report package now puts both in its Word and PowerPoint reports by default.</p>
 <p>So point them at the model you’re writing up this week, and see how close they get you to the figure and equations you would have drawn by hand. If a diagram looks wrong, please open an issue. The model that trips up the parser is exactly the one we want to see.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
