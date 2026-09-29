@@ -1,0 +1,88 @@
+---
+title: "Theophylline population PK model"
+output:
+  bookdown::word_document2:
+    number_sections: false
+  bookdown::html_document2:
+    number_sections: false
+  bookdown::pdf_document2:
+    number_sections: false
+    toc: false
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.width = 6, fig.height = 4)
+options(knitr.kable.NA = "")
+library(nlmixr2)
+library(nlmixr2plot)
+library(nlmixr2extra)
+
+# Model equations that work in Word, HTML and PDF.  Pandoc drops a bare
+# align* environment when writing .docx, but converts display math
+# ($$ ... $$) to native Word equations, so use an aligned block in
+# display math for every format.  For Word, drop the alignment points
+# (&, but not an escaped \& inside text) so the equations also display
+# correctly in LibreOffice.
+modelEquations <- function(x) {
+  eq <- knitr::knit_print(x)
+  if (knitr::pandoc_to("docx")) {
+    eq <- gsub("(?<!\\\\)&", "", eq, perl = TRUE)
+  }
+  eq <- sub("\\begin{align*}", "$$\n\\begin{aligned}", eq, fixed = TRUE)
+  eq <- sub("\\end{align*}", "\\end{aligned}\n$$", eq, fixed = TRUE)
+  knitr::asis_output(eq)
+}
+```
+
+```{r fit, include = FALSE}
+one.cmt <- function() {
+  ini({
+    tka <- log(1.57)
+    tcl <- log(2.72)
+    tv <- log(31.5)
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+    add.sd <- 0.7
+  })
+  model({
+    ka <- exp(tka + eta.ka)
+    cl <- exp(tcl + eta.cl)
+    v <- exp(tv + eta.v)
+    d/dt(depot) <- -ka * depot
+    d/dt(central) <- ka * depot - cl / v * central
+    cp <- central / v
+    cp ~ add(add.sd)
+  })
+}
+fit <- nlmixr2(one.cmt, nlmixr2data::theo_sd, est = "saem",
+               control = saemControl(print = 0))
+```
+
+# Methods
+
+Theophylline concentrations from `r length(unique(fit$ID))` subjects
+were described by a one-compartment model with first-order absorption
+(Figure \@ref(fig:diagram)), estimated with `r toupper(fit$est)` in nlmixr2.
+
+```{r diagram, fig.cap = "Structure of the final model."}
+modelDiagram(fit, engine = "ggplot2", labels = TRUE)
+```
+
+The model is defined by the following equations:
+
+```{r equations}
+modelEquations(fit)
+```
+
+# Results
+
+The objective function value was `r round(fit$objf, 2)`.  Table
+\@ref(tab:estimates) lists the final parameter estimates.
+
+```{r estimates}
+knitr::kable(fit$parFixedDf[, c("Back-transformed", "CI Lower",
+                                "CI Upper", "%RSE", "BSV(CV%)")],
+             digits = 3, caption = "Final parameter estimates.")
+```
