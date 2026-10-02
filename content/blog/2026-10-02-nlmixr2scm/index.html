@@ -1,0 +1,326 @@
+---
+title: Stepwise covariate modeling with nlmixr2scm
+author: Justin Wilkins
+date: '2026-10-02'
+slug: []
+categories: [nlmixr2, nlmixr2scm]
+tags: []
+---
+
+
+
+<div id="nlmixr2scm-is-on-cran" class="section level1">
+<h1>nlmixr2scm is on CRAN!</h1>
+<p>Happily, <code>nlmixr2scm</code>, which does stepwise covariate
+modeling (SCM) for <code>nlmixr2</code> models, is now on CRAN. It took a while -
+seems they’re very busy now that everyone is churning out packages with
+AI - but it’s finally there.</p>
+<pre class="r"><code>install.packages(&quot;nlmixr2scm&quot;)</code></pre>
+<p>If you’ve built covariate models in NONMEM, you’ve probably used <code>scm</code>
+in <a href="https://github.com/UUPharmacometrics/PsN">Perl-speaks-NONMEM</a>.
+<code>nlmixr2scm</code> follows the same approach
+(<a href="https://doi.org/10.1023/A:1011970125687">Jonsson &amp; Karlsson, 1998</a>), and
+it works directly on an nlmixr2 fit. You don’t need to write control
+streams or config files or any of that kind of thing, although the command
+will probably be quite lengthy…</p>
+<div id="how-scm-works" class="section level2">
+<h2>How SCM works</h2>
+<p>SCM searches in two phases, and both use likelihood-ratio tests (you probably
+know this, but a bit of underlining is always useful):</p>
+<ol style="list-style-type: decimal">
+<li><strong>Forward inclusion.</strong> Starting from the base model, it tests every
+candidate parameter-covariate relationship. The one that gives the
+largest significant drop in OFV is added, and the search repeats until
+no remaining candidate passes the forward threshold (p &lt; 0.05 by
+default).</li>
+<li><strong>Backward elimination.</strong> Starting from the final forward model, it
+removes each included relationship one at a time. Any relationship whose
+removal does not raise the OFV enough to pass a stricter threshold
+(p &lt; 0.01 by default) is dropped.</li>
+</ol>
+<p><code>runSCM()</code> writes the covariate terms into the model body for you.
+Continuous covariates are centered (at the median, or at a reference value
+you choose), and categorical covariates are expanded into indicator columns.
+It takes the original, untransformed data.</p>
+</div>
+<div id="a-quick-example" class="section level2">
+<h2>A quick example</h2>
+<p>We’ll start from a one-compartment warfarin PK model:</p>
+<pre class="r"><code>library(nlmixr2)
+library(nlmixr2scm)
+
+pkdata &lt;- nlmixr2data::warfarin[nlmixr2data::warfarin$dvid == &quot;cp&quot;, ]
+
+warf_pk &lt;- function() {
+  ini({
+    tka &lt;- log(1.15)
+    tcl &lt;- log(0.135)
+    tv  &lt;- log(7.0)
+    eta.ka ~ 0.40
+    eta.cl ~ 0.25
+    eta.v  ~ 0.10
+    prop.err &lt;- 0.10
+  })
+  model({
+    ka &lt;- exp(tka + eta.ka)
+    cl &lt;- exp(tcl + eta.cl)
+    v  &lt;- exp(tv + eta.v)
+    linCmt() ~ prop(prop.err)
+  })
+}
+
+fit_base &lt;- nlmixr2(warf_pk, pkdata, est = &quot;focei&quot;,
+                    control = foceiControl(print = 0))</code></pre>
+<pre><code>## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====] 0:00:00 
+## done</code></pre>
+<p>Let’s test body weight (as a power or linear relationship) and sex on
+clearance and volume…</p>
+<pre class="r"><code>scm &lt;- runSCM(
+  fit        = fit_base,
+  data       = pkdata,             # needed: the base model doesn&#39;t use wt or sex
+  varsVec    = c(&quot;cl&quot;, &quot;v&quot;),       # parameters to test
+  covarsVec  = &quot;wt&quot;,               # continuous covariates
+  catvarsVec = &quot;sex&quot;,              # categorical covariates
+  shapes     = c(&quot;power&quot;, &quot;lin&quot;),
+  pVal       = list(fwd = 0.05, bck = 0.01),
+  saveModels = FALSE,              # quick exploratory run: nothing written to disk
+  print      = 0,
+  confirm    = FALSE
+)</code></pre>
+<pre><code>## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====done
+## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====done
+## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====done
+## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====done
+## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====done
+## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====done</code></pre>
+<pre><code>##                step    covar var shape    objf  deltObjf      AIC      BIC
+## cov_wt_power_v    1 wt_power   v power 449.113 -25.97642 926.4202 954.6238
+##                numParams  qchisqr      pchisqr included searchType
+## cov_wt_power_v         8 3.841459 3.456124e-07      yes    forward
+##                      covNames covarEffect bsvReduction
+## cov_wt_power_v cov_wt_power_v   0.8814415     61.74603</code></pre>
+<pre><code>## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====done
+## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====done
+## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====done
+## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====done
+## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====done</code></pre>
+<pre><code>##                 step    covar var shape     objf  deltObjf      AIC     BIC
+## cov_wt_power_cl    2 wt_power  cl power 442.6788 -6.434287 921.9859 953.715
+##                 numParams  qchisqr    pchisqr included searchType
+## cov_wt_power_cl         9 3.841459 0.01119381      yes    forward
+##                        covNames covarEffect bsvReduction
+## cov_wt_power_cl cov_wt_power_cl   0.5844377     17.27476</code></pre>
+<pre><code>## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====done
+## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====done
+## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====done
+## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====done</code></pre>
+<pre><code>## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====done
+## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====done</code></pre>
+<pre><code>##                 step    covar var shape     objf deltObjf     AIC      BIC
+## cov_wt_power_cl    1 wt_power  cl power 448.2978 5.619047 925.605 953.8086
+##                 numParams  qchisqr    pchisqr included searchType
+## cov_wt_power_cl         8 6.634897 0.01776631  dropped   backward
+##                        covNames covarEffect bsvReduction
+## cov_wt_power_cl cov_wt_power_cl   0.5844377     20.15977</code></pre>
+<pre><code>## calculating covariance matrix
+## [====|====|====|====|====|====|====|====|====|====done</code></pre>
+<pre><code>## Direction  Step  Relation                Ref OFV         OFV      dOFV    p-value  Decision 
+## ------------------------------------------------------------------------------------------- 
+## Forward    1     wt_power~v [power]      475.089     449.113   -25.976     0.0000  Added
+## Forward    2     wt_power~cl [power]     449.113     442.679    -6.434     0.0112  Added
+## Forward    3     sex_female~v [cat]      442.679     440.495    -2.184     0.1395  Not selected
+## Backward   1     wt_power~cl [power]     442.679     448.298     5.619     0.0178  Removed
+## Backward   2     wt_power~v [power]      448.298     474.521    26.223     0.0000  Retained</code></pre>
+<pre><code>## Direction  Step  Relation                Ref OFV         OFV      dOFV    p-value  Decision 
+## ------------------------------------------------------------------------------------------- 
+## Forward    1     wt_power~v [power]      475.089     449.113   -25.976     0.0000  Added
+## Forward    1     wt_lin~v [lin]          475.089     450.010   -25.080     0.0000  Not selected
+## Forward    1     sex_female~v [cat]      475.089     458.423   -16.666     0.0000  Not selected
+## Forward    1     wt_power~cl [power]     475.089     470.203    -4.887     0.0271  Not selected
+## Forward    1     wt_lin~cl [lin]         475.089     470.712    -4.378     0.0364  Not selected
+## Forward    1     sex_female~cl [cat]     475.089     474.173    -0.917     0.3383  Not selected
+## 
+## Forward    2     wt_power~cl [power]     449.113     442.679    -6.434     0.0112  Added
+## Forward    2     wt_lin~cl [lin]         449.113     444.150    -4.963     0.0259  Not selected
+## Forward    2     sex_female~v [cat]      449.113     448.361    -0.752     0.3858  Not selected
+## Forward    2     sex_female~cl [cat]     449.113     448.984    -0.129     0.7190  Not selected
+## 
+## Forward    3     sex_female~v [cat]      442.679     440.495    -2.184     0.1395  Not selected
+## Forward    3     sex_female~cl [cat]     442.679     441.515    -1.164     0.2807  Not selected
+## 
+## Backward   1     wt_power~v [power]      442.679     470.173    27.494     0.0000  Retained
+## Backward   1     wt_power~cl [power]     442.679     448.298     5.619     0.0178  Removed
+## 
+## Backward   2     wt_power~v [power]      448.298     474.521    26.223     0.0000  Retained</code></pre>
+<p>Printing the result gives a short overview:</p>
+<pre class="r"><code>scm</code></pre>
+<pre><code>## ── nlmixr2scm result ───────────────────────────────────────────────────────────
+## Search      : scm (focei), 6 candidate relations
+## OFV         : base 475.089 -&gt; final 448.298 (dOFV -26.792)
+## Covariates  : wt_power~v [power]
+## Use summary() for options, model comparison and step tables.</code></pre>
+<p>For the full picture, use <code>summary()</code>. It lists the options the search ran
+with, compares the base model with the final forward and final backward
+models (OFV, ΔOFV, AIC, BIC, parameter count and covariates), prints the
+step-by-step and all-candidate tables, and tells you where the models and
+report files were saved on disk, if they were:</p>
+<pre class="r"><code>summary(scm)</code></pre>
+<pre><code>## ── nlmixr2scm summary ──────────────────────────────────────────────────────────
+## ── Options ─────────────────────────────────────────────────────────────────────
+## Search type        : scm
+## p-value fwd / bck  : 0.05 / 0.01
+## Estimation         : focei; control: foceiControl (inherited from fit)
+## Candidates         : 6: wt_power~cl [power], wt_lin~cl [lin], wt_power~v
+##                      [power], wt_lin~v [lin], sex_female~cl [cat], sex_female~v
+##                      [cat]
+## Included relations : none
+## Shapes             : power, lin
+## Centers            : median of each continuous covariate
+## Categorical cutoff : 0.05
+## Profile warm-start : stalled candidates only (stallTol = 0)
+## Retries            : up to 3; maxDeltaOFV = Inf; OFV tolerance = 0; p-value
+##                      underflow retried; on exhaustion keep best attempt
+## Parallel           : workers = sequential; rxThreads per worker = 16
+## Save models        : no
+## ── Model comparison ────────────────────────────────────────────────────────────
+##  Model          OFV     dOFV    AIC     BIC     Params
+##  Base           475.089 0.000   950.397 975.075 7     
+##  Forward final  442.679 -32.411 921.986 953.715 9     
+##  Backward final 448.298 -26.792 925.605 953.809 8     
+## 
+## SCM covariates:
+##   Base           : (none)
+##   Forward final  : wt_power~v [power], wt_power~cl [power]
+##   Backward final : wt_power~v [power]</code></pre>
+<pre><code>## ── SCM Step Summary ────────────────────────────────────────────────────────────</code></pre>
+<pre><code>## Direction  Step  Relation                Ref OFV         OFV      dOFV    p-value  Decision 
+## ------------------------------------------------------------------------------------------- 
+## Forward    1     wt_power~v [power]      475.089     449.113   -25.976     0.0000  Added
+## Forward    2     wt_power~cl [power]     449.113     442.679    -6.434     0.0112  Added
+## Forward    3     sex_female~v [cat]      442.679     440.495    -2.184     0.1395  Not selected
+## Backward   1     wt_power~cl [power]     442.679     448.298     5.619     0.0178  Removed
+## Backward   2     wt_power~v [power]      448.298     474.521    26.223     0.0000  Retained</code></pre>
+<pre><code>## ── SCM All Candidates ──────────────────────────────────────────────────────────</code></pre>
+<pre><code>## Direction  Step  Relation                Ref OFV         OFV      dOFV    p-value  Decision 
+## ------------------------------------------------------------------------------------------- 
+## Forward    1     wt_power~v [power]      475.089     449.113   -25.976     0.0000  Added
+## Forward    1     wt_lin~v [lin]          475.089     450.010   -25.080     0.0000  Not selected
+## Forward    1     sex_female~v [cat]      475.089     458.423   -16.666     0.0000  Not selected
+## Forward    1     wt_power~cl [power]     475.089     470.203    -4.887     0.0271  Not selected
+## Forward    1     wt_lin~cl [lin]         475.089     470.712    -4.378     0.0364  Not selected
+## Forward    1     sex_female~cl [cat]     475.089     474.173    -0.917     0.3383  Not selected
+## 
+## Forward    2     wt_power~cl [power]     449.113     442.679    -6.434     0.0112  Added
+## Forward    2     wt_lin~cl [lin]         449.113     444.150    -4.963     0.0259  Not selected
+## Forward    2     sex_female~v [cat]      449.113     448.361    -0.752     0.3858  Not selected
+## Forward    2     sex_female~cl [cat]     449.113     448.984    -0.129     0.7190  Not selected
+## 
+## Forward    3     sex_female~v [cat]      442.679     440.495    -2.184     0.1395  Not selected
+## Forward    3     sex_female~cl [cat]     442.679     441.515    -1.164     0.2807  Not selected
+## 
+## Backward   1     wt_power~v [power]      442.679     470.173    27.494     0.0000  Retained
+## Backward   1     wt_power~cl [power]     442.679     448.298     5.619     0.0178  Removed
+## 
+## Backward   2     wt_power~v [power]      448.298     474.521    26.223     0.0000  Retained</code></pre>
+<pre><code>## ── Final model ─────────────────────────────────────────────────────────────────</code></pre>
+<pre><code>## Retained:
+## wt_power~v [power]
+## ℹ Final model OFV: 448.298
+## ────────────────────────────────────────────────────────────────────────────────</code></pre>
+<pre><code>## ── Files ───────────────────────────────────────────────────────────────────────
+## None: models and reports were not saved (saveModels = FALSE).</code></pre>
+<p>Underneath, the result is a list you can dig into:</p>
+<ul>
+<li><code>summaryTable</code> has one row per candidate tested in both phases, with the
+OFV, ΔOFV, p-value, AIC/BIC, and whether the relationship was included.</li>
+<li><code>resFwd[[1]]</code> and <code>resBck[[1]]</code> are the final forward and backward fits.
+These are ordinary nlmixr2 fit objects, so you can use your usual
+diagnostics and plots on them.</li>
+</ul>
+<pre class="r"><code>scm$resBck[[1]]$parFixedDf</code></pre>
+<pre><code>##                  Estimate         SE      %RSE Back-transformed  CI Lower
+## tka            -0.4775266 0.25661205 53.737750        0.6203158 0.3751321
+## tcl            -1.9991278 0.05323381  2.662852        0.1354534 0.1220330
+## tv              2.1282396 0.03044324  1.430442        8.4000660 7.9135138
+## prop.err        0.2233200 0.02903750 13.002646        0.2233200 0.1664075
+## cov_wt_power_v  0.8686918 0.13432749 15.463193        0.8686918 0.6054147
+##                 CI Upper  BSV(CV%) Shrink(SD)%
+## tka            1.0257497 71.587391   49.660122
+## tcl            0.1503497 27.228417    3.203639
+## tv             8.9165332  9.061567   51.577626
+## prop.err       0.2802324        NA          NA
+## cov_wt_power_v 1.1319688        NA          NA</code></pre>
+<p>If you want to control exactly which relationships are tested, pass
+<code>pairsVec</code> instead of the full <code>varsVec</code> × <code>covarsVec</code> grid. You can also use
+<code>includedRelations</code> to force known relationships (allometric weight on
+clearance, for example) into the backward-elimination model.</p>
+</div>
+<div id="real-world-searches" class="section level2">
+<h2>Real-world searches</h2>
+<p>Real-world SCM runs often fit hundreds of candidate models, and <code>nlmixr2scm</code> has
+several features for that:</p>
+<ul>
+<li><p><strong>Caching and resume.</strong> With <code>saveModels = TRUE</code> (the default), every
+candidate fit and step table is saved to <code>outputDir</code>. If a run is
+interrupted, call <code>runSCM()</code> again with the same <code>outputDir</code> and it picks
+up where it stopped. <code>restart = TRUE</code> starts from scratch instead.</p></li>
+<li><p><strong>Parallel fitting.</strong> <code>workers</code> fits the candidates within each step in
+parallel through <code>future</code>. <code>rxThreads</code> sets how many <code>rxode2</code> threads each
+worker uses. <code>runSCM()</code> checks <code>workers * rxThreads</code> against your physical
+core count before it starts, so that it doesn’t quietly murder your computer
+by maxing out its capacity.</p>
+<pre class="r"><code>runSCM(fit_base, data = pkdata, varsVec = c(&quot;cl&quot;, &quot;v&quot;), covarsVec = &quot;wt&quot;,
+       workers = 4, rxThreads = 1)</code></pre></li>
+<li><p><strong>Protection against bad fits.</strong> Some candidate fits stall at the
+zero-effect initial estimate. This happens sometimes with ODE models.
+<code>runSCM()</code> detects these stalled candidates
+and refits them from a starting value obtained with a quick 1-D profile.
+Candidates that land on an implausible OFV are retried from perturbed
+initial estimates, and the best attempt is kept. Both behaviours are
+switched on by default. By default, a p-value that underflows to zero
+also counts as implausible, which means very strong effects (an OFV drop
+of more than about 70 for one parameter) get retried too. If you trust
+those, <code>retryOnUnderflow = FALSE</code> saves the extra fits.</p></li>
+<li><p><strong>Fixed centering.</strong> <code>centers = c(wt = 70)</code> centers weight at 70 kg
+instead of the per-dataset median. The coefficients then keep the same
+reference across datasets.</p></li>
+</ul>
+</div>
+<div id="learn-more" class="section level2">
+<h2>Learn more</h2>
+<ul>
+<li>The vignette gives the full argument reference and a longer worked
+example: <code>vignette("runSCM", package = "nlmixr2scm")</code>.</li>
+<li>Source, bug reports, and feature requests are on
+<a href="https://github.com/nlmixr2/nlmixr2scm">GitHub</a>.</li>
+<li>The <a href="https://github.com/nlmixr2/nlmixr2scm/blob/main/NEWS.md">NEWS file</a>
+has release notes.</li>
+</ul>
+</div>
+<div id="acknowledgements" class="section level2">
+<h2>Acknowledgements</h2>
+<p><code>nlmixr2scm</code> was written together with Matthew Fidler and Yaping Liu and contains
+contributions from Bill Denney, Vipul Mann, Vishal Sarsani, and Christian
+Bartels. The design owes a great deal to the original PsN <code>scm</code> implementation by
+Lars Lindbom, Niclas Jonsson, Pontus Pihlgren, Mats Karlsson, Andrew Hooker,
+Kajsa Harling, Rikard Nordgren and Svetlana Freiberga. Thank you all!</p>
+</div>
+</div>
