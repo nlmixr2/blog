@@ -1,0 +1,185 @@
+---
+title: Stepwise covariate modeling with nlmixr2scm
+author: Justin Wilkins
+date: '2026-10-02'
+slug: []
+categories: [nlmixr2, nlmixr2scm]
+tags: []
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# nlmixr2scm is on CRAN!
+
+Happily, `nlmixr2scm`, which does stepwise covariate
+modeling (SCM) for `nlmixr2` models, is now on CRAN. It took a while - 
+seems they're very busy now that everyone is churning out packages with
+AI - but it's finally there.
+
+```r
+install.packages("nlmixr2scm")
+```
+
+If you've built covariate models in NONMEM, you've probably used `scm`
+in [Perl-speaks-NONMEM](https://github.com/UUPharmacometrics/PsN).
+`nlmixr2scm` follows the same approach
+([Jonsson & Karlsson, 1998](https://doi.org/10.1023/A:1011970125687)), and
+it works directly on an nlmixr2 fit. You don't need to write control
+streams or config files or any of that kind of thing, although the command
+will probably be quite lengthy...
+
+## How SCM works
+
+SCM searches in two phases, and both use likelihood-ratio tests (you probably
+know this, but a bit of underlining is always useful):
+
+1. **Forward inclusion.** Starting from the base model, it tests every
+   candidate parameter-covariate relationship. The one that gives the
+   largest significant drop in OFV is added, and the search repeats until
+   no remaining candidate passes the forward threshold (p < 0.05 by
+   default).
+2. **Backward elimination.** Starting from the final forward model, it
+   removes each included relationship one at a time. Any relationship whose
+   removal does not raise the OFV enough to pass a stricter threshold
+   (p < 0.01 by default) is dropped.
+
+`runSCM()` writes the covariate terms into the model body for you.
+Continuous covariates are centered (at the median, or at a reference value
+you choose), and categorical covariates are expanded into indicator columns.
+It takes the original, untransformed data.
+
+## A quick example
+
+We'll start from a one-compartment warfarin PK model:
+
+```{r base, message=FALSE, warning=FALSE}
+library(nlmixr2)
+library(nlmixr2scm)
+
+pkdata <- nlmixr2data::warfarin[nlmixr2data::warfarin$dvid == "cp", ]
+
+warf_pk <- function() {
+  ini({
+    tka <- log(1.15)
+    tcl <- log(0.135)
+    tv  <- log(7.0)
+    eta.ka ~ 0.40
+    eta.cl ~ 0.25
+    eta.v  ~ 0.10
+    prop.err <- 0.10
+  })
+  model({
+    ka <- exp(tka + eta.ka)
+    cl <- exp(tcl + eta.cl)
+    v  <- exp(tv + eta.v)
+    linCmt() ~ prop(prop.err)
+  })
+}
+
+fit_base <- nlmixr2(warf_pk, pkdata, est = "focei",
+                    control = foceiControl(print = 0))
+```
+
+Let's test body weight (as a power or linear relationship) and sex on
+clearance and volume...
+
+```{r scm, message=FALSE, warning=FALSE}
+scm <- runSCM(
+  fit        = fit_base,
+  data       = pkdata,             # needed: the base model doesn't use wt or sex
+  varsVec    = c("cl", "v"),       # parameters to test
+  covarsVec  = "wt",               # continuous covariates
+  catvarsVec = "sex",              # categorical covariates
+  shapes     = c("power", "lin"),
+  pVal       = list(fwd = 0.05, bck = 0.01),
+  saveModels = FALSE,              # quick exploratory run: nothing written to disk
+  print      = 0,
+  confirm    = FALSE
+)
+```
+
+Printing the result gives a short overview:
+
+```{r print-scm}
+scm
+```
+
+For the full picture, use `summary()`. It lists the options the search ran
+with, compares the base model with the final forward and final backward
+models (OFV, ΔOFV, AIC, BIC, parameter count and covariates), prints the
+step-by-step and all-candidate tables, and tells you where the models and
+report files were saved on disk, if they were:
+
+```{r summary-scm}
+summary(scm)
+```
+
+Underneath, the result is a list you can dig into:
+
+- `summaryTable` has one row per candidate tested in both phases, with the
+  OFV, ΔOFV, p-value, AIC/BIC, and whether the relationship was included.
+- `resFwd[[1]]` and `resBck[[1]]` are the final forward and backward fits.
+  These are ordinary nlmixr2 fit objects, so you can use your usual
+  diagnostics and plots on them.
+
+```{r results}
+scm$resBck[[1]]$parFixedDf
+```
+
+If you want to control exactly which relationships are tested, pass
+`pairsVec` instead of the full `varsVec` × `covarsVec` grid. You can also use
+`includedRelations` to force known relationships (allometric weight on
+clearance, for example) into the backward-elimination model.
+
+## Real-world searches
+
+Real-world SCM runs often fit hundreds of candidate models, and `nlmixr2scm` has
+several features for that:
+
+- **Caching and resume.** With `saveModels = TRUE` (the default), every
+  candidate fit and step table is saved to `outputDir`. If a run is
+  interrupted, call `runSCM()` again with the same `outputDir` and it picks 
+  up where it stopped. `restart = TRUE` starts from scratch instead.
+- **Parallel fitting.** `workers` fits the candidates within each step in
+  parallel through `future`. `rxThreads` sets how many `rxode2` threads each
+  worker uses. `runSCM()` checks `workers * rxThreads` against your physical
+  core count before it starts, so that it doesn't quietly murder your computer
+  by maxing out its capacity.
+
+  ```r
+  runSCM(fit_base, data = pkdata, varsVec = c("cl", "v"), covarsVec = "wt",
+         workers = 4, rxThreads = 1)
+  ```
+
+- **Protection against bad fits.** Some candidate fits stall at the
+  zero-effect initial estimate. This happens sometimes with ODE models. 
+  `runSCM()` detects these stalled candidates
+  and refits them from a starting value obtained with a quick 1-D profile.
+  Candidates that land on an implausible OFV are retried from perturbed
+  initial estimates, and the best attempt is kept. Both behaviours are
+  switched on by default. By default, a p-value that underflows to zero
+  also counts as implausible, which means very strong effects (an OFV drop
+  of more than about 70 for one parameter) get retried too. If you trust
+  those, `retryOnUnderflow = FALSE` saves the extra fits.
+- **Fixed centering.** `centers = c(wt = 70)` centers weight at 70 kg
+  instead of the per-dataset median. The coefficients then keep the same
+  reference across datasets.
+
+## Learn more
+
+- The vignette gives the full argument reference and a longer worked
+  example: `vignette("runSCM", package = "nlmixr2scm")`.
+- Source, bug reports, and feature requests are on
+  [GitHub](https://github.com/nlmixr2/nlmixr2scm).
+- The [NEWS file](https://github.com/nlmixr2/nlmixr2scm/blob/main/NEWS.md)
+  has release notes. 
+
+## Acknowledgements
+
+`nlmixr2scm` was written together with Matthew Fidler and Yaping Liu and contains
+contributions from Bill Denney, Vipul Mann, Vishal Sarsani, and Christian
+Bartels. The design owes a great deal to the original PsN `scm` implementation by
+Lars Lindbom, Niclas Jonsson, Pontus Pihlgren, Mats Karlsson, Andrew Hooker,
+Kajsa Harling, Rikard Nordgren and Svetlana Freiberga. Thank you all!
