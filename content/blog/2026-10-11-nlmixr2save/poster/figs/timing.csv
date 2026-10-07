@@ -1,0 +1,6 @@
+"step","sec","what"
+"1. first call",8.112,"estimated"
+"2. same call again",0.304,"loaded from cache"
+"3. add a notes column to the data",0.317,"loaded from cache"
+"4. change DV",6.181,"estimated"
+"5. change nBurn",6.985,"estimated"
