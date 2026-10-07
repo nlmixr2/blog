@@ -116,7 +116,7 @@ Before choosing a parametric form, we overlay several distributions against a
 kernel density hazard estimate and compare AICs. The `plot_hazard` helper below
 fits six standard distributions and two cubic-spline models via `flexsurv`.
 
-```{r hazard-fn, echo=FALSE}
+```{r hazard-fn, echo=TRUE}
 plot_hazard <- function(dat, stime, evt, cutoff = max(dat[[stime]]),
                         bwsmooth = 3, includeCubic3 = TRUE) {
   # Cap muhaz at 90% of time range to avoid right-boundary artefact
