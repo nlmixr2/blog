@@ -75,6 +75,13 @@ format:
         </style>
 ---
 
+## {background-video="video/nlmixr2scm.mp4" background-video-muted="false" background-video-loop="false" background-size="contain"}
+
+<!-- The package animation opens the talk.  reveal always puts the YAML
+     title slide first, so this is slide 1; render_presentation.js moves an
+     unnarrated background video at index 1 ahead of the title.  No speaker
+     notes on purpose: with no clip the film keeps its own audio. -->
+
 ## This talk, in four pictures
 
 ::: figgrid
@@ -737,3 +744,8 @@ Section illustrations are Gemini Nano Banana-generated artwork, drawn from photo
 ::: {.notes}
 Thank you.
 :::
+
+## {background-video="video/nlmixr2scm.mp4" background-video-muted="false" background-video-loop="false" background-size="contain"}
+
+<!-- The package animation closes the talk.  No speaker notes on purpose:
+     with no clip the film keeps its own audio. -->
