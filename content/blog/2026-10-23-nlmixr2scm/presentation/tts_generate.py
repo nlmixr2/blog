@@ -169,6 +169,10 @@ SAY = [
     (r"\bS C M\b",           "S-C-M"),          # house form: hyphenated letters
     (r"\bP S N\b",           "P-S-N"),
     (r"\bYaping\b",          "Yahping"),        # YahPing, not "Yay-ping"
+    # Picked by ear from pronunciation-samples/ (sample b of each): the plain
+    # tokens were read inconsistently across a full take.
+    (r"(?i)\bcovariate(s?)\b", r"co-variate\1"),
+    (r"\bNONMEM\b",          "Non-mem"),
     (r"\bO-D-E\b|\bODEs?\b",  "O-D-E"),          # not "ode"
     (r"\brxode2\b",          "RXODE2"),
     (r"\bn1qn1\b",           "N one Q N one"),

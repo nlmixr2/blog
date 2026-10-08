@@ -179,8 +179,8 @@ in Perl speaks NONMEM. You write a control stream, then a
 configuration file that lists the parameters and covariates, and P S N
 runs NONMEM for each candidate.
 
-nlmixr2 S C M follows the same approach, from Jonsson and Karlsson in
-nineteen ninety eight, but it starts from a fit you already have. You
+nlmixr2 S C M follows the same approach, from the original
+paper, but it starts from a fit you already have. You
 pass the fit to run S C M, and what comes back are ordinary nlmixr2
 fit objects. So there are no control streams or configuration files to
 write, and you can use the same plots and diagnostics you always do.
