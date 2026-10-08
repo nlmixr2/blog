@@ -168,6 +168,7 @@ SAY = [
     (r"\bnlmixr2\b",         "N L mixer two"),
     (r"\bS C M\b",           "S-C-M"),          # house form: hyphenated letters
     (r"\bP S N\b",           "P-S-N"),
+    (r"\bYaping\b",          "Yahping"),        # YahPing, not "Yay-ping"
     (r"\bO-D-E\b|\bODEs?\b",  "O-D-E"),          # not "ode"
     (r"\brxode2\b",          "RXODE2"),
     (r"\bn1qn1\b",           "N one Q N one"),

@@ -359,7 +359,7 @@ scm <- runSCM(
 ::::
 
 ::: {.notes}
-We start from a one compartment warfarin P K model, fit with focei.
+We start from a one compartment warfarin P K model.
 
 Here we test body weight, as either a power or a linear relationship,
 and sex, on both clearance and volume. That's six candidates. The data
@@ -728,9 +728,9 @@ reference and a longer worked example, and bug reports and feature
 requests go on GitHub.
 
 Justin Wilkins and Yaping Liu wrote most of this package, and I
-helped. It also has contributions from Bill Denney, Vipul Mann, Vishal
-Sarsani, and Christian Bartels. And the design owes a great deal to
-the original P S N S C M, and the people who built it.
+helped. It also has contributions from many others. And the design
+owes a great deal to the original P S N package, and the people who
+built it.
 
 So try it on the next model where you need a covariate search.
 :::
