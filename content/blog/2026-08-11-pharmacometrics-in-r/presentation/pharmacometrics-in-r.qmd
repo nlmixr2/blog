@@ -1,0 +1,973 @@
+---
+title: "Tiny doses for tiny babies: how much is too much?"
+subtitle: "A hands-on introduction to pharmacometrics in R"
+author: "Matthew Fidler & Janice Goh"
+institute: "On behalf of the [nlmixr2]{.nlmixr} team"
+# The title slide is generated from the YAML, so a ::: {.notes} div cannot be
+# attached to it in markdown -- one placed before the first heading becomes a
+# separate blank slide.  reveal reads speaker notes from data-notes as well.
+title-slide-attributes:
+  data-notes: "Hi, I'm Matt presenting on the blog post by myself and Janice. Today we'll walk through a real dosing problem in R: how to dose a drug for preterm babies, when we only have scraps of data."
+format:
+  nlmixr2-revealjs:
+    embed-resources: false
+    # Keep math OUT of the ::: {.notes} blocks -- they are the spoken script.
+    include-in-header:
+      text: |
+        <style>
+        svg.dg {
+          display: block;
+          width: 100%;
+          height: auto;
+          max-height: 545px;
+          margin: 0.2em auto 0 auto;
+          font-family: "Calibri", "Carlito", "Segoe UI", sans-serif;
+        }
+        svg.dg text { fill: #0f243e; }
+        svg.dg .t   { font-size: 19px; }
+        svg.dg .lab { font-size: 20px; font-weight: 700; }
+        svg.dg .sm  { font-size: 16px; fill: #5a6b80; }
+        svg.dg .mono { font-family: "Courier New", "Liberation Mono", monospace; font-size: 19px; }
+        svg.dg .red  { fill: #b40000; }
+        svg.dg .blue { fill: #1f497d; }
+        svg.dg .grn  { fill: #4a7d18; }
+
+        /* section-break slides: one captioned illustration */
+        .reveal section.sectionbreak img {
+          display: block; margin: 0.35em auto 0 auto;
+          max-height: 510px; max-width: 100%;
+          width: auto !important; height: auto !important;
+          object-fit: contain; border-radius: 6px;
+        }
+        /* outline slide: the section figures, captioned */
+        .reveal .figgrid {
+          display: grid; grid-template-columns: repeat(4, 1fr);
+          gap: 0.35em 0.8em; margin-top: 0.35em;
+        }
+        .reveal .figgrid figure { margin: 0; }
+        .reveal .figgrid img {
+          width: 100%; display: block; border-radius: 4px; margin: 0;
+          aspect-ratio: 16 / 9; object-fit: cover;
+        }
+        .reveal .figgrid figcaption {
+          font-size: 0.48em; line-height: 1.25; margin-top: 0.2em;
+          color: #17375d;
+        }
+        /* full-width result figures from the blog post */
+        .reveal img.fig {
+          display: block; margin: 0.2em auto 0 auto;
+          max-height: 530px; max-width: 100%;
+          width: auto !important; height: auto !important;
+        }
+        /* author slide */
+        .reveal .authors {
+          display: flex; justify-content: center; gap: 2.2em;
+          margin-top: 1.2em; text-align: center;
+        }
+        .reveal .authors img {
+          width: 230px; height: 230px; object-fit: cover;
+          border-radius: 50%; margin: 0 auto;
+          border: 4px solid #1f497d;
+        }
+        .reveal .authors .cat img { border-color: #9bbb59; }
+        .reveal .authors p { font-size: 0.7em; margin: 0.35em 0 0 0; }
+        .reveal .authors p.role { font-size: 0.5em; color: #5a6b80; margin: 0; }
+        .reveal pre code { font-size: 0.86em; line-height: 1.25; max-height: none !important; overflow: visible !important; }
+        .reveal pre { max-height: none !important; }
+        </style>
+---
+
+## Two pharmacometricians and a cat
+
+::: authors
+<div>
+<img src="images/matt.png" alt="Matthew Fidler">
+<p>Matthew Fidler</p>
+<p class="role">nlmixr2 development team</p>
+</div>
+<div>
+<img src="images/janice.jpg" alt="Janice Goh">
+<p>Janice Goh</p>
+<p class="role">pharmacometrician</p>
+</div>
+<div class="cat">
+<img src="images/pudding.jpg" alt="Pudding the cat">
+<p>Pudding</p>
+<p class="role">chief supervisor</p>
+</div>
+:::
+
+::: {.notes}
+This talk is from a blog post we wrote together. Pudding, Janice's cat, supervised,
+as usual. You'll see all three of us in the section pictures.
+:::
+
+## The analysis, in seven pictures
+
+::: figgrid
+<figure>
+<img src="images/sec-question.jpg">
+<figcaption><b>1.</b> The dosing question</figcaption>
+</figure>
+<figure>
+<img src="images/sec-pmx.jpg">
+<figcaption><b>2.</b> What a pharmacometric model is</figcaption>
+</figure>
+<figure>
+<img src="images/sec-data.jpg">
+<figcaption><b>3.</b> Scraps of data</figcaption>
+</figure>
+<figure>
+<img src="images/sec-model.jpg">
+<figcaption><b>4.</b> Building the model in [nlmixr2]{.nlmixr}</figcaption>
+</figure>
+<figure>
+<img src="images/sec-check.jpg">
+<figcaption><b>5.</b> Can we believe it?</figcaption>
+</figure>
+<figure>
+<img src="images/sec-dose.jpg">
+<figcaption><b>6.</b> Flat versus weight-based dosing</figcaption>
+</figure>
+<figure>
+<img src="images/sec-ecosystem.jpg">
+<figcaption><b>7.</b> Where this sits in R</figcaption>
+</figure>
+:::
+
+::: {.notes}
+The talk has seven parts. First, the dosing question. Second, what a
+pharmacometric model is. Third, the sparse data we have. Fourth, building
+the model in nlmixr2. Fifth, checking whether we can believe it. Sixth,
+using it to compare a flat dose with a weight-based dose. And last, how this
+fits into the wider R ecosystem.
+:::
+
+## 1. The dosing question {.sectionbreak}
+
+![](images/sec-question.jpg){.nostretch}
+
+::: {.notes}
+Let's start with the question.
+:::
+
+## A flat dose tuned for a 1.5 kg baby may not suit a 900 g baby
+
+```{=html}
+<svg class="dg" viewBox="0 0 1000 340" role="img"
+     aria-label="A phenobarbital concentration scale split into three zones: below 15 milligrams per liter seizures continue, 15 to 40 is the therapeutic window, above 40 breathing can stop. A flat dose chosen for a 1.5 kilogram baby lands mid-window; where a 900 gram baby lands is unknown.">
+  <!-- zones -->
+  <rect x="80"  y="140" width="371" height="80" fill="#dde6f0"/>
+  <rect x="451" y="140" width="332" height="80" fill="#e6f0da" stroke="#4a7d18" stroke-width="2"/>
+  <rect x="783" y="140" width="137" height="80" fill="#f3dede"/>
+  <text class="lab blue" x="265" y="176" text-anchor="middle">too little</text>
+  <text class="sm" x="265" y="200" text-anchor="middle">seizures continue</text>
+  <text class="lab grn" x="617" y="176" text-anchor="middle">therapeutic window</text>
+  <text class="sm" x="617" y="200" text-anchor="middle">15–40 mg/L</text>
+  <text class="lab red" x="851" y="176" text-anchor="middle">too much</text>
+  <text class="sm" x="851" y="200" text-anchor="middle">breathing stops</text>
+
+  <!-- axis -->
+  <line x1="80" y1="240" x2="920" y2="240" stroke="#0f243e" stroke-width="1.5"/>
+  <g stroke="#0f243e" stroke-width="1.5">
+    <line x1="80" y1="240" x2="80" y2="248"/><line x1="314" y1="240" x2="314" y2="248"/>
+    <line x1="451" y1="240" x2="451" y2="248"/><line x1="549" y1="240" x2="549" y2="248"/>
+    <line x1="686" y1="240" x2="686" y2="248"/><line x1="783" y1="240" x2="783" y2="248"/>
+    <line x1="920" y1="240" x2="920" y2="248"/>
+  </g>
+  <g class="sm" text-anchor="middle">
+    <text x="80" y="268">5</text><text x="314" y="268">10</text><text x="451" y="268">15</text>
+    <text x="549" y="268">20</text><text x="686" y="268">30</text><text x="783" y="268">40</text>
+    <text x="920" y="268">60</text>
+  </g>
+  <text class="t" x="500" y="300" text-anchor="middle">phenobarbital concentration (mg/L, log scale)</text>
+
+  <!-- 1.5 kg: designed here -->
+  <polygon points="584,134 574,114 594,114" fill="#1f497d"/>
+  <text class="t blue" x="584" y="104" text-anchor="middle">1.5 kg baby: flat dose designed to land here</text>
+
+  <!-- 900 g: unknown -->
+  <line x1="330" y1="52" x2="900" y2="52" stroke="#b40000" stroke-width="2" stroke-dasharray="7 5"/>
+  <polygon points="330,52 342,46 342,58" fill="#b40000"/>
+  <polygon points="900,52 888,46 888,58" fill="#b40000"/>
+  <rect x="505" y="32" width="230" height="38" rx="6" fill="#ffffff" stroke="#b40000" stroke-width="2"/>
+  <text class="lab red" x="620" y="58" text-anchor="middle">900 g baby: where?</text>
+</svg>
+```
+
+::: {.notes}
+Preterm infants are prone to seizures, and phenobarbital is used to treat
+them. The dose makes the poison: too little and the seizures continue, too
+much and the baby can stop breathing.
+
+A doctor read that one flat dose might work for every neonate. That would
+make giving the drug much simpler. But a flat dose tuned for an average
+one-and-a-half kilogram baby might not suit our nine-hundred-gram baby, and we
+don't know where that baby would land.
+:::
+
+## Measuring each baby's level cannot answer it: a preterm infant has less than a teacup of blood
+
+```{=html}
+<svg class="dg" viewBox="0 0 1000 380" role="img"
+     aria-label="On the left, a classic study takes fifteen or more samples that trace the whole concentration curve. On the right, a preterm infant gives only one to three samples days apart, so the curve itself is unseen.">
+  <!-- left panel -->
+  <text class="lab" x="260" y="36" text-anchor="middle">Controlled study: 15+ samples</text>
+  <line x1="80" y1="300" x2="440" y2="300" stroke="#0f243e" stroke-width="1.5"/>
+  <line x1="80" y1="300" x2="80" y2="80" stroke="#0f243e" stroke-width="1.5"/>
+  <path d="M80,300 L89,206 L98,152 L107,124 L116,112 L125,110 L134,115 L143,123 L152,133 L161,143 L170,154 L179,165 L188,175 L197,185 L206,194 L215,203 L224,211 L233,218 L242,225 L251,231 L260,237 L269,242 L278,247 L287,252 L296,256 L305,259 L314,263 L323,266 L332,269 L341,271 L350,274 L359,276 L368,278 L377,280 L386,281 L395,283 L404,284 L413,286 L422,287 L431,288 L440,289"
+        fill="none" stroke="#1f497d" stroke-width="2.5"/>
+  <g fill="#1f497d">
+    <circle cx="89" cy="206" r="6"/><circle cx="98" cy="152" r="6"/><circle cx="116" cy="112" r="6"/>
+    <circle cx="143" cy="123" r="6"/><circle cx="170" cy="154" r="6"/><circle cx="197" cy="185" r="6"/>
+    <circle cx="224" cy="211" r="6"/><circle cx="251" cy="231" r="6"/><circle cx="278" cy="247" r="6"/>
+    <circle cx="305" cy="259" r="6"/><circle cx="332" cy="269" r="6"/><circle cx="359" cy="276" r="6"/>
+    <circle cx="386" cy="281" r="6"/><circle cx="413" cy="286" r="6"/><circle cx="440" cy="289" r="6"/>
+  </g>
+  <text class="sm" x="260" y="326" text-anchor="middle">time →  the curve is measured</text>
+
+  <!-- right panel -->
+  <text class="lab red" x="740" y="36" text-anchor="middle">Preterm infant: 1–3 samples</text>
+  <line x1="560" y1="300" x2="920" y2="300" stroke="#0f243e" stroke-width="1.5"/>
+  <line x1="560" y1="300" x2="560" y2="80" stroke="#0f243e" stroke-width="1.5"/>
+  <path d="M560,300 L569,206 L578,152 L587,124 L596,112 L605,110 L614,115 L623,123 L632,133 L641,143 L650,154 L659,165 L668,175 L677,185 L686,194 L695,203 L704,211 L713,218 L722,225 L731,231 L740,237 L749,242 L758,247 L767,252 L776,256 L785,259 L794,263 L803,266 L812,269 L821,271 L830,274 L839,276 L848,278 L857,280 L866,281 L875,283 L884,284 L893,286 L902,287 L911,288 L920,289"
+        fill="none" stroke="#b0b8c4" stroke-width="2" stroke-dasharray="6 6"/>
+  <circle cx="614" cy="115" r="7" fill="#b40000"/>
+  <circle cx="839" cy="276" r="7" fill="#b40000"/>
+  <text class="sm" x="740" y="200" text-anchor="middle">curve unseen</text>
+  <text class="sm" x="740" y="326" text-anchor="middle">time →  samples days apart</text>
+
+  <text class="t" x="500" y="366" text-anchor="middle">A model borrows strength across infants to fill in what no single baby can show</text>
+</svg>
+```
+
+::: {.notes}
+The usual way to check exposure is to take blood samples and measure the
+drug level. But a preterm baby has less than a teacup of blood in its whole
+body, so a study with fifteen samples per baby isn't possible.
+
+What we have is scraps: one sample here, another three days later. So we
+need a model that learns how weight affects drug clearance from earlier
+data, and then simulates the dose instead.
+:::
+
+## 2. What a pharmacometric model is {.sectionbreak}
+
+![](images/sec-pmx.jpg){.nostretch}
+
+::: {.notes}
+So, what is a pharmacometric model?
+:::
+
+## A pharmacometric model is a mixed model whose mean function is an ODE
+
+```{=html}
+<svg class="dg" viewBox="0 0 1000 400" role="img"
+     aria-label="A bucket with a hole. Dose pours in from the top, the water held is the volume, and drug leaks out of the hole at a rate set by clearance. Beside it, the same picture as the nlmixr2 differential equation, with clearance split into a typical value plus each infant's own random deviation.">
+  <!-- inflow -->
+  <line x1="240" y1="20" x2="240" y2="160" stroke="#1f497d" stroke-width="4"/>
+  <polygon points="240,176 230,156 250,156" fill="#1f497d"/>
+  <text class="lab blue" x="258" y="48">dose</text>
+  <text class="sm" x="258" y="70">AMT, EVID = 1</text>
+
+  <!-- bucket -->
+  <polygon points="128,190 352,190 336,340 144,340" fill="#cfe0f0"/>
+  <polygon points="120,110 360,110 336,340 144,340" fill="none" stroke="#0f243e" stroke-width="3"/>
+  <text class="lab" x="240" y="262" text-anchor="middle">volume, V</text>
+  <text class="sm" x="240" y="284" text-anchor="middle">how widely drug spreads</text>
+
+  <!-- outflow -->
+  <circle cx="330" cy="318" r="6" fill="#0f243e"/>
+  <path d="M336,318 Q380,322 400,372" fill="none" stroke="#b40000" stroke-width="4"/>
+  <polygon points="404,388 390,370 410,366" fill="#b40000"/>
+  <text class="lab red" x="420" y="360">clearance, CL</text>
+  <text class="sm" x="420" y="382">how fast drug is removed</text>
+
+  <!-- equation side -->
+  <line x1="560" y1="30" x2="560" y2="380" stroke="#c9d3de" stroke-width="1.5"/>
+  <text class="lab" x="600" y="60">the same bucket in nlmixr2</text>
+  <text class="mono" x="600" y="110">d/dt(central) &lt;- -(cl/v) * central</text>
+  <text class="mono" x="600" y="145">cp &lt;- central / v</text>
+
+  <text class="lab" x="600" y="220">and every infant is different</text>
+  <text class="mono" x="600" y="268">cl &lt;- exp(<tspan class="blue" font-weight="700">tcl</tspan> + <tspan class="red" font-weight="700">eta.cl</tspan>)</text>
+  <line x1="752" y1="280" x2="720" y2="318" stroke="#1f497d" stroke-width="1.5"/>
+  <text class="t blue" x="600" y="340">typical infant</text>
+  <line x1="838" y1="280" x2="880" y2="318" stroke="#b40000" stroke-width="1.5"/>
+  <text class="t red" x="800" y="340">this infant's</text>
+  <text class="t red" x="800" y="362">deviation</text>
+</svg>
+```
+
+::: {.notes}
+If you've fit a mixed model before, you've done half of this already. The
+difference is the mean function. It isn't a line or a spline. It's the
+solution to a differential equation.
+
+Think of a bucket with a hole in it. Drug goes in with the dose. The
+volume is how widely the drug spreads, and clearance is how fast it drains
+out. In nlmixr2 that bucket is one line of O-D-E. Each infant gets their own
+clearance: the typical value plus their own random deviation.
+:::
+
+## Volume sets the loading dose; clearance sets the maintenance dose
+
+```{=html}
+<svg class="dg" viewBox="0 0 1000 380" role="img"
+     aria-label="Two concentration-time curves on the same axes. With a loading dose the concentration jumps into the window immediately and stays there. Without one it takes days to climb. The size of the jump depends on volume, the level it holds depends on clearance.">
+  <rect x="110" y="100" width="810" height="90" fill="#e6f0da"/>
+  <text class="sm grn" x="912" y="94" text-anchor="end">therapeutic window</text>
+
+  <line x1="110" y1="300" x2="930" y2="300" stroke="#0f243e" stroke-width="1.5"/>
+  <line x1="110" y1="300" x2="110" y2="40" stroke="#0f243e" stroke-width="1.5"/>
+  <text class="sm" x="520" y="326" text-anchor="middle">time (days, schematic)</text>
+  <text class="sm" x="96" y="170" text-anchor="middle" transform="rotate(-90 96 170)">concentration</text>
+
+  <path d="M110,300 L110,239 L118,243 L127,247 L135,250 L144,254 L152,257 L161,260 L161,198 L169,205 L178,212 L186,218 L194,223 L203,228 L211,233 L211,172 L220,181 L228,189 L237,196 L245,203 L253,210 L262,216 L262,155 L270,164 L279,174 L287,182 L296,190 L304,198 L312,204 L312,143 L321,154 L329,164 L338,173 L346,181 L355,189 L363,197 L363,136 L372,147 L380,157 L388,167 L397,176 L405,184 L414,192 L414,131 L422,142 L431,153 L439,163 L448,172 L456,181 L464,189 L464,127 L473,139 L481,150 L490,160 L498,170 L507,178 L515,187 L515,125 L523,137 L532,148 L540,158 L549,168 L557,177 L566,185 L566,124 L574,136 L582,147 L591,157 L599,167 L608,176 L616,184 L616,123 L625,135 L633,146 L642,157 L650,166 L658,175 L667,184 L667,122 L675,134 L684,146 L692,156 L701,166 L709,175 L718,183 L718,122 L726,134 L734,145 L743,156 L751,165 L760,175 L768,183 L768,122 L777,134 L785,145 L793,156 L802,165 L810,174 L819,183 L819,122 L827,134 L836,145 L844,155 L852,165 L861,174 L869,183 L869,121 L878,134 L886,145 L895,155 L903,165 L912,174 L920,183"
+        fill="none" stroke="#b0b8c4" stroke-width="2"/>
+  <path d="M110,300 L110,121 L118,133 L127,145 L135,155 L144,165 L152,174 L161,183 L161,121 L169,133 L178,145 L186,155 L194,165 L203,174 L211,183 L211,121 L220,133 L228,145 L237,155 L245,165 L253,174 L262,183 L262,121 L270,133 L279,145 L287,155 L296,165 L304,174 L312,183 L312,121 L321,133 L329,145 L338,155 L346,165 L355,174 L363,183 L363,121 L372,133 L380,145 L388,155 L397,165 L405,174 L414,183 L414,121 L422,133 L431,145 L439,155 L448,165 L456,174 L464,183 L464,121 L473,133 L481,145 L490,155 L498,165 L507,174 L515,183 L515,121 L523,133 L532,145 L540,155 L549,165 L557,174 L566,183 L566,121 L574,133 L582,145 L591,155 L599,165 L608,174 L616,183 L616,121 L625,133 L633,145 L642,155 L650,165 L658,174 L667,183 L667,121 L675,133 L684,145 L692,155 L701,165 L709,174 L718,183 L718,121 L726,133 L734,145 L743,155 L751,165 L760,174 L768,183 L768,121 L777,133 L785,145 L793,155 L802,165 L810,174 L819,183 L819,121 L827,133 L836,145 L844,155 L852,165 L861,174 L869,183 L869,121 L878,133 L886,145 L895,155 L903,165 L912,174 L920,183"
+        fill="none" stroke="#1f497d" stroke-width="2.5"/>
+
+  <!-- annotations -->
+  <path d="M150,60 Q120,62 114,110" fill="none" stroke="#b40000" stroke-width="2"/>
+  <polygon points="113,120 107,104 121,106" fill="#b40000"/>
+  <text class="lab red" x="160" y="52">loading dose: the jump</text>
+  <text class="t" x="160" y="76">how much it takes to fill the <tspan font-weight="700">volume</tspan></text>
+
+  <text class="lab blue" x="600" y="232">maintenance dose: the plateau</text>
+  <text class="t" x="600" y="256">replaces what <tspan font-weight="700">clearance</tspan> removes</text>
+
+  <text class="sm" x="330" y="286">without a load: days to reach the window</text>
+
+  <line x1="130" y1="356" x2="170" y2="356" stroke="#1f497d" stroke-width="3"/>
+  <text class="sm" x="178" y="361">load + maintenance</text>
+  <line x1="360" y1="356" x2="400" y2="356" stroke="#b0b8c4" stroke-width="3"/>
+  <text class="sm" x="408" y="361">maintenance only</text>
+</svg>
+```
+
+::: {.notes}
+Models like this don't just fit a curve. Their parameters mean something.
+The loading dose, the first big dose, is set by volume. It's how much drug
+it takes to fill the bucket. The maintenance doses are set by clearance.
+They replace what drains out.
+
+Because the model separates the two, it can design a whole dosing regimen.
+It can also predict doses nobody in the study actually got. That's why drug
+labels and pediatric doses are so often built from models like this.
+:::
+
+## 3. Scraps of data {.sectionbreak}
+
+![](images/sec-data.jpg){.nostretch}
+
+::: {.notes}
+Now let's look at the data.
+:::
+
+## 59 infants received 589 doses but gave only 155 concentrations
+
+![](images/fig-data-1.png){.nostretch .fig}
+
+::: {.notes}
+The data are fifty-nine preterm infants given phenobarbital, published
+in 19 85. They ship with nlmixr2 as pheno underscore S-D.
+
+Each row in this plot is one infant, sorted by weight. The small ticks are
+doses and the circles are measured concentrations. There are five hundred
+and eighty-nine doses but only one hundred and fifty-five measurements. The
+babies were dosed often and sampled rarely, during routine care.
+:::
+
+## Forty percent of infants contributed two samples or fewer
+
+```{=html}
+<svg class="dg" viewBox="0 0 1000 380" role="img"
+     aria-label="Bar chart of samples per infant: 9 infants had one sample, 15 had two, 27 had three, 6 had four, 1 had five and 1 had six. The one- and two-sample bars, 24 infants in total, are highlighted in red.">
+  <line x1="110" y1="310" x2="930" y2="310" stroke="#0f243e" stroke-width="1.5"/>
+  <g>
+    <rect x="130" y="229" width="100" height="81" fill="#b40000"/>
+    <rect x="265" y="175" width="100" height="135" fill="#b40000"/>
+    <rect x="400" y="67"  width="100" height="243" fill="#1f497d"/>
+    <rect x="535" y="256" width="100" height="54"  fill="#1f497d"/>
+    <rect x="670" y="301" width="100" height="9"   fill="#1f497d"/>
+    <rect x="805" y="301" width="100" height="9"   fill="#1f497d"/>
+  </g>
+  <g class="lab" text-anchor="middle">
+    <text x="180" y="219" class="red">9</text>
+    <text x="315" y="165" class="red">15</text>
+    <text x="450" y="57">27</text>
+    <text x="585" y="246">6</text>
+    <text x="720" y="291">1</text>
+    <text x="855" y="291">1</text>
+  </g>
+  <g class="t" text-anchor="middle">
+    <text x="180" y="336">1</text><text x="315" y="336">2</text><text x="450" y="336">3</text>
+    <text x="585" y="336">4</text><text x="720" y="336">5</text><text x="855" y="336">6</text>
+  </g>
+  <text class="t" x="520" y="366" text-anchor="middle">concentrations per infant</text>
+
+  <path d="M130,150 L130,140 L365,140 L365,150" fill="none" stroke="#b40000" stroke-width="2"/>
+  <text class="lab red" x="130" y="104">24 of 59 infants</text>
+  <text class="t red" x="130" y="128">have two samples or fewer</text>
+
+  <text class="sm" x="930" y="120" text-anchor="end">No one infant can pin down</text>
+  <text class="sm" x="930" y="142" text-anchor="end">their own clearance and volume</text>
+</svg>
+```
+
+::: {.notes}
+Look closer and it gets worse. Nine infants have exactly one concentration.
+Forty percent have two or fewer. You can't estimate two parameters for a
+baby from one data point. Unless, that is, you let the infants borrow
+strength from each other. That's exactly what the mixed-effects model does.
+:::
+
+## 4. Building the model in [nlmixr2]{.nlmixr} {.sectionbreak}
+
+![](images/sec-model.jpg){.nostretch}
+
+::: {.notes}
+Let's build the model in nlmixr2.
+:::
+
+## An [nlmixr2]{.nlmixr} model is a plain R function: `ini()` for estimates, `model()` for the ODE
+
+```r
+pheno <- function() {
+  ini({
+    tcl <- log(0.008)   # log typical clearance (L/h)
+    tv  <- log(0.6)     # log typical volume (L)
+    eta.cl ~ 1          # between-infant variability on clearance
+    eta.v  ~ 1          # between-infant variability on volume
+    prop.sd <- 0.1      # proportional residual error
+  })
+  model({
+    cl <- exp(tcl + eta.cl)
+    v  <- exp(tv  + eta.v)
+    d/dt(central) <- -(cl / v) * central
+    cp <- central / v
+    cp ~ prop(prop.sd)
+  })
+}
+
+fit1 <- nlmixr2(pheno, pheno_sd, est = "saem")
+```
+
+::: {.notes}
+The model is an ordinary R function with two blocks. In the ini block, an
+arrow sets a fixed effect and a wavy single line sets a random effect. The model block
+holds the differential equation, written the way you'd write it on paper.
+The last line connects the prediction to the observed data with a
+proportional error.
+
+Notice there's no dosing in the model. Doses come from the data. The rest
+is plain R, and one call to nlmixr2 fits it.
+:::
+
+## Adding body weight removes more than half of the between-infant variability
+
+```{=html}
+<svg class="dg" viewBox="0 0 1000 400" role="img"
+     aria-label="Horizontal bars of between-infant variability. Base model: 37 percent on clearance and 47 percent on volume, objective function 735. With allometric weight: 17 and 18 percent, objective function 591. With covariates selected by vae: 16 and 14 percent, objective function 613.">
+  <text class="sm" x="330" y="30">between-infant variability (CV%)</text>
+  <text class="sm" x="950" y="30" text-anchor="end">OBJF</text>
+
+  <!-- gridlines -->
+  <g stroke="#dfe5ec" stroke-width="1">
+    <line x1="330" y1="42" x2="330" y2="360"/><line x1="430" y1="42" x2="430" y2="360"/>
+    <line x1="530" y1="42" x2="530" y2="360"/><line x1="630" y1="42" x2="630" y2="360"/>
+    <line x1="730" y1="42" x2="730" y2="360"/><line x1="830" y1="42" x2="830" y2="360"/>
+  </g>
+  <g class="sm" text-anchor="middle">
+    <text x="330" y="382">0</text><text x="430" y="382">10</text><text x="530" y="382">20</text>
+    <text x="630" y="382">30</text><text x="730" y="382">40</text><text x="830" y="382">50</text>
+  </g>
+
+  <!-- base -->
+  <text class="lab" x="310" y="92" text-anchor="end">Base</text>
+  <rect x="330" y="58"  width="371" height="30" fill="#1f497d"/>
+  <rect x="330" y="92"  width="469" height="30" fill="#4f81bd"/>
+  <text class="t" x="709" y="80">37%</text>
+  <text class="t" x="807" y="114">47%</text>
+  <text class="lab" x="950" y="98" text-anchor="end">735</text>
+
+  <!-- allometric -->
+  <text class="lab" x="310" y="190" text-anchor="end">+ allometric weight</text>
+  <text class="sm" x="310" y="212" text-anchor="end">saem, one line each</text>
+  <rect x="330" y="160" width="168" height="30" fill="#1f497d"/>
+  <rect x="330" y="194" width="180" height="30" fill="#4f81bd"/>
+  <text class="t" x="506" y="182">17%</text>
+  <text class="t" x="518" y="216">18%</text>
+  <text class="lab grn" x="950" y="200" text-anchor="end">591</text>
+
+  <!-- vae -->
+  <text class="lab" x="310" y="292" text-anchor="end">vae-selected weight</text>
+  <text class="sm" x="310" y="314" text-anchor="end">experimental, automatic</text>
+  <rect x="330" y="262" width="161" height="30" fill="#1f497d"/>
+  <rect x="330" y="296" width="139" height="30" fill="#4f81bd"/>
+  <text class="t" x="499" y="284">16%</text>
+  <text class="t" x="477" y="318">14%</text>
+  <text class="lab grn" x="950" y="302" text-anchor="end">613</text>
+
+  <!-- legend -->
+  <rect x="600" y="160" width="18" height="18" fill="#1f497d"/>
+  <text class="t" x="626" y="175">clearance</text>
+  <rect x="600" y="190" width="18" height="18" fill="#4f81bd"/>
+  <text class="t" x="626" y="205">volume</text>
+</svg>
+```
+
+::: {.notes}
+The base model gives thirty-seven percent between-infant variability on
+clearance, and forty-seven percent on volume. That means two infants on the
+same dose can easily differ two-fold in exposure. That's why a flat dose is
+risky.
+
+These babies range from point six to three point six kilograms. When we add
+body weight with standard allometric scaling, variability falls to about
+seventeen and eighteen percent. The objective function drops by about one
+hundred and forty-four points. More than half of the variability is just
+body weight.
+:::
+
+## Model piping adds a covariate without rewriting the model
+
+```r
+phenoWt <- pheno |>
+  model(cl <- exp(tcl + eta.cl + cov.cl.wt * log(WT / 1.3))) |>
+  model(v  <- exp(tv  + eta.v  + cov.v.wt  * log(WT / 1.3))) |>
+  ini(cov.cl.wt = 0.75, cov.v.wt = 1)
+
+fit2 <- nlmixr2(phenoWt, pheno_sd, est = "saem")
+```
+
+::: rule
+:::
+
+```r
+# experimental in nlmixr2 7.0: let the estimator search for covariates
+fit3 <- nlmixr2(pheno, pheno_sd, est = "vae")
+```
+
+::: {.notes}
+We didn't have to rewrite the model to add weight. With model piping, we
+swap the clearance line, swap the volume line, and set the two new
+initial estimates.
+
+As an experiment in nlmixr2 seven point oh, we can also skip that step. The new
+variational autoencoder estimator searches for covariates by itself. Given
+the base model, it found weight too.
+:::
+
+## Left to search on its own, `vae` put weight back on both clearance and volume
+
+```{=html}
+<svg class="dg" viewBox="0 0 1000 360" role="img"
+     aria-label="Two panels of covariate effect against body weight, both centered at 1.3 kilograms. Clearance follows a power curve with exponent 0.63. Volume follows a hockey stick, steeper below 1.3 kilograms with slope 0.95 than above with slope 0.52.">
+  <!-- CL panel -->
+  <text class="lab" x="280" y="36" text-anchor="middle">clearance: power of weight</text>
+  <line x1="110" y1="290" x2="450" y2="290" stroke="#0f243e" stroke-width="1.5"/>
+  <line x1="110" y1="290" x2="110" y2="70"  stroke="#0f243e" stroke-width="1.5"/>
+  <line x1="110" y1="206" x2="450" y2="206" stroke="#dfe5ec" stroke-width="1.5"/>
+  <line x1="189" y1="70"  x2="189" y2="290" stroke="#c9d3de" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <path d="M110,258 L121,247 L133,238 L144,231 L155,224 L167,217 L178,212 L189,206 L201,201 L212,197 L223,192 L235,188 L246,185 L257,181 L269,178 L280,174 L291,171 L303,168 L314,165 L325,163 L337,160 L348,158 L359,155 L371,153 L382,151 L393,149 L405,146 L416,144 L427,142 L439,140 L450,139"
+        fill="none" stroke="#1f497d" stroke-width="3.5"/>
+  <text class="mono blue" x="250" y="120">0.63 × log(WT/1.3)</text>
+  <g class="sm" text-anchor="middle">
+    <text x="110" y="312">0.6</text><text x="189" y="312">1.3</text>
+    <text x="336" y="312">2.5</text><text x="450" y="312">3.6</text>
+  </g>
+
+  <!-- V panel -->
+  <text class="lab" x="760" y="36" text-anchor="middle">volume: hockey stick at 1.3 kg</text>
+  <line x1="590" y1="290" x2="930" y2="290" stroke="#0f243e" stroke-width="1.5"/>
+  <line x1="590" y1="290" x2="590" y2="70"  stroke="#0f243e" stroke-width="1.5"/>
+  <line x1="590" y1="206" x2="930" y2="206" stroke="#dfe5ec" stroke-width="1.5"/>
+  <line x1="669" y1="70"  x2="669" y2="290" stroke="#c9d3de" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <path d="M590,276 L613,256 L635,236 L658,216 L669,206 L681,201 L703,190 L726,179 L749,168 L771,157 L794,146 L817,135 L839,124 L862,114 L885,103 L907,92 L930,81"
+        fill="none" stroke="#e08836" stroke-width="3.5"/>
+  <text class="t" x="610" y="160">slope 0.95</text>
+  <text class="t" x="800" y="200">slope 0.52</text>
+  <g class="sm" text-anchor="middle">
+    <text x="590" y="312">0.6</text><text x="669" y="312">1.3</text>
+    <text x="816" y="312">2.5</text><text x="930" y="312">3.6</text>
+  </g>
+
+  <text class="t" x="520" y="346" text-anchor="middle">body weight (kg) → shift in log parameter</text>
+</svg>
+```
+
+::: {.notes}
+Here's what the vae search picked. On clearance, it found a power of
+weight with an exponent of about point six three, close to the textbook
+three quarters. On volume, it found a hockey stick that bends at one point
+three kilograms, steeper for the smallest babies.
+
+It chose weight for both parameters, and volume variability dropped
+further, to fourteen percent.
+:::
+
+## 5. Can we believe it? {.sectionbreak}
+
+![](images/sec-check.jpg){.nostretch}
+
+::: {.notes}
+Before we use this model for dosing, we need to check that we can
+believe it.
+:::
+
+## Infants with a single sample still get a full profile, borrowed from the population
+
+![](images/fig-augpred-1.png){.nostretch .fig}
+
+::: {.notes}
+First, let's look at individual profiles. Infants fifty-six and twenty-eight
+gave one measurement each, and both still get a full concentration curve.
+Their individual and population curves nearly overlap. With one data point
+there's nothing to pull the infant away from typical, and that's the right
+behavior.
+
+Infants two and eight have three samples each, and their curves separate.
+Now there's enough information to say this baby isn't typical.
+:::
+
+## Simulated studies bracket the observed percentiles, so the model is not misspecified
+
+![](images/fig-vpc-1.png){.nostretch .fig}
+
+::: {.notes}
+Second, a prediction-corrected visual predictive check. We simulate the
+study many times from the fitted model and ask whether the real data look
+like one of those draws.
+
+The observed median and fifth and ninety-fifth percentiles, the solid and
+dashed lines, stay inside the simulated bands. With only one hundred and
+fifty-five observations the percentiles are noisy, but the model isn't
+misspecified.
+:::
+
+## 6. Flat versus weight-based dosing {.sectionbreak}
+
+![](images/sec-dose.jpg){.nostretch}
+
+::: {.notes}
+Now we can answer the question we started with.
+:::
+
+## The simulation reuses the fitted model itself, so nothing is re-implemented
+
+```r
+simOne <- function(w, flat) {
+  ev <- et(amt = if (flat) 30  else 20   * w) |>  # loading
+        et(amt = if (flat) 1.9 else 1.25 * w,      # maintenance
+           ii = 12, until = 24 * 14, time = 12) |>
+        et(seq(24 * 7, 24 * 14, by = 4))           # sample week 2
+  rxSolve(fit3, ev, nSub = 400, iCov = data.frame(WT = w))
+}
+```
+
+::: {.notes}
+We compare two regimens. The flat one gives every infant a thirty milligram
+loading dose, then one point nine milligrams every twelve hours. That's
+right for a one-and-a-half kilogram baby. The weight-based one gives twenty
+milligrams per kilogram to load, then one point two five per kilogram.
+
+The simulation passes the fitted object straight to rxSolve. It samples
+four hundred new infants at each weight from the estimated variability. The
+model we simulate from is exactly the model we fit.
+:::
+
+## A flat dose is right only for the average infant; weight-based dosing stays in the window
+
+![](images/fig-regimen-1.png){.nostretch .fig}
+
+::: {.notes}
+Here's the result. The gray band is the fifteen to forty milligram per liter
+window. The flat regimen, in red, hits the window at one and a half kilograms,
+because that's what it was designed for. But it slopes down across the
+weight range: too high for the smallest babies, too low for the largest.
+
+The weight-based regimen, in teal, stays flat and inside the window at
+every weight.
+:::
+
+## On the flat dose, fewer than 4% of 3.1 kg infants reach the window
+
+```{=html}
+<svg class="dg" viewBox="0 0 1000 380" role="img"
+     aria-label="Grouped bars of percent of simulated infants inside the therapeutic window at four weights. Flat dose: 39 percent at 0.7 kilograms, 100 at 1.5, 56 at 2.3 and 4 at 3.1. Weight-based dose: 96, 100, 100 and 100 percent.">
+  <text class="sm" x="110" y="30">% of simulated infants in the 15–40 mg/L window, week 2</text>
+  <line x1="110" y1="310" x2="930" y2="310" stroke="#0f243e" stroke-width="1.5"/>
+  <line x1="110" y1="60" x2="930" y2="60" stroke="#dfe5ec" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text class="sm" x="100" y="65" text-anchor="end">100</text>
+  <text class="sm" x="100" y="315" text-anchor="end">0</text>
+
+  <!-- 0.7 kg -->
+  <rect x="150" y="212" width="75" height="98"  fill="#b40000"/>
+  <rect x="230" y="70"  width="75" height="240" fill="#1f497d"/>
+  <text class="lab red" x="187" y="202" text-anchor="middle">39</text>
+  <text class="lab blue" x="267" y="92" text-anchor="middle" fill="#ffffff" style="fill:#ffffff">96</text>
+  <!-- 1.5 kg -->
+  <rect x="355" y="61"  width="75" height="249" fill="#b40000"/>
+  <rect x="435" y="61"  width="75" height="249" fill="#1f497d"/>
+  <text class="lab" x="392" y="84" text-anchor="middle" style="fill:#ffffff">100</text>
+  <text class="lab" x="472" y="84" text-anchor="middle" style="fill:#ffffff">100</text>
+  <!-- 2.3 kg -->
+  <rect x="560" y="169" width="75" height="141" fill="#b40000"/>
+  <rect x="640" y="60"  width="75" height="250" fill="#1f497d"/>
+  <text class="lab red" x="597" y="159" text-anchor="middle">56</text>
+  <text class="lab" x="677" y="84" text-anchor="middle" style="fill:#ffffff">100</text>
+  <!-- 3.1 kg -->
+  <rect x="765" y="301" width="75" height="9"   fill="#b40000"/>
+  <rect x="845" y="60"  width="75" height="250" fill="#1f497d"/>
+  <text class="lab red" x="802" y="291" text-anchor="middle">4</text>
+  <text class="lab" x="882" y="84" text-anchor="middle" style="fill:#ffffff">100</text>
+
+  <g class="t" text-anchor="middle">
+    <text x="227" y="336">0.7 kg</text><text x="432" y="336">1.5 kg</text>
+    <text x="637" y="336">2.3 kg</text><text x="842" y="336">3.1 kg</text>
+  </g>
+  <text class="sm" x="227" y="358" text-anchor="middle">median 41 mg/L (flat)</text>
+  <text class="sm" x="842" y="358" text-anchor="middle">median 12 mg/L (flat)</text>
+
+  <rect x="690" y="16" width="18" height="18" fill="#b40000"/>
+  <text class="t" x="716" y="31">flat</text>
+  <rect x="770" y="16" width="18" height="18" fill="#1f497d"/>
+  <text class="t" x="796" y="31">weight-based</text>
+</svg>
+```
+
+::: {.notes}
+Here are the numbers. At one and a half kilograms, the flat dose puts almost
+every infant in the window. At point seven kilograms, the median infant is at
+forty-one, above the window. At three point one kilograms, the median has
+dropped to twelve, and fewer than four percent of infants reach the window
+at all.
+
+With weight-based dosing, ninety-six percent or more are in the window at
+every weight. And that weight was in the dataset all along.
+:::
+
+## This is a teaching example, not dosing guidance
+
+:::: columns
+::: {.column width="55%"}
+- A 1985 dataset, one compartment, one covariate
+- Real neonatal phenobarbital dosing also accounts for postnatal age and
+  maturation
+- Dosing decisions belong to a qualified doctor and pharmacist
+:::
+
+::: {.column width="45%" .checks}
+- The *workflow* is the real one
+- Sparse data to model to simulation to a regimen decision
+:::
+::::
+
+::: {.notes}
+To be clear: this is a teaching example on a 19 85 dataset. We kept it to
+one compartment and one covariate on purpose. It is not dosing guidance.
+Real neonatal dosing also accounts for postnatal age and maturation, and
+it's decided by a qualified doctor and pharmacist. The workflow, though,
+is the real one.
+:::
+
+## 7. Where this sits in R {.sectionbreak}
+
+![](images/sec-ecosystem.jpg){.nostretch}
+
+::: {.notes}
+Finally, where does all this sit in R?
+:::
+
+## Nothing here left R, so there are no tool boundaries for errors to hide in
+
+```{=html}
+<svg class="dg" viewBox="0 0 1000 340" role="img"
+     aria-label="A single R session box containing five steps in a row: pheno_sd data, nlmixr2 fit, ggplot2 and dplyr diagnostics, rxode2 simulation, and a Quarto report. No export steps between them. Below, renv and targets wrap the whole session for reproducibility.">
+  <rect x="30" y="40" width="940" height="200" rx="14" fill="#f4f7fb" stroke="#1f497d" stroke-width="2.5"/>
+  <text class="lab blue" x="54" y="72">one R session</text>
+
+  <g stroke="#1f497d" stroke-width="2" fill="#ffffff">
+    <rect x="60"  y="110" width="150" height="90" rx="8"/>
+    <rect x="245" y="110" width="150" height="90" rx="8"/>
+    <rect x="430" y="110" width="150" height="90" rx="8"/>
+    <rect x="615" y="110" width="150" height="90" rx="8"/>
+    <rect x="800" y="110" width="150" height="90" rx="8"/>
+  </g>
+  <g class="lab" text-anchor="middle">
+    <text x="135" y="150">data</text><text x="320" y="150">fit</text>
+    <text x="505" y="150">diagnose</text><text x="690" y="150">simulate</text>
+    <text x="875" y="150">report</text>
+  </g>
+  <g class="mono" text-anchor="middle" style="font-size:16px">
+    <text x="135" y="178">pheno_sd</text><text x="320" y="178">nlmixr2</text>
+    <text x="505" y="178">ggplot2/dplyr</text><text x="690" y="178">rxode2</text>
+    <text x="875" y="178">Quarto</text>
+  </g>
+  <g fill="#1f497d">
+    <polygon points="238,155 222,147 222,163"/><polygon points="423,155 407,147 407,163"/>
+    <polygon points="608,155 592,147 592,163"/><polygon points="793,155 777,147 777,163"/>
+  </g>
+  <text class="sm" x="500" y="226" text-anchor="middle">the fit is a data frame: no export step, no intermediate file format</text>
+
+  <path d="M60,268 L60,256 L940,256 L940,268" fill="none" stroke="#9bbb59" stroke-width="2.5"/>
+  <text class="lab grn" x="500" y="296" text-anchor="middle">renv pins the packages · targets re-runs only what changed</text>
+  <text class="sm" x="500" y="322" text-anchor="middle">someone else can rebuild the dosing recommendation from the raw data</text>
+</svg>
+```
+
+::: {.notes}
+Nothing we did required leaving R. The fit object is a data frame, so
+every plot here is plain ggplot2 and every summary is plain dplyr. There's
+no export step and no intermediate file format.
+
+That's not just convenient. Analyses usually break at the boundaries
+between tools, and this workflow doesn't have any. Add renv to pin
+packages and targets to re-run only what changed, and someone else can
+rebuild the dosing recommendation from the raw data.
+:::
+
+## [nlmixr2]{.nlmixr} connects to NONMEM and Monolix instead of walling them off
+
+```{=html}
+<svg class="dg" viewBox="0 0 1000 400" role="img"
+     aria-label="A hub diagram. The nlmixr2 model object is at the center. babelmixr2 sends the same model out to NONMEM, Monolix and PopED. nonmem2rx and monolix2rx bring finished NONMEM and Monolix runs back in. rxode2 sits underneath, solving for both fitting and simulation.">
+  <!-- hub -->
+  <rect x="380" y="150" width="240" height="90" rx="12" fill="#1f497d"/>
+  <text x="500" y="190" text-anchor="middle" style="fill:#ffffff;font-size:24px;font-weight:700">nlmixr2 model</text>
+  <text x="500" y="218" text-anchor="middle" style="fill:#dce6f2;font-size:16px">one object</text>
+
+  <!-- out: babelmixr2 -->
+  <g stroke="#1f497d" stroke-width="2" fill="#ffffff">
+    <rect x="760" y="50"  width="180" height="52" rx="8"/>
+    <rect x="760" y="169" width="180" height="52" rx="8"/>
+    <rect x="760" y="288" width="180" height="52" rx="8"/>
+  </g>
+  <g class="lab" text-anchor="middle">
+    <text x="850" y="83">NONMEM</text><text x="850" y="202">Monolix</text>
+    <text x="850" y="321">PopED</text>
+  </g>
+  <g stroke="#e08836" stroke-width="2.5" fill="none">
+    <path d="M620,180 C690,180 690,76 752,76"/>
+    <path d="M620,195 C690,195 690,195 752,195"/>
+    <path d="M620,212 C690,212 690,314 752,314"/>
+  </g>
+  <g fill="#e08836">
+    <polygon points="760,76 746,69 746,83"/><polygon points="760,195 746,188 746,202"/>
+    <polygon points="760,314 746,307 746,321"/>
+  </g>
+  <text class="lab" x="690" y="385" text-anchor="middle" style="fill:#e08836">babelmixr2: fit or design elsewhere</text>
+
+  <!-- in: nonmem2rx / monolix2rx -->
+  <g stroke="#4a7d18" stroke-width="2" fill="#ffffff">
+    <rect x="50" y="80"  width="200" height="64" rx="8"/>
+    <rect x="50" y="240" width="200" height="64" rx="8"/>
+  </g>
+  <g class="lab" text-anchor="middle">
+    <text x="150" y="108">NONMEM run</text><text x="150" y="268">Monolix project</text>
+  </g>
+  <g class="mono" text-anchor="middle" style="font-size:16px">
+    <text x="150" y="132">nonmem2rx</text><text x="150" y="292">monolix2rx</text>
+  </g>
+  <g stroke="#4a7d18" stroke-width="2.5" fill="none">
+    <path d="M250,112 C320,112 320,180 372,180"/>
+    <path d="M250,272 C320,272 320,210 372,210"/>
+  </g>
+  <g fill="#4a7d18">
+    <polygon points="380,180 366,173 366,187"/><polygon points="380,210 366,203 366,217"/>
+  </g>
+  <text class="lab grn" x="150" y="356" text-anchor="middle">bring legacy runs in</text>
+
+  <!-- under: rxode2 -->
+  <rect x="400" y="290" width="200" height="52" rx="8" fill="#e6f0da" stroke="#4a7d18" stroke-width="2"/>
+  <text class="lab" x="500" y="322" text-anchor="middle">rxode2 solver</text>
+  <line x1="500" y1="240" x2="500" y2="290" stroke="#4a7d18" stroke-width="2.5"/>
+  <text class="sm" x="510" y="270">fits and simulates</text>
+</svg>
+```
+
+::: {.notes}
+nlmixr2 isn't a walled garden. That's unusual in this field, and it may be
+the strongest practical reason to use it.
+
+babelmixr2 runs the same model object through NONMEM or Monolix, so
+you can fit in nlmixr2 and confirm in NONMEM. It also connects to Pop
+Ed for optimal experimental design. Going the other way, nonmem2rx and
+monolix2rx bring finished runs into R, so years of legacy models can
+be simulated and checked with the same tools. Underneath it all,
+rxode2 solves both the fits and the simulations.
+
+And there's no license to negotiate, so any collaborator can run your
+analysis today.
+:::
+
+## The first model is about forty lines away
+
+:::: columns
+::: {.column width="50%"}
+```r
+install.packages("nlmixr2")
+
+library(nlmixr2)
+fit <- nlmixr2(pheno, pheno_sd,
+               est = "saem")
+```
+:::
+
+::: {.column width="50%"}
+- [nlmixr2.org](https://nlmixr2.org): model language and worked examples
+- [nlmixr2lib](https://github.com/nlmixr2/nlmixr2lib): a library of starting models
+- `nonmem2rx`: start from a NONMEM model you already trust
+- [nlmixr2 7.0](https://blog.nlmixr2.org/blog/2026-08-05-nlmixr2-7/): `focei` now solves in parallel
+:::
+::::
+
+::: {.notes}
+Getting started is a smaller step than it looks. Everything in this talk
+is about forty lines of code. Install nlmixr2 from CRAN, and on Windows
+install Rtools too.
+
+From there, the nlmixr2 website has the model language and worked
+examples. nlmixr2lib has starting models. If you're coming from NONMEM,
+nonmem2rx will translate a model you already trust. And nlmixr2 seven
+point oh makes FOCEI solve in parallel.
+:::
+
+## Where this lands
+
+:::: columns
+::: {.column width="52%"}
+- 155 scattered concentrations were enough to estimate clearance and volume
+  for 59 infants
+- Body weight explains more than half of the between-infant variability
+- A flat dose is right only for the infant it was designed for
+- The whole analysis, from data to regimen, is one R document
+:::
+
+::: {.column width="48%" .checks}
+- Weight-based dosing held 96% or more of simulated infants in the window
+  at every weight
+- The same model runs in NONMEM and Monolix through babelmixr2
+:::
+::::
+
+::: {.notes}
+To sum up. One hundred and fifty-five scattered concentrations were enough
+to model fifty-nine infants. Body weight explains more than half of the
+variability between them. A flat dose is right only for the baby it was
+designed for, while weight-based dosing keeps nearly every simulated infant
+in the window. And the whole analysis is one R document that also connects
+to the rest of the field.
+
+Whether your data come from sports analytics, supply chains or
+neonatal wards, the shape of the problem is the same: few observations
+per subject, a mechanistic model, and a decision someone has to make.
+:::
+
+## Thank you {.thanks}
+
+::: {.notes}
+Thanks for listening, from Matt, Janice, and Pudding!
+:::
