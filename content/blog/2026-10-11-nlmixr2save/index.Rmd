@@ -1,0 +1,273 @@
+---
+title: "nlmixr2save: fits you can read, runs you don't repeat"
+subtitle: "Portable text-based fits and the := caching operator, on a poster at ACoP 2026"
+author: Matthew Fidler
+date: '2026-10-11'
+slug: []
+categories: [nlmixr2]
+tags: []
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      collapse = TRUE, comment = "#>")
+library(nlmixr2)
+library(nlmixr2save)
+# Keep the saved fits and cache files out of the blog source tree
+cacheDir <- file.path(tempdir(), "nlmixr2save-post")
+dir.create(cacheDir, showWarnings = FALSE)
+knitr::opts_knit$set(root.dir = cacheDir)
+```
+
+<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;max-width:100%;">
+<iframe src="https://www.youtube.com/embed/TD7yhaaQToE"
+        title="nlmixr2save: fits you can read, runs you don't repeat"
+        style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen></iframe>
+</div>
+
+[Watch on YouTube](https://youtu.be/TD7yhaaQToE)
+
+If you are at [ACoP 2026](https://acop2026.eventscribe.net/) (October
+11-14, National Harbor, Maryland), come find the `nlmixr2save` poster.
+This post covers the same material, with code you can run.
+
+`nlmixr2save` is on CRAN and version 0.2.0 is out now:
+
+```r
+install.packages("nlmixr2save")
+```
+
+## Two problems
+
+**Problem 1: Fits you can't open later.** Nonlinear mixed-effects
+models can take minutes to weeks to fit. Once one is done, you want
+to keep it. The usual way is `saveRDS()`, but that ties the result to R's
+binary format and to how `nlmixr2` stored the fit internally.
+
+That second tie actually broke. `nlmixr2` used the `qs` package to
+compress fits. When `qs` was removed from CRAN, `nlmixr2est` moved to
+`qs2`, which broke backward compatibility for saved fits. It later
+moved to base R serialization, and old `qs2` fits can still be read
+only if `qs2` is installed. A fit that depends on how a particular
+package version stored its internals is not really an archive.
+
+**Problem 2: Running the same model again for no reason.** During
+development you source a script, or render a Quarto/R Markdown report,
+over and over. Each time, every `nlmixr2()` call runs again, even when
+nothing about the model, data, or settings changed.
+
+`nlmixr2save` fixes both.
+
+## A model to work with
+
+```{r model}
+one.cmt <- function() {
+  ini({
+    tka <- 0.45; label("Log Ka")
+    tcl <- log(c(0, 2.7, 100)); label("Log Cl")
+    tv <- 3.45; label("log V")
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+    add.sd <- 0.7
+  })
+  model({
+    ka <- exp(tka + eta.ka)
+    cl <- exp(tcl + eta.cl)
+    v <- exp(tv + eta.v)
+    linCmt() ~ add(add.sd)
+  })
+}
+```
+
+## Saving a fit as text
+
+`saveFit()` breaks a fit into its parts and writes each one as text.
+Models, including the final estimated model, become `nlmixr2`/`rxode2`
+R source. Tables (estimates, objective function values, the fit
+table, the data) become CSV. Everything is bundled into one `.zip`:
+
+```{r saveFit}
+fit <- nlmixr2(one.cmt, theo_sd, est = "focei",
+               control = list(print = 0))
+
+saveFit(fit)  # writes fit.zip
+
+zip::zip_list("fit.zip")[, c("filename", "uncompressed_size")]
+```
+
+Unzip it and you can read nearly all of the fit in a text editor, a
+spreadsheet, or another language (a couple of small components, such as
+the session info, are still `.rds`). No R is needed to see what was
+estimated. In R, `loadFit()` rebuilds the fit:
+
+```{r loadFit}
+fit2 <- loadFit("fit")
+fit2$parFixedDf
+```
+
+A loaded fit is a working fit, not a snapshot. Diagnostic plots, VPCs,
+and model piping all work, so you can use it as the starting point
+for the next model:
+
+```{r pipe, eval = FALSE}
+plot(fit2)
+vpcPlot(fit2)
+fit3 <- fit2 |> model(ka <- exp(tka)) |> nlmixr2(est = "focei")
+```
+
+The saved fit also records the `nlmixr2est` and `rxode2` versions that
+produced it. If you load it later with different versions installed,
+you get a warning explaining why a rerun might not match exactly.
+
+## Caching with `:=`
+
+The second tool is the one you will use daily. Change `<-` to `:=`:
+
+```r
+fit <- nlmixr2(one.cmt, theo_sd, est = "saem")   # always runs
+fit := nlmixr2(one.cmt, theo_sd, est = "saem")   # runs once, then loads
+```
+
+That is the only change. Here is how `:=` works:
+
+1. It computes a hash of the model, the data, and every estimation
+   option. For random calls, such as simulations, it also records the
+   random seed at the start.
+2. If a cache file with that hash (and, for random calls, the same
+   starting seed) exists, `:=` loads it. For random calls, it also
+   restores the ending seed state, so the rest of your script sees the
+   same random numbers it would have seen if the call had run.
+3. Otherwise the call runs and the result is saved.
+
+The first call fits the model:
+
+```{r cache1}
+system.time(
+  fitS := nlmixr2(one.cmt, theo_sd, est = "saem",
+                  control = list(print = 0))
+)
+```
+
+The same call again loads from disk:
+
+```{r cache2}
+system.time(
+  fitS := nlmixr2(one.cmt, theo_sd, est = "saem",
+                  control = list(print = 0))
+)
+```
+
+Change anything that matters and it runs again. Here, the number of
+burn-in iterations changes:
+
+```{r cache3}
+system.time(
+  fitS := nlmixr2(one.cmt, theo_sd, est = "saem",
+                  control = list(print = 0, nBurn = 250))
+)
+```
+
+Hashing the data is smarter than hashing the whole data frame. The
+hash only uses the columns that affect estimation: standard columns,
+model covariates, and `table$keep` columns. If you add a notes column
+to the data, `fitS` still loads from the cache. If you change `DV`, it
+refits.
+
+### Beyond `nlmixr2()`
+
+`:=` works with any function. For fits, the cache is the text `.zip`
+above. For everything else, it is an `.rds` file that stores the
+result and the hash:
+
+```r
+set.seed(42)
+sim := rxSolve(fit, nStud = 10)
+```
+
+The first time the script runs, this simulates and saves `sim.rds`
+with the starting seed. The next time the script is sourced, it starts
+from the same `set.seed(42)`, so `:=` loads `sim.rds` and moves the
+seed to where the simulation left it. If the starting seed is
+different, for example a second call later in the same session, `:=`
+simulates again.
+
+To make your own stochastic function seed-aware, register it with
+`saveFitRandom("mySimulate")`.
+
+Two notes:
+
+- `:=` has to see the long-running call directly.
+  `suppressMessages(nlmixr2(...))` always runs, because the inner call
+  runs before `:=` can check the cache.
+- The cache file is named after the variable on the left, so `fitS`
+  becomes `fitS.zip`.
+
+## Options for reports and projects
+
+Version 0.2.0 adds options for cached work that lives in a project or
+a rendered document:
+
+| option | default | what it does |
+|:---|:---|:---|
+| `nlmixr2save.dir` | `"."` | directory for cache files |
+| `nlmixr2save.prefix` | `""` | prefix for cache file names, e.g. one per report |
+| `nlmixr2save.check` | `TRUE` | set to `FALSE` to trust any existing cache and only run when the file is missing |
+| `nlmixr2save.data` | `TRUE` | set to `FALSE` to leave the original data out of saved fits |
+| `nlmixr2save.checkVersion` | `TRUE` | warn (or ask, when interactive) if a cache came from different package versions |
+
+`nlmixr2save.check = FALSE` is useful when the cache is committed to
+version control. The document renders the same way on every machine,
+even with different `nlmixr2` versions installed. When you do want to
+rerun everything, `nlmixr2saveInvalidate()` deletes every file in
+`nlmixr2save.dir` whose name starts with `nlmixr2save.prefix`. Give the
+cache its own directory or prefix first; with the defaults, that means
+every file in the working directory.
+
+## Sharing a fit without the data
+
+Often you can share a model but not the subject-level data behind it.
+`nlmixr2saveShare()` takes an existing saved fit and writes a smaller
+copy next to it. The original is not changed:
+
+```r
+nlmixr2saveShare("fit")                # fit-noData.zip
+nlmixr2saveShare("fit", noFit = TRUE)  # fit-noData-noFit.zip
+```
+
+The first copy removes the data and keeps the predictions and
+residuals. The second copy also removes the per-observation table,
+leaving the model, estimates, objective function, eta table, and
+parameter history. Anything that needs the data won't work on the
+copy, including VPCs and refitting. The [sharing
+vignette](https://nlmixr2.github.io/nlmixr2save/articles/sharing-fits.html)
+lists exactly what is lost.
+
+## Summary
+
+- `saveFit()` / `loadFit()`: fits stored as R source and CSV that stay
+  readable and don't depend on a binary format.
+- `fit := nlmixr2(...)`: rerun only when something changed, with
+  reproducible random seeds.
+
+If you source scripts over and over or render reports with fits in
+them, try switching `<-` to `:=`.
+
+More information:
+
+- [nlmixr2save documentation](https://nlmixr2.github.io/nlmixr2save/)
+- [Using nlmixr2save](https://nlmixr2.github.io/nlmixr2save/articles/uses.html)
+- [Version tracking](https://nlmixr2.github.io/nlmixr2save/articles/version-tracking.html)
+- [GitHub](https://github.com/nlmixr2/nlmixr2save) for issues and ideas
+
+## References
+
+1. Fidler M, Wilkins JJ, Hooijmaijers R, et al. Nonlinear mixed-effects
+   model development and simulation using nlmixr and related R
+   open-source packages. *CPT Pharmacometrics Syst Pharmacol*.
+   2019;8(9):621-633.
+2. Wang W, Hallow KM, James DA. A tutorial on RxODE: simulating
+   differential equation pharmacometric models in R. *CPT
+   Pharmacometrics Syst Pharmacol*. 2016;5(1):3-10.
