@@ -1,0 +1,523 @@
+---
+title: "Model diagrams and equations, straight from the code"
+subtitle: "The figure and the math in your report should never disagree with the model you ran"
+author: Matthew Fidler
+date: '2026-09-29'
+slug: []
+categories: [nlmixr2, rxode2]
+tags: [reporting]
+---
+
+
+
+<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;max-width:100%;">
+<iframe src="https://youtube.com/embed/Jf9QbmuR_Xw" title="Model diagrams and equations, straight from the code" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
+</iframe>
+</div>
+<p><a href="https://youtu.be/Jf9QbmuR_Xw">Watch on YouTube</a></p>
+<p>Many pharmacometric reports have the same two items near the
+top of the methods section: a compartment diagram of the final model
+and the equations that define it. They are also two of the easiest
+things to get wrong.</p>
+<p>The diagram is usually drawn by hand in PowerPoint or Visio early in
+the analysis. The equations are typed into Word or LaTeX from the
+control stream. Then the model changes – a transit compartment is
+added, the effect goes from stimulation to inhibition, a covariate
+moves – and the code is updated but the figure and the math are not.
+A reviewer who reads the equations in the report and the code in the
+appendix will find two different models.</p>
+<p>The fix is to generate both from the model itself. <code>nlmixr2plot</code>
+5.2.0 adds automatic compartment diagrams, and <code>nlmixr2extra</code> can
+already turn a model into LaTeX equations. Since both read the same
+model object you fit, they cannot drift from it.</p>
+<div id="compartment-diagrams-with-modeldiagram" class="section level2">
+<h2>Compartment diagrams with <code>modelDiagram()</code></h2>
+<p>Take the classic two-compartment model with first-order absorption:</p>
+<pre class="r"><code>two.cmt &lt;- function() {
+  ini({
+    tka &lt;- log(1.5)
+    tcl &lt;- log(3)
+    tv &lt;- log(20)
+    tq &lt;- log(2)
+    tvp &lt;- log(40)
+    eta.ka ~ 0.1
+    eta.cl ~ 0.1
+    add.sd &lt;- 0.2
+  })
+  model({
+    ka &lt;- exp(tka + eta.ka)
+    cl &lt;- exp(tcl + eta.cl)
+    v &lt;- exp(tv)
+    q &lt;- exp(tq)
+    vp &lt;- exp(tvp)
+    d/dt(depot) &lt;- -ka * depot
+    d/dt(central) &lt;- ka * depot - cl / v * central - q / v * central +
+      q / vp * periph
+    d/dt(periph) &lt;- q / v * central - q / vp * periph
+    cp &lt;- central / v
+    cp ~ add(add.sd)
+  })
+}</code></pre>
+<p>One call draws it:</p>
+<pre class="r"><code>modelDiagram(two.cmt, engine = &quot;ggplot2&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/two-cmt-diagram-1.png" alt="" width="100%" /></p>
+<p>There is no layout information in the model. <code>modelDiagram()</code> reads
+the <code>d/dt()</code> equations, works out which terms move mass between
+compartments, and places the compartments the way a pharmacometrician
+would draw them by hand: the dosing compartment (heavy border) on top,
+peripheral compartments to the left, elimination leaving the central
+compartment downward.</p>
+<p>For a methods section you often want the rate terms (the model
+expressions that drive each flow) on the arrows too:</p>
+<pre class="r"><code>modelDiagram(two.cmt, engine = &quot;ggplot2&quot;, labels = TRUE)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/two-cmt-labels-1.png" alt="" width="100%" /></p>
+<p><code>plot()</code> of an <code>rxode2</code> model object draws the same diagram, so
+<code>plot(rxode2(two.cmt), engine = "ggplot2")</code> works as well. (A fit
+keeps its goodness-of-fit <code>plot()</code>; use <code>modelDiagram(fit)</code> for its
+diagram.)</p>
+<p>Behind the picture, <code>modelGraph()</code> returns the parsed compartments and
+flows as data frames, which is handy for checking how the equations
+were read, or for drawing them some other way.</p>
+<p>In the development version of nlmixr2plot, these labels are colored
+white, but this can still be immediately useful even if you don’t
+install the development version.</p>
+<div id="three-engines-three-kinds-of-report" class="section level3">
+<h3>Three engines, three kinds of report</h3>
+<p>The <code>engine</code> argument decides what you get back, and each one fits a
+different reporting workflow:</p>
+<ul>
+<li><code>"ggplot2"</code> returns an ordinary <code>ggplot</code> object. Theme it to match
+the rest of your figures, save it with <code>ggsave()</code> at the resolution
+your publisher asks for, or put it side by side with a goodness-of-fit
+plot using <code>patchwork</code>.</li>
+<li><code>"DiagrammeR"</code> (the default when ‘DiagrammeR’ is installed) gives an
+interactive Graphviz widget, handy in HTML reports and Quarto
+dashboards.</li>
+<li><code>"dot"</code> returns the Graphviz DOT source as text. When the automatic
+layout is 95% of the way there, this is the escape hatch: edit the
+DOT and render it with any Graphviz tool, rather than starting a
+drawing from scratch.</li>
+</ul>
+<pre class="r"><code>cat(modelDiagram(two.cmt, engine = &quot;dot&quot;))</code></pre>
+<pre><code>## digraph model {
+##   graph [layout = neato, splines = true, outputorder = edgesfirst, forcelabels = true];
+##   node [shape = box, style = &quot;rounded,filled&quot;, fontname = Helvetica];
+##   edge [fontname = Helvetica, fontsize = 10];
+##   &quot;depot&quot; [pos = &quot;0,1.1!&quot;, fillcolor = &quot;#F2C57C&quot;, penwidth = 2];
+##   &quot;central&quot; [pos = &quot;0,0!&quot;, fillcolor = &quot;#7FB3D5&quot;];
+##   &quot;periph&quot; [pos = &quot;-1.67,0!&quot;, fillcolor = &quot;#A9CCE3&quot;];
+##   &quot;depot&quot; -&gt; &quot;central&quot;;
+##   &quot;central&quot; -&gt; &quot;periph&quot; [dir = both];
+##   &quot;.elimination4&quot; [shape = point, style = invis, width = 0.01, pos = &quot;0,-0.77!&quot;];
+##   &quot;central&quot; -&gt; &quot;.elimination4&quot;;
+## }</code></pre>
+</div>
+<div id="not-just-pk" class="section level3">
+<h3>Not just PK</h3>
+<p>The part that saves the most time is the pharmacodynamic side, where
+hand-drawn diagrams are fiddliest. Terms that <em>influence</em> a
+compartment without moving mass into it – effect compartments,
+stimulation and inhibition of turnover – are drawn as dashed or dotted arrows,
+and the direction of the effect is read from the equation itself.
+Here is an indirect response model where the drug inhibits production
+of the response:</p>
+<pre class="r"><code>pk.turnover &lt;- function() {
+  ini({
+    tktr &lt;- log(1)
+    tka &lt;- log(1)
+    tcl &lt;- log(0.1)
+    tv &lt;- log(10)
+    poplogit &lt;- 2
+    tec50 &lt;- log(0.5)
+    tkout &lt;- log(0.05)
+    te0 &lt;- log(100)
+    prop.err &lt;- 0.1
+    pdadd.err &lt;- 10
+  })
+  model({
+    ktr &lt;- exp(tktr)
+    ka &lt;- exp(tka)
+    cl &lt;- exp(tcl)
+    v &lt;- exp(tv)
+    emax &lt;- expit(poplogit)
+    ec50 &lt;- exp(tec50)
+    kout &lt;- exp(tkout)
+    e0 &lt;- exp(te0)
+    DCP &lt;- center / v
+    PD &lt;- 1 - emax * DCP / (ec50 + DCP)
+    effect(0) &lt;- e0
+    kin &lt;- e0 * kout
+    d/dt(depot) &lt;- -ktr * depot
+    d/dt(gut) &lt;- ktr * depot - ka * gut
+    d/dt(center) &lt;- ka * gut - cl / v * center
+    d/dt(effect) &lt;- kin * PD - kout * effect
+    cp &lt;- center / v
+    cp ~ prop(prop.err)
+    effect ~ add(pdadd.err)
+  })
+}
+modelDiagram(pk.turnover, engine = &quot;ggplot2&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/turnover-1.png" alt="" width="100%" /></p>
+<p>Nobody told it that <code>effect</code> is a turnover response, that <code>gut</code> is a
+transit compartment, or that the drug is inhibitory. It followed <code>PD</code>
+back through <code>DCP</code> to <code>center</code>, saw that <code>PD</code> falls as the
+concentration rises, and drew an inhibition. If you later change the
+model to a stimulatory effect, the diagram changes with it.</p>
+<p>Target-mediated drug disposition works the same way; binding and
+unbinding are recognized as mass moving from both partners into the
+complex and back out again:</p>
+<pre class="r"><code>tmdd &lt;- rxode2::rxode2({
+  d/dt(central) &lt;- -kel * central - kon * central * target + koff * complex
+  d/dt(target) &lt;- ksyn - kdeg * target - kon * central * target +
+    koff * complex
+  d/dt(complex) &lt;- kon * central * target - koff * complex - kint * complex
+})
+modelDiagram(tmdd, dosing = &quot;central&quot;, engine = &quot;ggplot2&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/tmdd-1.png" alt="" width="100%" /></p>
+<p>Before release, the diagrams were checked against all 3043 models in
+<a href="https://nlmixr2.github.io/nlmixr2lib/"><code>nlmixr2lib</code></a>, including large
+QSP and PBPK models. The <a href="https://nlmixr2.github.io/nlmixr2plot/articles/model-diagrams.html">Automatic model diagrams
+vignette</a>
+covers the rest: how each term is classified, <code>lag()</code>/<code>f()</code>/<code>rate()</code>/<code>dur()</code>
+annotations, <code>delay()</code>, <code>linCmt()</code> models, and the current limitations.</p>
+</div>
+</div>
+<div id="model-equations-with-knit_print" class="section level2">
+<h2>Model equations with <code>knit_print()</code></h2>
+<p><code>nlmixr2extra</code> has a <code>knit_print()</code> method for <code>rxode2</code> model objects
+created from a model function (<code>rxode2(fun)</code>) and for <code>nlmixr2</code> fits. In practice that means that when a model or fit is
+the last value of a chunk in R Markdown or Quarto, the chunk prints the
+model as aligned LaTeX equations instead of as R code:</p>
+<pre class="r"><code>rxode2::rxode2(two.cmt)</code></pre>
+<p><span class="math display">\[\begin{align*}
+{ka} &amp; = \exp\left({tka}+{eta.ka}\right) \\
+{cl} &amp; = \exp\left({tcl}+{eta.cl}\right) \\
+{v} &amp; = \exp\left({tv}\right) \\
+{q} &amp; = \exp\left({tq}\right) \\
+{vp} &amp; = \exp\left({tvp}\right) \\
+\frac{d \: depot}{dt} &amp; = -{ka} {\times} {depot} \\
+\frac{d \: central}{dt} &amp; = {ka} {\times} {depot}-\frac{{cl}}{{v}} {\times} {central}-\frac{{q}}{{v}} {\times} {central}+\frac{{q}}{{vp}} {\times} {periph} \\
+\frac{d \: periph}{dt} &amp; = \frac{{q}}{{v}} {\times} {central}-\frac{{q}}{{vp}} {\times} {periph} \\
+{cp} &amp; = \frac{{central}}{{v}} \\
+{cp} &amp; \sim add({add.sd})
+\end{align*}\]</span></p>
+<p>Each assignment becomes an aligned line, <code>d/dt(depot)</code> becomes
+<span class="math inline">\(\frac{d \: depot}{dt}\)</span>, <code>exp()</code> and <code>log()</code> become proper functions
+with sized parentheses, divisions become fractions, and the residual
+error line is kept as a <span class="math inline">\(\sim\)</span> statement. Conditional logic survives
+too (<code>==</code> is shown as <span class="math inline">\(\equiv\)</span>), which matters for models with
+covariate switches. A character covariate can be compared to its
+value directly, with no need to recode it as a number first, and the
+string carries through to the equation:</p>
+<pre class="r"><code>covmod &lt;- function() {
+  ini({
+    tcl &lt;- log(3)
+    tv &lt;- log(20)
+    add.sd &lt;- 0.2
+  })
+  model({
+    if (SEX == &quot;Female&quot;) {
+      cl &lt;- exp(tcl) * 0.8
+    } else {
+      cl &lt;- exp(tcl)
+    }
+    v &lt;- exp(tv)
+    cp &lt;- linCmt()
+    cp ~ add(add.sd)
+  })
+}
+rxode2::rxode2(covmod)</code></pre>
+<p><span class="math display">\[\begin{align*}
+\mathrm{if} &amp; \left({SEX}{\equiv}\text{&quot;Female&quot;}\right) \{ \\
+&amp; {cl}  = \exp\left({tcl}\right) {\times} {0.8} \\
+\}  \quad &amp; \mathrm{else} \: {cl}  = \exp\left({tcl}\right) \\
+{v} &amp; = \exp\left({tv}\right) \\
+{cp} &amp; = linCmt() \\
+{cp} &amp; \sim add({add.sd})
+\end{align*}\]</span></p>
+<p>If you ever want the plain R printout back inside a knitted document,
+call <code>print()</code> explicitly. The raw LaTeX is also one call away, if you
+want to paste it into a manuscript:</p>
+<pre class="r"><code>cat(knitr::knit_print(rxode2::rxode2(two.cmt)))</code></pre>
+<pre><code>## \begin{align*}
+## {ka} &amp; = \exp\left({tka}+{eta.ka}\right) \\
+## {cl} &amp; = \exp\left({tcl}+{eta.cl}\right) \\
+## {v} &amp; = \exp\left({tv}\right) \\
+## {q} &amp; = \exp\left({tq}\right) \\
+## {vp} &amp; = \exp\left({tvp}\right) \\
+## \frac{d \: depot}{dt} &amp; = -{ka} {\times} {depot} \\
+## \frac{d \: central}{dt} &amp; = {ka} {\times} {depot}-\frac{{cl}}{{v}} {\times} {central}-\frac{{q}}{{v}} {\times} {central}+\frac{{q}}{{vp}} {\times} {periph} \\
+## \frac{d \: periph}{dt} &amp; = \frac{{q}}{{v}} {\times} {central}-\frac{{q}}{{vp}} {\times} {periph} \\
+## {cp} &amp; = \frac{{central}}{{v}} \\
+## {cp} &amp; \sim add({add.sd})
+## \end{align*}</code></pre>
+</div>
+<div id="putting-them-together-in-a-report" class="section level2">
+<h2>Putting them together in a report</h2>
+<p>The real payoff is in the report template. Fit the model once, and
+let every description of it come from the fit. Here is the familiar
+one-compartment theophylline model:</p>
+<pre class="r"><code>one.cmt &lt;- function() {
+  ini({
+    tka &lt;- log(1.57)
+    tcl &lt;- log(2.72)
+    tv &lt;- log(31.5)
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+    add.sd &lt;- 0.7
+  })
+  model({
+    ka &lt;- exp(tka + eta.ka)
+    cl &lt;- exp(tcl + eta.cl)
+    v &lt;- exp(tv + eta.v)
+    d/dt(depot) &lt;- -ka * depot
+    d/dt(central) &lt;- ka * depot - cl / v * central
+    cp &lt;- central / v
+    cp ~ add(add.sd)
+  })
+}
+fit &lt;- nlmixr2(one.cmt, nlmixr2data::theo_sd, est = &quot;saem&quot;,
+               control = saemControl(print = 0))</code></pre>
+<p>The model diagram (the dosing compartment comes from the dosing
+records in the data the model was fit to):</p>
+<pre class="r"><code>modelDiagram(fit, engine = &quot;ggplot2&quot;, labels = TRUE)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/fit-diagram-1.png" alt="" width="100%" /></p>
+<p>The model equations:</p>
+<pre class="r"><code>fit</code></pre>
+<p><span class="math display">\[\begin{align*}
+{ka} &amp; = \exp\left({tka}+{eta.ka}\right) \\
+{cl} &amp; = \exp\left({tcl}+{eta.cl}\right) \\
+{v} &amp; = \exp\left({tv}+{eta.v}\right) \\
+\frac{d \: depot}{dt} &amp; = -{ka} {\times} {depot} \\
+\frac{d \: central}{dt} &amp; = {ka} {\times} {depot}-\frac{{cl}}{{v}} {\times} {central} \\
+{cp} &amp; = \frac{{central}}{{v}} \\
+{cp} &amp; \sim add({add.sd})
+\end{align*}\]</span></p>
+<p>And, as usual, the parameter table:</p>
+<pre class="r"><code>fit$parFixedDf</code></pre>
+<pre><code>##         Estimate         SE      %RSE Back-transformed   CI Lower   CI Upper
+## tka    0.4609126 0.19152670 41.553800        1.5855203  1.0892912  2.3078077
+## tcl    1.0117020 0.07894105  7.802796        2.7502781  2.3560357  3.2104903
+## tv     3.4532980 0.04528458  1.311343       31.6044507 28.9202436 34.5377902
+## add.sd 0.6968072 0.04718694  6.771879        0.6968072  0.6043225  0.7892919
+##        BSV(CV%) Shrink(SD)%
+## tka    71.51577   -0.076938
+## tcl    26.15932    3.893534
+## tv     14.35110   11.210772
+## add.sd       NA          NA</code></pre>
+<p>The diagram, the equations and the estimates all come from <code>fit</code>. If
+the final model changes during review, re-knitting updates all three,
+and the report cannot describe one model while its tables report
+another. For regulatory work this also means that the QC of the
+methods section is largely the QC of the code: there is no separate
+hand-typed artifact to reconcile.</p>
+</div>
+<div id="an-end-to-end-report-word-html-and-pdf-from-one-file" class="section level2">
+<h2>An end-to-end report: Word, HTML and PDF from one file</h2>
+<p>Here is the whole workflow as a single R Markdown report. It fits the
+model, then writes a short methods and results section with the
+diagram, the equations and the parameter table, and knits unchanged
+to Word, HTML and PDF. Save it as <code>model-report.Rmd</code> (or <a href="report/_model-report.Rmd">download
+the source</a>):</p>
+<pre class="r"><code>---
+title: &quot;Theophylline population PK model&quot;
+output:
+  bookdown::word_document2:
+    number_sections: false
+  bookdown::html_document2:
+    number_sections: false
+  bookdown::pdf_document2:
+    number_sections: false
+    toc: false
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.width = 6, fig.height = 4)
+options(knitr.kable.NA = &quot;&quot;)
+library(nlmixr2)
+library(nlmixr2plot)
+library(nlmixr2extra)
+
+# Model equations that work in Word, HTML and PDF.  Pandoc drops a bare
+# align* environment when writing .docx, but converts display math
+# ($$ ... $$) to native Word equations, so use an aligned block in
+# display math for every format.  For Word, drop the alignment points
+# (&amp;, but not an escaped \&amp; inside text) so the equations also display
+# correctly in LibreOffice.
+modelEquations &lt;- function(x) {
+  eq &lt;- knitr::knit_print(x)
+  if (knitr::pandoc_to(&quot;docx&quot;)) {
+    eq &lt;- gsub(&quot;(?&lt;!\\\\)&amp;&quot;, &quot;&quot;, eq, perl = TRUE)
+  }
+  eq &lt;- sub(&quot;\\begin{align*}&quot;, &quot;$$\n\\begin{aligned}&quot;, eq, fixed = TRUE)
+  eq &lt;- sub(&quot;\\end{align*}&quot;, &quot;\\end{aligned}\n$$&quot;, eq, fixed = TRUE)
+  knitr::asis_output(eq)
+}
+```
+
+```{r fit, include = FALSE}
+one.cmt &lt;- function() {
+  ini({
+    tka &lt;- log(1.57)
+    tcl &lt;- log(2.72)
+    tv &lt;- log(31.5)
+    eta.ka ~ 0.6
+    eta.cl ~ 0.3
+    eta.v ~ 0.1
+    add.sd &lt;- 0.7
+  })
+  model({
+    ka &lt;- exp(tka + eta.ka)
+    cl &lt;- exp(tcl + eta.cl)
+    v &lt;- exp(tv + eta.v)
+    d/dt(depot) &lt;- -ka * depot
+    d/dt(central) &lt;- ka * depot - cl / v * central
+    cp &lt;- central / v
+    cp ~ add(add.sd)
+  })
+}
+fit &lt;- nlmixr2(one.cmt, nlmixr2data::theo_sd, est = &quot;saem&quot;,
+               control = saemControl(print = 0))
+```
+
+# Methods
+
+Theophylline concentrations from `r length(unique(fit$ID))` subjects
+were described by a one-compartment model with first-order absorption
+(Figure \@ref(fig:diagram)), estimated with `r toupper(fit$est)` in nlmixr2.
+
+```{r diagram, fig.cap = &quot;Structure of the final model.&quot;}
+modelDiagram(fit, engine = &quot;ggplot2&quot;, labels = TRUE)
+```
+
+The model is defined by the following equations:
+
+```{r equations}
+modelEquations(fit)
+```
+
+# Results
+
+The objective function value was `r round(fit$objf, 2)`.  Table
+\@ref(tab:estimates) lists the final parameter estimates.
+
+```{r estimates}
+knitr::kable(fit$parFixedDf[, c(&quot;Back-transformed&quot;, &quot;CI Lower&quot;,
+                                &quot;CI Upper&quot;, &quot;%RSE&quot;, &quot;BSV(CV%)&quot;)],
+             digits = 3, caption = &quot;Final parameter estimates.&quot;)
+```</code></pre>
+<p>Two details make the same source work in every format:</p>
+<ul>
+<li><strong>Equations.</strong> Pandoc silently drops a bare <code>\begin{align*}</code>
+environment when it writes a <code>.docx</code> file, so plain
+<code>knit_print()</code> output vanishes from Word documents. Wrapped as
+<code>$$\begin{aligned} ... \end{aligned}$$</code> it becomes a native,
+editable Word equation, and it still renders in HTML and PDF. For
+Word, the helper also drops the alignment points (<code>&amp;</code>), so the Word
+equations are centered rather than aligned on the equals sign. Word
+itself handles aligned equations, but LibreOffice garbles them, and
+a report is often opened in more than one of them. The
+<code>modelEquations()</code> helper in the setup chunk does all of this, so one
+chunk serves all three formats.</li>
+<li><strong>Diagram.</strong> <code>engine = "ggplot2"</code> gives a static image that every
+output format can embed. The interactive <code>"DiagrammeR"</code> widget only
+works in HTML.</li>
+<li><strong>Numbering.</strong> The <code>bookdown</code> versions of the output formats
+(<code>word_document2</code> and friends) number the figure and table in every
+format, so <code>\@ref(fig:diagram)</code> and <code>\@ref(tab:estimates)</code> work in
+the text.</li>
+</ul>
+<p>Rendering all three is one call:</p>
+<pre class="r"><code>rmarkdown::render(&quot;model-report.Rmd&quot;, output_format = &quot;all&quot;)</code></pre>
+<p>The PDF needs a LaTeX installation (for example
+<code>tinytex::install_tinytex()</code>). Here are the results:</p>
+<ul>
+<li><a href="report/model-report.docx">Word report</a></li>
+<li><a href="report/model-report.html">HTML report</a></li>
+<li><a href="report/model-report.pdf">PDF report</a></li>
+</ul>
+<p>This is how the first page of each looks, Word on the left (opened in
+LibreOffice) and PDF on the right:</p>
+<div class="float">
+<img src="report/model-report-pages.png" alt="The first page of the Word and PDF reports: methods text, the model diagram and the model equations." />
+<div class="figcaption">The first page of the Word and PDF reports: methods text, the model diagram and the model equations.</div>
+</div>
+<p>Your medical writers can open the Word version and edit the equations
+like any other Word equation. They can restyle the table too, and the
+diagram is regenerated from the model rather than redrawn. None of it
+has to be re-typed from the control stream.</p>
+<p>A couple of notes for your own report templates:</p>
+<ul>
+<li><strong>Variable names are the symbols.</strong> The equations use the names in
+your model, so <code>eta.cl</code> stays <span class="math inline">\({eta.cl}\)</span>; it is not turned into
+<span class="math inline">\(\eta_{cl}\)</span>.
+Meaningful names in the code give readable equations in the report.</li>
+<li><strong>Swap in your own template.</strong> The report is ordinary R Markdown, so
+a company Word template (<code>reference_docx</code>) or a Quarto document works
+the same way. The only Word-specific piece is the <code>modelEquations()</code>
+wrapper.</li>
+</ul>
+</div>
+<div id="adding-them-to-nlmixr2rpt-reports" class="section level2">
+<h2>Adding them to nlmixr2rpt reports</h2>
+<p>If your reports come from
+<a href="https://nlmixr2.github.io/nlmixr2rpt/"><code>nlmixr2rpt</code></a>, which builds Word
+and PowerPoint documents from a fit using your organization’s <code>onbrand</code>
+templates, you get the diagram and the equations without doing
+anything. From version 0.2.3 (currently the development version, on
+its way to CRAN) the default report opens with the model: the diagram
+from <code>modelDiagram()</code>, then the equations as native, editable Word and
+PowerPoint math, ahead of the parameter table and the goodness-of-fit
+figures <code>nlmixr2rpt</code> already produces. Until it reaches CRAN, install
+it with <code>remotes::install_github("nlmixr2/nlmixr2rpt")</code>.</p>
+<p>Reporting a fit is the same call as before:</p>
+<pre class="r"><code>## Report the fit with the package&#39;s templates and default configuration
+for (ext in c(&quot;docx&quot;, &quot;pptx&quot;)) {
+  obnd &lt;- read_template(
+    template = system.file(package = &quot;nlmixr2rpt&quot;, &quot;templates&quot;,
+                           paste0(&quot;nlmixr_obnd_template.&quot;, ext)),
+    mapping  = system.file(package = &quot;nlmixr2rpt&quot;, &quot;templates&quot;,
+                           &quot;nlmixr_obnd_template.yaml&quot;))
+  obnd &lt;- report_fit(fit = fit, obnd = obnd)
+  save_report(obnd, paste0(&quot;fit-report.&quot;, ext))
+}</code></pre>
+<p>These are the first two pages of the Word report:</p>
+<div class="float">
+<img src="nlmixr2rpt/nlmixr2rpt-pages.png" alt="The first two pages of the nlmixr2rpt Word report: the model diagram under a “Model Structure” heading, then the model equations as Table 1." />
+<div class="figcaption">The first two pages of the nlmixr2rpt Word report: the model diagram under a “Model Structure” heading, then the model equations as Table 1.</div>
+</div>
+<p>The equations come from a new function, <code>gen_eqn_table(fit, obnd)</code>,
+which puts one equation per row of a <code>flextable</code> and writes each row
+as native math. With one equation per row there are no alignment
+points, so Word and LibreOffice show the Word report the same way. If
+you keep your own report configuration, add the diagram and the
+equations to it with the same two entries the default now uses:</p>
+<pre class="yaml"><code>figures:
+  model_diagram:
+    cmd: |-
+      p_res &lt;- nlmixr2plot::modelDiagram(fit, engine = &quot;ggplot2&quot;, labels = TRUE)
+tables:
+  model_equations:
+    cmd: |-
+      t_res &lt;- list(ft = list(gen_eqn_table(fit, obnd)))</code></pre>
+<p>In PowerPoint the equations slide gets the same native math. There is
+no fallback image, though, so LibreOffice Impress and some other
+viewers show that slide blank.</p>
+<p>Here are the generated <a href="nlmixr2rpt/fit-report.docx">Word report</a> and
+<a href="nlmixr2rpt/fit-report.pptx">PowerPoint deck</a>, with the
+<a href="nlmixr2rpt/make-report.R">script</a> that built them.</p>
+</div>
+<div id="try-it" class="section level2">
+<h2>Try it</h2>
+<p><code>modelDiagram()</code> and <code>modelGraph()</code> are in <code>nlmixr2plot</code> 5.2.0; the
+<code>knit_print()</code> equations are in <code>nlmixr2extra</code>; and <code>nlmixr2rpt</code> 0.2.3
+puts both in its Word and PowerPoint reports by default. Point them at the
+model you are writing up this week and see how close they get you to
+the figure and equations you would have drawn by hand. If a diagram
+looks wrong, the <a href="https://github.com/nlmixr2/nlmixr2plot/issues">issue
+tracker</a> is the place
+to tell us – the model that trips up the parser is exactly the one we
+want to see.</p>
+</div>

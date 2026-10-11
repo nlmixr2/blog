@@ -62,6 +62,8 @@ pronunciation-samples/
 term-speed-samples/
 # Free local (piper) draft narration -- not the real ElevenLabs clips
 **/presentation/audio-draft/
+# ElevenLabs narration clips -- regenerable from the notes via tts_generate.py
+**/presentation/audio/
 
 # Rendered presentation video -- uploaded to YouTube, not stored here
 **/presentation/*.mp4
