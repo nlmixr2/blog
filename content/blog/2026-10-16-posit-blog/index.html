@@ -1,0 +1,60 @@
+---
+title: "Pharmacometrics in R on the Posit blog"
+author: Matthew Fidler
+date: '2026-10-16'
+slug: []
+categories: [nlmixr2]
+tags: []
+---
+
+
+
+<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;max-width:100%;">
+<iframe src="https://www.youtube.com/embed/ZNHOT_AjmYY" title="Pharmacometrics in R: Population PK Modeling with nlmixr2" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
+</iframe>
+</div>
+<p><a href="https://youtu.be/ZNHOT_AjmYY">Watch on YouTube</a></p>
+<p>Janice Goh and I wrote a post for the Posit blog:
+<a href="https://posit.co/blog/pharmacometrics-in-r-posit">Tiny Doses for Tiny Babies – How much is too much?</a>
+It is a hands-on introduction to pharmacometrics for R users who have
+never built a pharmacokinetic model. Posit also published a narrated
+video walkthrough of the post (above).</p>
+<div id="the-question" class="section level2">
+<h2>The question</h2>
+<p>A preterm infant weighing 900 g is having seizures. A doctor has read
+that one flat dose of phenobarbital might work for every neonate,
+which would save dose calculations at the bedside. Is a flat dose
+chosen for the average 1.5 kg baby right for a 900 g baby?</p>
+<p>To answer that we use <code>pheno_sd</code>, the Grasela and Donn (1985) data set
+that ships with nlmixr2. It has 59 infants, 589 doses and only 155
+concentrations; most infants have one or two samples.</p>
+</div>
+<div id="what-the-post-covers" class="section level2">
+<h2>What the post covers</h2>
+<ul>
+<li><strong>Why a pharmacokinetic model.</strong> If you have fit a mixed model you
+have done half of this. The mean function is the solution to an ODE,
+and its parameters (clearance and volume) mean something
+physiologically.</li>
+<li><strong>Writing and fitting the model in nlmixr2.</strong> One R function with
+an <code>ini({})</code> block and a <code>model({})</code> block, fit with SAEM.</li>
+<li><strong>Adding body weight.</strong> Allometric weight scaling more than halves
+the between-infant variability, from 38.9% to 19.0% CV on clearance.</li>
+<li><strong>Simulating both dosing options with rxode2.</strong> Under the flat dose
+the median week-2 concentration falls from 39.4 mg/L at 0.7 kg to
+12.3 mg/L at 3.1 kg, and only 3.3% of the heaviest infants reach the
+15-40 mg/L target. Weight-based dosing keeps about 94-100% of
+simulated infants in the target range across all weights.</li>
+<li><strong>The wider ecosystem.</strong> babelmixr2, nonmem2rx and monolix2rx for
+working with NONMEM and Monolix, plus PKNCA, PopED, xpose.nlmixr2,
+ggPMX, tidyvpc, shinyMixR and nlmixr2rpt.</li>
+</ul>
+<p>A flat dose works for the average infant and fails at the extremes.
+This is a teaching example, not dosing guidance. A real neonatal
+analysis would also need postnatal age and maturation.</p>
+<p>The full code is in the post, so you can run the analysis yourself.
+<a href="https://posit.co/blog/pharmacometrics-in-r-posit">Read it on the Posit blog</a>
+or <a href="https://youtu.be/ZNHOT_AjmYY">watch the video</a>.</p>
+<p>Thanks to Posit for hosting it, and to Janice for the clinical
+framing.</p>
+</div>
