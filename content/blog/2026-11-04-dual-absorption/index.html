@@ -82,24 +82,24 @@ one row per dose, exactly as it was given. Since <code>nlmixr2</code> estimates 
 <li><p><strong>Every target receives the full amount.</strong> The directive copies the
 dose; it doesn’t divide it. Without any <code>f()</code>, each target gets the
 whole dose. To divide it, give each target a share with <code>f()</code>, for
-example <code>f(depot) &lt;- fr</code> and <code>f(depot2) &lt;- 1 - fr</code>. If you want the
+example <code>f(depot) &lt;- fr</code> and <code>f(slowdepot) &lt;- 1 - fr</code>. If you want the
 shares to add up to one, write them that way.</p></li>
 <li><p><strong>Only one splitting directive is allowed per model.</strong></p></li>
-<li><p><strong>The source can be one of the targets.</strong> <code>splitBolus(depot, depot,   depot2)</code> keeps part of the dose in <code>depot</code> and sends a copy to <code>depot2</code>.
+<li><p><strong>The source can be one of the targets.</strong> <code>splitBolus(depot, depot,   slowdepot)</code> keeps part of the dose in <code>depot</code> and sends a copy to <code>slowdepot</code>.
 This is usually what you want: the data says <code>depot</code>, and <code>depot</code> is
 still one of the absorption routes. If you leave the source out of the
 target list, the dose doesn’t go there at all. The source is then only a
 label for the data, but it still needs an ODE (<code>d/dt(sc) &lt;- 0</code> is
 enough). The targets themselves must not repeat.</p></li>
 <li><p><strong>You can split into as many compartments as you need.</strong>
-<code>splitBolus(depot, depot, depot1, depot2)</code> gives the full amount to
-3 compartments (<code>depot</code>, <code>depot1</code> and <code>depot2</code>) and with an <code>f()</code> on
+<code>splitBolus(depot, depot, mid, slowdepot)</code> gives the full amount to
+3 compartments (<code>depot</code>, <code>mid</code> and <code>slowdepot</code>) and with an <code>f()</code> on
 each compartment you could share that amount in any way you want
 with that one dose record.</p></li>
 <li><p><strong>One target moves the dose instead of splitting it.</strong>
-<code>splitBolus(depot, depot2)</code> sends every bolus recorded against <code>depot</code>
-to <code>depot2</code>, and <code>depot</code> gets nothing, even if it has its own ODE.
-<code>splitInfusion(depot, depot2)</code> does the same for infusions. This
+<code>splitBolus(depot, slowdepot)</code> sends every bolus recorded against <code>depot</code>
+to <code>slowdepot</code>, and <code>depot</code> gets nothing, even if it has its own ODE.
+<code>splitInfusion(depot, slowdepot)</code> does the same for infusions. This
 is useful when the data says <code>CMT = depot</code> but the model wants the dose
 somewhere else, such as the start of a transit chain. No <code>f()</code> is
 needed: the target gets the full dose.</p></li>
@@ -116,7 +116,7 @@ This means each route can have its own lag time.</p></li>
 <div id="two-first-order-routes-splitbolus" class="section level2">
 <h2>Two first-order routes: <code>splitBolus()</code></h2>
 <p>Here is the classic case: 60% of the dose absorbs quickly and 40% slowly.
-The dose stays in <code>depot</code> for the fast route, and a copy goes to <code>depot2</code>
+The dose stays in <code>depot</code> for the fast route, and a copy goes to <code>slowdepot</code>
 for the slow one:</p>
 <pre class="r"><code>dual &lt;- function() {
   ini({
@@ -137,13 +137,13 @@ for the slow one:</p>
     cl  &lt;- exp(tcl + eta.cl)
     v   &lt;- exp(tv + eta.v)
 
-    splitBolus(depot, depot, depot2) # one depot dose -&gt; depot + depot2
-    f(depot)  &lt;- fr
-    f(depot2) &lt;- 1 - fr
+    splitBolus(depot, depot, slowdepot) # one depot dose -&gt; depot + slowdepot
+    f(depot)     &lt;- fr
+    f(slowdepot) &lt;- 1 - fr
 
-    d/dt(depot)   &lt;- -ka1 * depot    # fast route
-    d/dt(depot2)  &lt;- -ka2 * depot2   # slow route
-    d/dt(central) &lt;-  ka1 * depot + ka2 * depot2 - cl / v * central
+    d/dt(depot)     &lt;- -ka1 * depot       # fast route
+    d/dt(slowdepot) &lt;- -ka2 * slowdepot   # slow route
+    d/dt(central)   &lt;-  ka1 * depot + ka2 * slowdepot - cl / v * central
     cp &lt;- central / v
     cp ~ prop(prop.sd)
   })
@@ -155,14 +155,14 @@ typical &lt;- rxSolve(dual |&gt; zeroRe(), ev)
 
 typical |&gt;
   as.data.frame() |&gt;
-  select(time, depot, depot2, central) |&gt;
+  select(time, depot, slowdepot, central) |&gt;
   pivot_longer(-time, names_to = &quot;compartment&quot;, values_to = &quot;amount&quot;) |&gt;
   ggplot(aes(time, amount, color = compartment)) +
   geom_line(linewidth = 1) +
   labs(x = &quot;Time (h)&quot;, y = &quot;Amount (mg)&quot;,
        title = &quot;One 100 mg dose, split 60/40 into a fast and a slow depot&quot;)</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/dual-sim-1.png" alt="" width="100%" /></p>
-<p><code>depot</code> starts at 60 mg and empties within a few hours. <code>depot2</code> starts
+<p><code>depot</code> starts at 60 mg and empties within a few hours. <code>slowdepot</code> starts
 at 40 mg and is still emptying a day later.</p>
 <p>To check the result, here is the NONMEM-style approach, with the dose
 entered twice and no directive. The two give the same answer:</p>
@@ -175,16 +175,16 @@ entered twice and no directive. The two give the same answer:</p>
     v &lt;- 40
   })
   model({
-    f(depot)  &lt;- fr
-    f(depot2) &lt;- 1 - fr
-    d/dt(depot)   &lt;- -ka1 * depot
-    d/dt(depot2)  &lt;- -ka2 * depot2
-    d/dt(central) &lt;-  ka1 * depot + ka2 * depot2 - cl / v * central
+    f(depot)     &lt;- fr
+    f(slowdepot) &lt;- 1 - fr
+    d/dt(depot)     &lt;- -ka1 * depot
+    d/dt(slowdepot) &lt;- -ka2 * slowdepot
+    d/dt(central)   &lt;-  ka1 * depot + ka2 * slowdepot - cl / v * central
     cp &lt;- central / v
   })
 }
 evTwice &lt;- et(amt = 100, cmt = &quot;depot&quot;) |&gt;
-  et(amt = 100, cmt = &quot;depot2&quot;) |&gt;
+  et(amt = 100, cmt = &quot;slowdepot&quot;) |&gt;
   et(seq(0, 36, by = 0.25))
 
 all.equal(typical$cp, rxSolve(twoRecords, evTwice)$cp)</code></pre>
@@ -236,16 +236,17 @@ the same model with the targets listed in the other order: there the
 <p>Both directives take any number of targets, but only <strong>one</strong> of them
 becomes an infusion, and its position is fixed: the first target for
 <code>splitInfusionBolus()</code>, the last for <code>splitBolusInfusion()</code>. Every other
-target gets a bolus. <code>splitBolusInfusion(depot, depot, depot2, central)</code>
+target gets a bolus. <code>splitBolusInfusion(depot, depot, slowdepot, central)</code>
 gives two first-order routes plus a zero-order input. A <code>dur()</code> on a
 target in the middle of the list is ignored, and that target silently
-gets a bolus
-(<a href="https://github.com/nlmixr2/rxode2/issues/1668">rxode2#1668</a>).</p>
-<p>Two details to watch. If the infusion target has no <code>dur()</code> or <code>rate()</code>,
-its copy silently stays a bolus, with no warning. And a steady-state bolus
-record (<code>ss = 1</code>) is not turned into an infusion: it is copied as a bolus
-to each target, and <code>rxode2</code> warns you if the infusion target declared
-<code>dur()</code> or <code>rate()</code>. We will work to change this in the next release.</p>
+gets a bolus.</p>
+<p>Two details to watch. If the infusion target has no <code>dur()</code> or
+<code>rate()</code>, its copy silently stays a bolus, with no warning. And a
+steady-state bolus record (<code>ss = 1</code>) is not turned into an infusion:
+it is copied as a bolus to each target, and <code>rxode2</code> warns you if the
+infusion target declared <code>dur()</code> or <code>rate()</code>. We will work to change
+this in the next release (you can track the issue here:
+(<a href="https://github.com/nlmixr2/rxode2/issues/1668">rxode2#1668</a>))</p>
 </div>
 <div id="infusions-in-the-data-splitinfusion" class="section level2">
 <h2>Infusions in the data: <code>splitInfusion()</code></h2>
@@ -271,8 +272,8 @@ the whole infusion goes to <code>fast</code> and <code>slow</code>:</p>
 }</code></pre>
 <p>Remember that <code>f()</code> scales the <strong>amount</strong>. When you scale the amount of
 an infusion, <code>rxode2</code> follows NONMEM: it holds fixed whichever of rate or
-duration the record gives.
-If the record gives a <code>rate</code>, each copy keeps that rate and runs for a
+duration the record gives.</p>
+<p>If the record gives a <code>rate</code>, each copy keeps that rate and runs for a
 shorter time. If the record gives a <code>dur</code>, each copy keeps that duration
 and runs at a lower rate. The same 300 mg over 3 hours gives different
 profiles depending on how you write it:</p>
@@ -313,27 +314,30 @@ sim &lt;- rxSolve(dual, evPop)
 
 doses &lt;- data.frame(ID = seq_len(nsub), TIME = 0, EVID = 1, AMT = 100,
                     II = 24, ADDL = 2, CMT = &quot;depot&quot;, DV = NA)
+
 obs &lt;- as.data.frame(sim) |&gt;
   transmute(ID = id, TIME = time, EVID = 0, AMT = 0, II = 0, ADDL = 0,
             CMT = &quot;cp&quot;, DV = sim)
+
 dat &lt;- bind_rows(doses, obs) |&gt; arrange(ID, TIME, desc(EVID))
+
 head(dat, 4)</code></pre>
 <pre><code>##   ID TIME EVID AMT II ADDL   CMT        DV
 ## 1  1 0.00    1 100 24    2 depot        NA
 ## 2  1 0.25    0   0  0    0    cp 0.5628164
 ## 3  1 0.50    0   0  0    0    cp 0.7948546
 ## 4  1 1.00    0   0  0    0    cp 1.1505977</code></pre>
-<p>Notice that the dataset never mentions <code>depot2</code>. The
+<p>Notice that the dataset never mentions <code>slowdepot</code>. The
 absorption model is in the model, and only there.</p>
 <p>The example builds the dose rows directly rather than taking them from
 <code>rxSolve(..., addDosing = TRUE)</code>. When a model splits its doses, the dose
 rows that <code>addDosing</code> returns are the <strong>translated</strong> records, one for
-<code>depot</code> and one for <code>depot2</code>. The output then has two dose rows per dose,
+<code>depot</code> and one for <code>slowdepot</code>. The output then has two dose rows per dose,
 which is the NONMEM-style data this approach is meant to avoid.</p>
 <p>Now fit it with FOCEi and with SAEM. It’s the same model function and
 the same data:</p>
-<pre class="r"><code>fitF &lt;- nlmixr(dual, dat, &quot;focei&quot;, control = foceiControl(print = 0))
-fitS &lt;- nlmixr(dual, dat, &quot;saem&quot;,  control = saemControl(print = 0))</code></pre>
+<pre class="r"><code>fitF := nlmixr(dual, dat, &quot;focei&quot;, control = foceiControl(print = 0))
+fitS := nlmixr(dual, dat, &quot;saem&quot;,  control = saemControl(print = 0))</code></pre>
 <pre class="r"><code>truth &lt;- c(tka1 = 1.5, tka2 = 0.15, tfr = 0.6, tcl = 4, tv = 40)
 
 est &lt;- function(fit, method) {
@@ -416,17 +420,17 @@ regimen, and the other post-fit tools: you give them one row per dose.</p>
 <p>The <a href="https://blog.nlmixr2.org/blog/2026-09-09-adaptive-dosing/">adaptive dosing post</a> showed how a
 model can add doses during the solve with <code>bolus()</code> and the other <code>evid_()</code>
 helpers. <code>splitBolus()</code> applies to those doses too. A rescue dose that
-the model adds to <code>depot</code> is split between <code>depot</code> and <code>depot2</code>, just
+the model adds to <code>depot</code> is split between <code>depot</code> and <code>slowdepot</code>, just
 like a dose from the data:</p>
 <pre class="r"><code>rescue &lt;- function() {
   ini({ka1 &lt;- 1.5; ka2 &lt;- 0.15; fr &lt;- 0.6; cl &lt;- 4; v &lt;- 40})
   model({
-    splitBolus(depot, depot, depot2)
-    f(depot)  &lt;- fr
-    f(depot2) &lt;- 1 - fr
-    d/dt(depot)   &lt;- -ka1 * depot
-    d/dt(depot2)  &lt;- -ka2 * depot2
-    d/dt(central) &lt;-  ka1 * depot + ka2 * depot2 - cl / v * central
+    splitBolus(depot, depot, slowdepot)
+    f(depot)     &lt;- fr
+    f(slowdepot) &lt;- 1 - fr
+    d/dt(depot)     &lt;- -ka1 * depot
+    d/dt(slowdepot) &lt;- -ka2 * slowdepot
+    d/dt(central)   &lt;-  ka1 * depot + ka2 * slowdepot - cl / v * central
     cp &lt;- central / v
     # every 24 h, top up if the trough is below 0.5 mg/L
     if (t &gt; 0 &amp;&amp; t %% 24 == 0 &amp;&amp; cp &lt; 0.5) {
@@ -438,7 +442,7 @@ resc &lt;- rxSolve(rescue, et(amt = 100, cmt = &quot;depot&quot;) |&gt; et(seq(0
 
 resc |&gt;
   as.data.frame() |&gt;
-  select(time, depot, depot2) |&gt;
+  select(time, depot, slowdepot) |&gt;
   pivot_longer(-time, names_to = &quot;compartment&quot;, values_to = &quot;amount&quot;) |&gt;
   ggplot(aes(time, amount, color = compartment)) +
   geom_line(linewidth = 1) +

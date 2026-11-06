@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<script src="dual-absorption_files/libs/clipboard/clipboard.min.js"></script>
+<script src="dual-absorption_files/libs/quarto-html/tabby.min.js"></script>
+<script src="dual-absorption_files/libs/quarto-html/popper.min.js"></script>
+<script src="dual-absorption_files/libs/quarto-html/tippy.umd.min.js"></script>
+<link href="dual-absorption_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="dual-absorption_files/libs/quarto-html/light-border.css" rel="stylesheet">
+<link href="dual-absorption_files/libs/quarto-html/quarto-syntax-highlighting-7254980e6d35ae156d877b48cddee30a.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
+  <meta name="generator" content="quarto-1.8.26">
+
+  <meta name="author" content="Matthew Fidler">
+  <title>Dual absorption with one dose record</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="dual-absorption_files/libs/revealjs/dist/reset.css">
+  <link rel="stylesheet" href="dual-absorption_files/libs/revealjs/dist/reveal.css">
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="dual-absorption_files/libs/revealjs/dist/theme/quarto-53f9a834a5bbb213b599e3ca8a7eeaff.css">
+  <link href="dual-absorption_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
+  <link href="dual-absorption_files/libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
+  <link href="dual-absorption_files/libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
+  <link href="dual-absorption_files/libs/revealjs/plugin/quarto-support/footer.css" rel="stylesheet">
+  <style type="text/css">
+    .reveal div.sourceCode {
+      margin: 0;
+      overflow: auto;
+    }
+    .reveal div.hanging-indent {
+      margin-left: 1em;
+      text-indent: -1em;
+    }
+    .reveal .slide:not(.center) {
+      height: 100%;
+    }
+    .reveal .slide.scrollable {
+      overflow-y: auto;
+    }
+    .reveal .footnotes {
+      height: 100%;
+      overflow-y: auto;
+    }
+    .reveal .slide .absolute {
+      position: absolute;
+      display: block;
+    }
+    .reveal .footnotes ol {
+      counter-reset: ol;
+      list-style-type: none; 
+      margin-left: 0;
+    }
+    .reveal .footnotes ol li:before {
+      counter-increment: ol;
+      content: counter(ol) ". "; 
+    }
+    .reveal .footnotes ol li > p:first-child {
+      display: inline-block;
+    }
+    .reveal .slide ul,
+    .reveal .slide ol {
+      margin-bottom: 0.5em;
+    }
+    .reveal .slide ul li,
+    .reveal .slide ol li {
+      margin-top: 0.4em;
+      margin-bottom: 0.2em;
+    }
+    .reveal .slide ul[role="tablist"] li {
+      margin-bottom: 0;
+    }
+    .reveal .slide ul li > *:first-child,
+    .reveal .slide ol li > *:first-child {
+      margin-block-start: 0;
+    }
+    .reveal .slide ul li > *:last-child,
+    .reveal .slide ol li > *:last-child {
+      margin-block-end: 0;
+    }
+    .reveal .slide .columns:nth-child(3) {
+      margin-block-start: 0.8em;
+    }
+    .reveal blockquote {
+      box-shadow: none;
+    }
+    .reveal .tippy-content>* {
+      margin-top: 0.2em;
+      margin-bottom: 0.7em;
+    }
+    .reveal .tippy-content>*:last-child {
+      margin-bottom: 0.2em;
+    }
+    .reveal .slide > img.stretch.quarto-figure-center,
+    .reveal .slide > img.r-stretch.quarto-figure-center {
+      display: block;
+      margin-left: auto;
+      margin-right: auto; 
+    }
+    .reveal .slide > img.stretch.quarto-figure-left,
+    .reveal .slide > img.r-stretch.quarto-figure-left  {
+      display: block;
+      margin-left: 0;
+      margin-right: auto; 
+    }
+    .reveal .slide > img.stretch.quarto-figure-right,
+    .reveal .slide > img.r-stretch.quarto-figure-right  {
+      display: block;
+      margin-left: auto;
+      margin-right: 0; 
+    }
+  </style>
+  <style>
+  svg.dg {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 545px;
+    margin: 0.2em auto 0 auto;
+    font-family: "Calibri", "Carlito", "Segoe UI", sans-serif;
+  }
+  svg.dg text { fill: #0f243e; }
+  svg.dg .t   { font-size: 19px; }
+  svg.dg .lab { font-size: 19px; font-weight: 700; }
+  svg.dg .big { font-size: 24px; font-weight: 700; }
+  svg.dg .sm  { font-size: 15px; fill: #5a6b80; }
+  svg.dg .mono { font-family: "Courier New", "Liberation Mono", monospace; font-size: 17px; }
+  svg.dg .red  { fill: #b40000; }
+  svg.dg .blue { fill: #1f497d; }
+  svg.dg .grn  { fill: #4a7d18; }
+  svg.dg .wht  { fill: #ffffff; }
+
+  /* section-break slides: one captioned illustration */
+  .reveal section.sectionbreak img {
+    display: block; margin: 0.35em auto 0 auto;
+    max-height: 510px; max-width: 100%;
+    width: auto !important; height: auto !important;
+    object-fit: contain; border-radius: 6px;
+  }
+  /* evidence figures rendered by make-figures.R */
+  .reveal img.plot {
+    display: block; margin: 0.2em auto 0 auto;
+    max-height: 500px; max-width: 100%;
+    width: auto !important; height: auto !important;
+  }
+  /* outline slide: the section figures, captioned */
+  .reveal .figgrid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 0.3em 0.9em; margin: 0.3em auto 0 auto; width: 72%;
+  }
+  .reveal .figgrid figure { margin: 0; }
+  .reveal .figgrid img {
+    width: 100%; display: block; border-radius: 4px;
+    aspect-ratio: 16 / 9; object-fit: cover;
+  }
+  .reveal .figgrid figcaption {
+    font-size: 0.5em; line-height: 1.2; margin-top: 0.15em;
+    color: #17375d;
+  }
+
+  /* Quarto's .columns is inline-block, so `gap` does nothing; pad
+     the columns instead. */
+  .reveal .columns > .column {
+    box-sizing: border-box;
+    padding: 0 0.7em;
+  }
+  .reveal .columns > .column:first-child { padding-left: 0; }
+  .reveal .columns > .column:last-child  { padding-right: 0; }
+
+  /* data tables: readable at distance */
+  .reveal .bigtable table { font-size: 24px; }
+  .reveal .bigtable th,
+  .reveal .bigtable td { padding: 0.3em 0.55em; }
+  .reveal .midtable table { font-size: 20px; }
+  .reveal .midtable th,
+  .reveal .midtable td { padding: 0.25em 0.45em; }
+
+  .reveal .codemid pre code {
+    font-size: 20px; line-height: 1.3;
+  }
+  .reveal .smallnote { font-size: 0.6em; color: #17375d; }
+  </style>
+</head>
+<body class="quarto-light">
+  <div class="reveal">
+    <div class="slides">
+
+<section id="title-slide" data-notes="Hi. Today I want to talk about dual absorption, and how you can now split one dose record between several absorption routes." class="quarto-title-block center">
+  <h1 class="title">Dual absorption with one dose record</h1>
+  <p class="subtitle">Splitting one dose between absorption routes in the model</p>
+
+<div class="quarto-title-authors">
+<div class="quarto-title-author">
+<div class="quarto-title-author-name">
+Matthew Fidler 
+</div>
+        <p class="quarto-title-affiliation">
+            On behalf of the <span class="nlmixr">nlmixr2</span> team
+          </p>
+    </div>
+</div>
+
+</section>
+<section id="this-talk-in-four-pictures" class="slide level2">
+<h2>This talk, in four pictures</h2>
+<div class="figgrid">
+<figure>
+<img src="images/sec-problem.jpg" alt="">
+<figcaption>
+<b>1.</b> One dose often reaches the blood by two routes
+</figcaption>
+</figure>
+<figure>
+<img src="images/sec-directive.jpg" alt="">
+<figcaption>
+<b>2.</b> A directive in the model splits the dose, not the data
+</figcaption>
+</figure>
+<figure>
+<img src="images/sec-simulate.jpg" alt="">
+<figcaption>
+<b>3.</b> Simulating fast, slow and zero-order routes
+</figcaption>
+</figure>
+<figure>
+<img src="images/sec-estimate.jpg" alt="">
+<figcaption>
+<b>4.</b> Estimating them
+</figcaption>
+</figure>
+</div>
+<aside class="notes">
+<p>There are four parts to this talk.</p>
+<p>First, the problem: one dose that reaches the blood by two routes.</p>
+<p>Second, the new directives that split the dose inside the model.</p>
+<p>Third, simulating with them.</p>
+<p>And fourth, fitting the same model.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="one-dose-often-reaches-the-blood-by-two-routes" class="slide level2 sectionbreak">
+<h2>1. One dose often reaches the blood by two routes</h2>
+<p><img data-src="images/sec-problem.jpg" class="" alt="Illustration: Matt holds a large tablet whose stream of particles winds into a reservoir"></p>
+<aside class="notes">
+<p>So let’s start with the problem.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="many-drugs-absorb-by-a-fast-route-and-a-slow-route-at-the-same-time" class="slide level2">
+<h2>Many drugs absorb by a fast route and a slow route at the same time</h2>
+<svg class="dg" viewbox="0 0 1000 460" role="img" aria-label="One 100 mg dose splits: 60 percent goes to depot, which absorbs quickly with ka1, and 40 percent goes to slowdepot, which absorbs slowly with ka2. Both feed the central compartment, which is cleared by CL.">
+  <defs>
+    <marker id="a1" viewbox="0 0 10 10" refx="9" refy="5" markerwidth="8" markerheight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1f497d"></path>
+    </marker>
+    <marker id="a1r" viewbox="0 0 10 10" refx="9" refy="5" markerwidth="8" markerheight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#b40000"></path>
+    </marker>
+    <marker id="a1o" viewbox="0 0 10 10" refx="9" refy="5" markerwidth="8" markerheight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#e08836"></path>
+    </marker>
+  </defs>
+  <rect x="20" y="180" width="170" height="100" rx="50" fill="#f6efe0" stroke="#1f497d" stroke-width="2"></rect>
+  <text class="big blue" x="105" y="223" text-anchor="middle">one dose</text>
+  <text class="t" x="105" y="253" text-anchor="middle">100 mg</text>
+
+  <path d="M190,215 C260,215 270,110 345,110" fill="none" stroke="#b40000" stroke-width="3" marker-end="url(#a1r)"></path>
+  <path d="M190,245 C260,245 270,350 345,350" fill="none" stroke="#e08836" stroke-width="3" marker-end="url(#a1o)"></path>
+  <text class="lab red" x="235" y="135">60%</text>
+  <text class="lab" x="235" y="340" style="fill:#c0661e">40%</text>
+
+  <rect x="350" y="60" width="220" height="100" rx="8" fill="#fbeaea" stroke="#b40000" stroke-width="2"></rect>
+  <text class="big red" x="460" y="103" text-anchor="middle">depot</text>
+  <text class="t" x="460" y="135" text-anchor="middle">fast: ka1 = 1.5 /h</text>
+  <rect x="350" y="300" width="220" height="100" rx="8" fill="#fdf1e4" stroke="#e08836" stroke-width="2"></rect>
+  <text class="big" x="460" y="343" text-anchor="middle" style="fill:#c0661e">slowdepot</text>
+  <text class="t" x="460" y="375" text-anchor="middle">slow: ka2 = 0.15 /h</text>
+
+  <path d="M570,110 C640,110 650,215 715,215" fill="none" stroke="#b40000" stroke-width="3" marker-end="url(#a1r)"></path>
+  <path d="M570,350 C640,350 650,245 715,245" fill="none" stroke="#e08836" stroke-width="3" marker-end="url(#a1o)"></path>
+
+  <rect x="720" y="180" width="170" height="100" rx="8" fill="#eef3f9" stroke="#1f497d" stroke-width="2"></rect>
+  <text class="big blue" x="805" y="237" text-anchor="middle">central</text>
+  <line x1="890" y1="230" x2="975" y2="230" stroke="#1f497d" stroke-width="3" marker-end="url(#a1)"></line>
+  <text class="t" x="932" y="215" text-anchor="middle">CL</text>
+</svg>
+<aside class="notes">
+<p>Many oral drugs don’t absorb along one neat first order path. Some of the dose absorbs quickly, and the rest absorbs much more slowly. A modified release tablet is a good example.</p>
+<p>The model for that is easy to write: two depots, each with its own absorption rate, both feeding the central compartment.</p>
+<p>The awkward part has always been the dose. One dose has to end up in two compartments.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="the-usual-fix-duplicates-the-dose-record-so-the-data-no-longer-says-what-was-given" class="slide level2">
+<h2>The usual fix duplicates the dose record, so the data no longer says what was given</h2>
+<svg class="dg" viewbox="0 0 1000 460" role="img" aria-label="Left, the NONMEM approach: the data has two dose rows of 100 mg for one 100 mg tablet, one to compartment 1 and one to compartment 2, and the model sets F1 to FR and F2 to one minus FR. Right, the new approach: the data has one dose row to depot, and the model holds a splitBolus directive.">
+  <text class="big red" x="245" y="40" text-anchor="middle">duplicated records</text>
+  <rect x="40" y="65" width="410" height="44" fill="#1f497d"></rect>
+  <g class="lab wht"><text x="80" y="94" class="lab wht">ID</text><text x="170" y="94" class="lab wht">TIME</text><text x="275" y="94" class="lab wht">AMT</text><text x="375" y="94" class="lab wht">CMT</text></g>
+  <rect x="40" y="109" width="410" height="44" fill="#ffffff" stroke="#c8d3e0"></rect>
+  <rect x="40" y="153" width="410" height="44" fill="#fbeaea" stroke="#c8d3e0"></rect>
+  <g class="t"><text x="80" y="138">1</text><text x="170" y="138">0</text><text x="275" y="138">100</text><text x="375" y="138">1</text>
+  <text x="80" y="182">1</text><text x="170" y="182">0</text><text x="275" y="182">100</text><text x="375" y="182">2</text></g>
+  <text class="mono" x="40" y="250">F1 = FR</text>
+  <text class="mono" x="40" y="280">F2 = 1 - FR</text>
+  <text class="t red" x="40" y="340">one 100 mg tablet, 200 mg of dose rows</text>
+  <text class="t" x="40" y="372">change the absorption model,</text>
+  <text class="t" x="40" y="400">and you rebuild the data</text>
+
+  <line x1="500" y1="40" x2="500" y2="420" stroke="#c8d3e0" stroke-width="2" stroke-dasharray="6 6"></line>
+
+  <text class="big grn" x="755" y="40" text-anchor="middle">one record, split in the model</text>
+  <rect x="550" y="65" width="410" height="44" fill="#1f497d"></rect>
+  <g><text x="590" y="94" class="lab wht">ID</text><text x="680" y="94" class="lab wht">TIME</text><text x="785" y="94" class="lab wht">AMT</text><text x="875" y="94" class="lab wht">CMT</text></g>
+  <rect x="550" y="109" width="410" height="44" fill="#eef6e6" stroke="#c8d3e0"></rect>
+  <g class="t"><text x="590" y="138">1</text><text x="680" y="138">0</text><text x="785" y="138">100</text><text x="875" y="138">depot</text></g>
+  <text class="mono" x="550" y="250">splitBolus(depot, depot, slowdepot)</text>
+  <text class="mono" x="550" y="280">f(depot)  &lt;- fr</text>
+  <text class="mono" x="550" y="310">f(slowdepot) &lt;- 1 - fr</text>
+  <text class="t grn" x="550" y="372">the data says what was given;</text>
+  <text class="t grn" x="550" y="400">the model says where it goes</text>
+</svg>
+<aside class="notes">
+<p>In NONMEM, the usual approach is to put the dose in the data twice: one record for compartment one, and an identical record for compartment two. The model then sets bioavailability one to the fraction, and bioavailability two to one minus the fraction.</p>
+<p>Unfortunately that means every time you try a dual absorption model, you might rebuild the data.</p>
+<p>Monolix avoids this with its P K macros: two absorption macros share the same administration, each with its own share.</p>
+<p>Now you can do the same thing in the model. The data keeps one row per dose, and the model decides where that dose goes.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="a-directive-in-the-model-splits-the-dose-not-the-data" class="slide level2 sectionbreak">
+<h2>2. A directive in the model splits the dose, not the data</h2>
+<p><img data-src="images/sec-directive.jpg" class="" alt="Illustration: Matt pulls a switching lever as parcels on a conveyor split onto two tracks, one looping back"></p>
+<aside class="notes">
+<p>So let’s look at how that works.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="one-line-in-the-model-turns-one-dose-record-into-a-dose-for-each-route" class="slide level2">
+<h2>One line in the model turns one dose record into a dose for each route</h2>
+<svg class="dg" viewbox="0 0 1000 440" role="img" aria-label="A dose record of 100 mg against depot enters splitBolus(depot, depot, slowdepot). It produces a full 100 mg copy for depot and another for slowdepot. f(depot) of 0.6 scales the first copy to 60 mg and f(slowdepot) of 0.4 scales the second to 40 mg.">
+  <defs>
+    <marker id="a2" viewbox="0 0 10 10" refx="9" refy="5" markerwidth="8" markerheight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1f497d"></path>
+    </marker>
+  </defs>
+  <rect x="10" y="170" width="190" height="90" rx="8" fill="#ffffff" stroke="#1f497d" stroke-width="2"></rect>
+  <text class="lab blue" x="105" y="205" text-anchor="middle">dose record</text>
+  <text class="mono" x="105" y="238" text-anchor="middle">100 → depot</text>
+  <line x1="200" y1="215" x2="250" y2="215" stroke="#1f497d" stroke-width="3" marker-end="url(#a2)"></line>
+
+  <rect x="255" y="160" width="250" height="110" rx="8" fill="#1f497d"></rect>
+  <text class="mono" x="380" y="208" text-anchor="middle" style="fill:#ffffff">splitBolus(depot,</text>
+  <text class="mono" x="380" y="235" text-anchor="middle" style="fill:#ffffff">depot, slowdepot)</text>
+
+  <path d="M505,190 C560,190 560,95 610,95" fill="none" stroke="#1f497d" stroke-width="3" marker-end="url(#a2)"></path>
+  <path d="M505,240 C560,240 560,335 610,335" fill="none" stroke="#1f497d" stroke-width="3" marker-end="url(#a2)"></path>
+
+  <rect x="615" y="55" width="130" height="80" rx="8" fill="#ffffff" stroke="#b40000" stroke-width="2"></rect>
+  <text class="big red" x="680" y="100" text-anchor="middle">100</text>
+  <text class="sm" x="680" y="124" text-anchor="middle">full copy</text>
+  <rect x="615" y="295" width="130" height="80" rx="8" fill="#ffffff" stroke="#e08836" stroke-width="2"></rect>
+  <text class="big" x="680" y="340" text-anchor="middle" style="fill:#c0661e">100</text>
+  <text class="sm" x="680" y="364" text-anchor="middle">full copy</text>
+
+  <line x1="745" y1="95" x2="820" y2="95" stroke="#b40000" stroke-width="3" marker-end="url(#a2)"></line>
+  <text class="mono" x="782" y="80" text-anchor="middle">× 0.6</text>
+  <line x1="745" y1="335" x2="820" y2="335" stroke="#e08836" stroke-width="3" marker-end="url(#a2)"></line>
+  <text class="mono" x="782" y="320" text-anchor="middle">× 0.4</text>
+
+  <rect x="825" y="45" width="160" height="100" rx="8" fill="#fbeaea" stroke="#b40000" stroke-width="2"></rect>
+  <text class="big red" x="905" y="88" text-anchor="middle">depot</text>
+  <text class="t" x="905" y="120" text-anchor="middle">60 mg</text>
+  <rect x="825" y="285" width="160" height="100" rx="8" fill="#fdf1e4" stroke="#e08836" stroke-width="2"></rect>
+  <text class="big" x="905" y="328" text-anchor="middle" style="fill:#c0661e">slowdepot</text>
+  <text class="t" x="905" y="360" text-anchor="middle">40 mg</text>
+
+  <text class="mono" x="560" y="425">f(depot) &lt;- 0.6;  f(slowdepot) &lt;- 0.4</text>
+</svg>
+<aside class="notes">
+<p>A splitting function goes in the model block. Here, we split the bolus with depot as the source, and depot and slow depot as the targets.</p>
+<p>Every dose recorded against depot is copied, and each target gets the full amount. So the directive copies the dose; it doesn’t divide it.</p>
+<p>To divide it, you give each target a share with the f property. Sixty percent stays in depot for the fast route, and forty percent goes to the slow depot for the slow one.</p>
+<p>Notice that the source, depot, is also one of the targets. That’s usually what you want: the data says depot, and depot is still one of the absorption routes.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="four-functions-cover-boluses-infusions-and-a-mix-of-the-two" class="slide level2">
+<h2>Four functions cover boluses, infusions, and a mix of the two</h2>
+<div class="bigtable">
+<table class="caption-top">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>directive</th>
+<th>a bolus record becomes</th>
+<th>an infusion record becomes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>splitBolus(src, ...)</code></td>
+<td>a bolus in each target</td>
+<td>not split</td>
+</tr>
+<tr class="even">
+<td><code>splitInfusion(src, ...)</code></td>
+<td>not split</td>
+<td>an infusion in each target</td>
+</tr>
+<tr class="odd">
+<td><code>splitInfusionBolus(src, ...)</code></td>
+<td>an infusion in the <strong>first</strong> target, a bolus in the rest</td>
+<td>an infusion in each target</td>
+</tr>
+<tr class="even">
+<td><code>splitBolusInfusion(src, ...)</code></td>
+<td>a bolus in each target except the <strong>last</strong>, which gets an infusion</td>
+<td>an infusion in each target</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="smallnote">
+<p>One function per model. A dose type the function doesn’t split goes to the source unchanged.</p>
+</div>
+<aside class="notes">
+<p>There are four of these functions.</p>
+<p>Split bolus, Split infusion do what their name implies.</p>
+<p>The two mixed ones split both kinds. And they can also turn a plain bolus into a modeled infusion for one target: the first target for split infusion bolus, or the last target for split bolus infusion. That gives you a zero order and a first order input from one oral dose.</p>
+<p>You can use one split function per model. And a dose type that the directive doesn’t split goes to the source compartment unchanged.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="the-same-directive-splits-copies-or-moves-a-dose-depending-on-the-targets-and-f" class="slide level2">
+<h2>The same directive splits, copies, or moves a dose, depending on the targets and f()</h2>
+<svg class="dg" viewbox="0 0 1000 470" role="img" aria-label="Four cases. Three targets with f shares of 0.5, 0.3 and 0.2 give 50, 30 and 20 mg. The same three targets without f give 100 mg each. One target moves the whole dose: splitBolus(depot, slowdepot) leaves depot at zero and puts 100 mg in slowdepot. A source that is not a target is only a label: splitInfusion(sc, fast, slow) with d/dt(sc) of zero.">
+  <g>
+    <rect x="10" y="10" width="480" height="210" rx="10" fill="#f6f9fc" stroke="#c8d3e0" stroke-width="2"></rect>
+    <text class="lab blue" x="30" y="45">more than two routes, shared by f()</text>
+    <text class="mono" x="30" y="80">splitBolus(depot, depot, mid, slowdepot)</text>
+    <text class="mono" x="30" y="108">f() = 0.5, 0.3, 0.2</text>
+    <rect x="30" y="135" width="215" height="50" fill="#b40000"></rect><text class="lab wht" x="137" y="167" text-anchor="middle">50</text>
+    <rect x="245" y="135" width="129" height="50" fill="#e08836"></rect><text class="lab wht" x="309" y="167" text-anchor="middle">30</text>
+    <rect x="374" y="135" width="86" height="50" fill="#9bbb59"></rect><text class="lab wht" x="417" y="167" text-anchor="middle">20</text>
+  </g>
+  <g>
+    <rect x="510" y="10" width="480" height="210" rx="10" fill="#f6f9fc" stroke="#c8d3e0" stroke-width="2"></rect>
+    <text class="lab blue" x="530" y="45">no f(): every target gets it all</text>
+    <text class="mono" x="530" y="80">splitBolus(depot, depot, mid, slowdepot)</text>
+    <text class="mono" x="530" y="108">no f()</text>
+    <rect x="530" y="135" width="140" height="50" fill="#b40000"></rect><text class="lab wht" x="600" y="167" text-anchor="middle">100</text>
+    <rect x="675" y="135" width="140" height="50" fill="#e08836"></rect><text class="lab wht" x="745" y="167" text-anchor="middle">100</text>
+    <rect x="820" y="135" width="140" height="50" fill="#9bbb59"></rect><text class="lab wht" x="890" y="167" text-anchor="middle">100</text>
+  </g>
+  <g>
+    <rect x="10" y="240" width="480" height="210" rx="10" fill="#f6f9fc" stroke="#c8d3e0" stroke-width="2"></rect>
+    <text class="lab blue" x="30" y="275">one target moves the dose</text>
+    <text class="mono" x="30" y="310">splitBolus(depot, slowdepot)</text>
+    <text class="mono" x="30" y="338">splitInfusion(depot, slowdepot)</text>
+    <rect x="30" y="365" width="140" height="50" fill="#ffffff" stroke="#b40000" stroke-width="2" stroke-dasharray="6 5"></rect><text class="lab red" x="100" y="397" text-anchor="middle">depot 0</text>
+    <rect x="200" y="365" width="200" height="50" fill="#e08836"></rect><text class="lab wht" x="300" y="397" text-anchor="middle">slowdepot 100</text>
+  </g>
+  <g>
+    <rect x="510" y="240" width="480" height="210" rx="10" fill="#f6f9fc" stroke="#c8d3e0" stroke-width="2"></rect>
+    <text class="lab blue" x="530" y="275">source not a target: only a label</text>
+    <text class="mono" x="530" y="310">splitInfusion(sc, fast, slow)</text>
+    <text class="mono" x="530" y="338">d/dt(sc) &lt;- 0</text>
+    <text class="t" x="530" y="390">the data says sc; the dose goes</text>
+    <text class="t" x="530" y="418">only to fast and slow</text>
+  </g>
+</svg>
+<aside class="notes">
+<p>The same rules give you a few useful variations.</p>
+<p>You can split into as many compartments as you need. With three targets and f property shares of a half, three tenths and two tenths, one record becomes fifty, thirty and twenty milligrams.</p>
+<p>Without the f property, every target gets the whole dose. That’s why the f property is how you divide it.</p>
+<p>With one target, the directive moves the dose instead of splitting it. Split bolus from depot to slow depot sends every bolus to the slow depot, and depot gets nothing. Split infusion does the same for infusions. That’s handy when the data says depot, but the model wants the dose somewhere else.</p>
+<p>And if the source isn’t one of the targets, it’s only a label for the data. It still needs an equation, but a derivative of zero is enough.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="simulating-fast-slow-and-zero-order-routes" class="slide level2 sectionbreak">
+<h2>3. Simulating fast, slow and zero-order routes</h2>
+<p><img data-src="images/sec-simulate.jpg" class="" alt="Illustration: Matt stands beside a double hourglass fed from one funnel, both chambers emptying into one basin"></p>
+<aside class="notes">
+<p>Now let’s simulate with these directives.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="one-100-mg-record-splits-6040-and-gives-the-same-answer-as-duplicated-records" class="slide level2">
+<h2>One 100 mg record splits 60/40 and gives the same answer as duplicated records</h2>
+<div class="columns">
+<div class="column" style="width:62%;">
+<p><img data-src="images/fig-dual.png" class="plot" alt="Amounts over 36 hours: depot starts at 60 mg and empties within a few hours, slowdepot starts at 40 mg and empties slowly, central rises to about 60 mg near 2.5 hours and declines"></p>
+</div><div class="column codemid" style="width:38%;">
+<pre class="r number-lines"><code>ev &lt;- et(amt = 100,
+         cmt = "depot") |&gt;
+  et(seq(0, 36, by = 0.1))
+
+rxSolve(dual |&gt; zeroRe(), ev)</code></pre>
+<p>Same <code>cp</code> as two dose records with <code>F1</code>/<code>F2</code>:</p>
+<pre class="r number-lines"><code>all.equal(...)
+#&gt; [1] TRUE</code></pre>
+</div></div>
+<aside class="notes">
+<p>Here is the fast and slow model with one hundred milligrams, recorded once against depot.</p>
+<p>Depot starts at sixty milligrams and empties within a few hours. The slow depot starts at forty milligrams, and it’s still emptying a day later.</p>
+<p>To check it, I solved the old way too, with the dose entered twice and no directive. The concentrations are the same.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="splitinfusionbolus-gives-a-zero-order-and-a-first-order-input-from-one-oral-dose" class="slide level2">
+<h2>splitInfusionBolus() gives a zero-order and a first-order input from one oral dose</h2>
+<div class="columns">
+<div class="column codemid" style="width:42%;">
+<pre class="r number-lines"><code>splitInfusionBolus(depot,
+                   central, depot)
+dur(central)  &lt;- tk0  # 4 h
+f(central)    &lt;- fr   # 0.7
+f(depot)      &lt;- 1 - fr
+alag(depot)   &lt;- lag2 # 1.5 h
+
+d/dt(depot)   &lt;- -ka2 * depot
+d/dt(central) &lt;-  ka2 * depot -
+                  cl / v * central</code></pre>
+</div><div class="column" style="width:58%;">
+<p><img data-src="images/fig-zofo.png" class="plot" alt="Concentration over 24 hours: a straight rise until the lag ends at 1.5 hours, a steeper rise until the zero-order input ends at 4 hours, then a decline"></p>
+</div></div>
+<aside class="notes">
+<p>The second common shape is a zero order input straight into central, plus first order absorption from the depot.</p>
+<p>The dose record is still a plain oral bolus. Split infusion bolus turns it into a modeled infusion for the first target, central, and a bolus for the others. Central declares its duration, four hours, and gets seventy percent. The depot gets the other thirty percent, after a lag of an hour and a half.</p>
+<p>You can see the shape change when the lag ends, and again when the zero order input stops.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="only-the-first-or-last-target-becomes-the-infusion-every-other-target-gets-a-bolus" class="slide level2">
+<h2>Only the first or last target becomes the infusion; every other target gets a bolus</h2>
+<svg class="dg" viewbox="0 0 1000 300" role="img" aria-label="splitInfusionBolus(src, A, B, C) makes A, the first target, an infusion, and B and C boluses. splitBolusInfusion(src, A, B, C) makes C, the last target, the infusion, and A and B boluses.">
+  <text class="mono" x="20" y="72">splitInfusionBolus(src, A, B, C)</text>
+  <text class="sm" x="20" y="100">first target is the infusion</text>
+  <g>
+    <rect x="460" y="40" width="150" height="64" rx="8" fill="#1f497d"></rect><text class="lab wht" x="535" y="79" text-anchor="middle">A infusion</text>
+    <rect x="630" y="40" width="150" height="64" rx="8" fill="#ffffff" stroke="#1f497d" stroke-width="2"></rect><text class="lab blue" x="705" y="79" text-anchor="middle">B bolus</text>
+    <rect x="800" y="40" width="150" height="64" rx="8" fill="#ffffff" stroke="#1f497d" stroke-width="2"></rect><text class="lab blue" x="875" y="79" text-anchor="middle">C bolus</text>
+  </g>
+  <line x1="20" y1="150" x2="980" y2="150" stroke="#c8d3e0" stroke-width="2" stroke-dasharray="6 6"></line>
+  <text class="mono" x="20" y="232">splitBolusInfusion(src, A, B, C)</text>
+  <text class="sm" x="20" y="260">last target is the infusion</text>
+  <g>
+    <rect x="460" y="200" width="150" height="64" rx="8" fill="#ffffff" stroke="#1f497d" stroke-width="2"></rect><text class="lab blue" x="535" y="239" text-anchor="middle">A bolus</text>
+    <rect x="630" y="200" width="150" height="64" rx="8" fill="#ffffff" stroke="#1f497d" stroke-width="2"></rect><text class="lab blue" x="705" y="239" text-anchor="middle">B bolus</text>
+    <rect x="800" y="200" width="150" height="64" rx="8" fill="#1f497d"></rect><text class="lab wht" x="875" y="239" text-anchor="middle">C infusion</text>
+  </g>
+</svg>
+<aside class="notes">
+<p>Both mixed directives take any number of targets, but only one becomes an infusion, and its position is fixed. It’s the first target for split infusion bolus, and the last target for split bolus infusion. Every other target gets a bolus.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="with-f-a-fixed-rate-shortens-each-infusion-a-fixed-duration-lowers-its-rate" class="slide level2">
+<h2>With f(), a fixed rate shortens each infusion; a fixed duration lowers its rate</h2>
+<div class="columns">
+<div class="column" style="width:60%;">
+<p><img data-src="images/fig-ratedur.png" class="plot" alt="Concentration over 12 hours for the same 300 mg over 3 hours, split 60/40: the rate record rises faster than the duration record, and the two converge after about 6 hours"></p>
+</div><div class="column codemid" style="width:40%;">
+<pre class="r number-lines"><code>splitInfusion(sc, fast, slow)
+f(fast) &lt;- 0.6
+f(slow) &lt;- 0.4</code></pre>
+<p>300 mg written two ways:</p>
+<ul>
+<li><code>rate = 100</code>: copies run <strong>1.8 h</strong> and <strong>1.2 h</strong> at 100 mg/h</li>
+<li><code>dur = 3</code>: copies run <strong>3 h</strong> at <strong>60</strong> and <strong>40 mg/h</strong></li>
+</ul>
+</div></div>
+<aside class="notes">
+<p>Split infusion handles infusions that are already in the data.</p>
+<p>Remember that the f property scales the amount. When you scale an infusion, the solver follows NONMEM: it holds fixed whichever of rate or duration the record gives.</p>
+<p>So the same three hundred milligrams over three hours gives two different profiles. With a fixed rate, each copy runs at a hundred milligrams an hour, for a shorter time. With a fixed duration, each copy runs for three hours, at a lower rate.</p>
+<p>Neither is wrong, but you need to know which one your data means.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="estimating-them" class="slide level2 sectionbreak">
+<h2>4. Estimating them</h2>
+<p><img data-src="images/sec-estimate.jpg" class="" alt="Illustration: Matt measures two streams rising from an open ledger with a brass caliper, gauges beside him"></p>
+<aside class="notes">
+<p>Finally, let’s fit these models.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="the-fitting-data-keeps-one-row-per-dose-and-never-mentions-slowdepot" class="slide level2">
+<h2>The fitting data keeps one row per dose and never mentions slowdepot</h2>
+<div class="midtable">
+<table class="caption-top">
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>TIME</th>
+<th>EVID</th>
+<th>AMT</th>
+<th>II</th>
+<th>ADDL</th>
+<th>CMT</th>
+<th>DV</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>0.00</td>
+<td>1</td>
+<td>100</td>
+<td>24</td>
+<td>2</td>
+<td><strong>depot</strong></td>
+<td>.</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td>0.25</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>cp</td>
+<td>0.563</td>
+</tr>
+<tr class="odd">
+<td>1</td>
+<td>0.50</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>cp</td>
+<td>0.795</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td>1.00</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>cp</td>
+<td>1.15</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="smallnote">
+<p>60 simulated subjects, 100 mg daily for 3 days, rich sampling after the first and the last dose. Build dose rows directly: <code>addDosing = TRUE</code> returns the <em>translated</em> rows, one for <code>depot</code> and one for <code>slowdepot</code>.</p>
+</div>
+<aside class="notes">
+<p>I simulated sixty subjects from the fast and slow model, each taking one hundred milligrams daily for three days.</p>
+<p>The dataset has one dose row, recorded against depot. It never mentions the slow depot. The absorption model is in the model, and only there.</p>
+<p>One tip: build the dose rows directly. When a model splits its doses, the add dosing option of the solver returns the translated records, one for depot and one for the slow depot.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="focei-and-saem-both-recover-the-parameters-that-generated-the-data" class="slide level2">
+<h2>FOCEi and SAEM both recover the parameters that generated the data</h2>
+<div class="bigtable">
+<table class="caption-top">
+<thead>
+<tr class="header">
+<th>parameter</th>
+<th>truth</th>
+<th>FOCEi</th>
+<th>SAEM</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>fast absorption ka1 (1/h)</td>
+<td>1.5</td>
+<td>1.51</td>
+<td>1.49</td>
+</tr>
+<tr class="even">
+<td>slow absorption ka2 (1/h)</td>
+<td>0.15</td>
+<td>0.155</td>
+<td>0.147</td>
+</tr>
+<tr class="odd">
+<td>fraction by the fast route</td>
+<td>0.6</td>
+<td>0.610</td>
+<td>0.618</td>
+</tr>
+<tr class="even">
+<td>clearance CL (L/h)</td>
+<td>4</td>
+<td>4.14</td>
+<td>4.13</td>
+</tr>
+<tr class="odd">
+<td>volume V (L)</td>
+<td>40</td>
+<td>39.3</td>
+<td>39.0</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="smallnote">
+<p>Same model function and same data for both: <code>nlmixr(dual, dat, "focei")</code> and <code>nlmixr(dual, dat, "saem")</code>.</p>
+</div>
+<aside class="notes">
+<p>Then I fit that data using the same model function.</p>
+<p>Both fits come back close to the values that generated the data. The fraction absorbed by the fast route is often the hardest parameter to estimate in a dual absorption model, and both methods land within a few percent of it.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="the-vpc-and-every-other-post-fit-tool-applies-the-same-split" class="slide level2">
+<h2>The VPC, and every other post-fit tool, applies the same split</h2>
+<p><img data-src="images/fig-vpc.png" class="plot" alt="Visual predictive check of the SAEM fit over 72 hours: observed percentiles lie within the simulated intervals after the first and the last dose"></p>
+<div class="smallnote">
+<p>Simulated from the fit with the original one-row-per-dose data; bins set halfway between the nominal sample times.</p>
+</div>
+<aside class="notes">
+<p>Everything after the fit uses the same model, so the split keeps working.</p>
+<p>This visual predictive check simulates from the fit with the original data, and the observed percentiles sit inside the simulated intervals.</p>
+<p>The same goes for individual predictions, and for simulating a new dosing regimen.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="splitbolus-also-splits-the-doses-a-model-adds-while-it-solves" class="slide level2">
+<h2>splitBolus() also splits the doses a model adds while it solves</h2>
+<div class="columns">
+<div class="column" style="width:60%;">
+<p><img data-src="images/fig-rescue.png" class="plot" alt="Amounts over 96 hours: after the first dose and after a rescue dose at 24, 48 and 72 hours, depot and slowdepot both jump, by 60 and 40 mg"></p>
+</div><div class="column codemid" style="width:40%;">
+<pre class="r number-lines"><code>splitBolus(depot, depot, slowdepot)
+...
+if (t &gt; 0 &amp;&amp; t %% 24 == 0 &amp;&amp;
+    cp &lt; 0.5) {
+  bolus(100)
+}</code></pre>
+<p>The other three directives split only doses in the data.</p>
+</div></div>
+<aside class="notes">
+<p>In an earlier post, I showed how a model can add doses while it solves. Split bolus applies to those doses too.</p>
+<p>Here, every twenty four hours the model checks the trough, and adds a rescue dose if it’s too low. Each rescue dose is split sixty forty, just like the dose from the data.</p>
+<p>The other three directives only split doses in the data. So if an adaptive model needs to add doses to a split route, use split bolus.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="put-one-dose-row-in-the-data-and-let-the-model-decide-where-it-goes" class="slide level2">
+<h2>Put one dose row in the data, and let the model decide where it goes</h2>
+<div class="columns">
+<div class="column" style="width:55%;">
+<ul>
+<li>One dose row per dose, recorded against a source compartment</li>
+<li>A directive in <code>model({})</code> sends it to each target</li>
+<li><code>f()</code> gives each target its share; <code>alag()</code>, <code>dur()</code> and <code>rate()</code> give each route its own timing</li>
+<li>Help pages: <code>?splitBolus</code> and <code>?splitInfusion</code></li>
+</ul>
+<div class="rule">
+
+</div>
+<div style="font-size: 0.6em; line-height: 1.3;">
+<p>Works with the current CRAN releases, rxode2 5.1.8 and nlmixr2est 7.2.1. The silent-bolus cases are tracked in github</p>
+</div>
+</div><div class="column checks" style="width:45%;">
+<ul>
+<li>The data says what was given</li>
+<li>One model for simulation and for every estimation method</li>
+<li>Change the absorption model without rebuilding the data</li>
+</ul>
+</div></div>
+<aside class="notes">
+<p>So, to sum up. Put one dose row per dose in the data. Add a splitting directive to the model to say where that dose goes. Use the f property to give each target its share, and the lag, duration and rate properties to give each route its own timing.</p>
+<p>The same model simulates and fits, with every estimation method, and you can change the absorption model without touching the data.</p>
+<p>All of this works with the current CRAN releases.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+</section>
+<section id="thank-you" class="slide level2 thanks">
+<h2>Thank you</h2>
+<div class="credit">
+<p>Section illustrations are Gemini-generated artwork, drawn from a photo of Matthew Fidler</p>
+</div>
+<aside class="notes">
+<p>Thank you.</p>
+<style type="text/css">
+        span.MJX_Assistive_MathML {
+          position:absolute!important;
+          clip: rect(1px, 1px, 1px, 1px);
+          padding: 1px 0 0 0!important;
+          border: 0!important;
+          height: 1px!important;
+          width: 1px!important;
+          overflow: hidden!important;
+          display:block!important;
+      }</style></aside>
+
+</section>
+    </div>
+  <div class="quarto-auto-generated-content" style="display: none;">
+<div class="footer footer-default">
+<p>nlmixr2 development team</p>
+</div>
+</div></div>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script>
+  <script src="dual-absorption_files/libs/revealjs/dist/reveal.js"></script>
+  <!-- reveal.js plugins -->
+  <script src="dual-absorption_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.js"></script>
+  <script src="dual-absorption_files/libs/revealjs/plugin/pdf-export/pdfexport.js"></script>
+  <script src="dual-absorption_files/libs/revealjs/plugin/reveal-menu/menu.js"></script>
+  <script src="dual-absorption_files/libs/revealjs/plugin/reveal-menu/quarto-menu.js"></script>
+  <script src="dual-absorption_files/libs/revealjs/plugin/quarto-support/support.js"></script>
+  
+
+  <script src="dual-absorption_files/libs/revealjs/plugin/notes/notes.js"></script>
+  <script src="dual-absorption_files/libs/revealjs/plugin/search/search.js"></script>
+  <script src="dual-absorption_files/libs/revealjs/plugin/zoom/zoom.js"></script>
+  <script src="dual-absorption_files/libs/revealjs/plugin/math/math.js"></script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://revealjs.com/config/
+      Reveal.initialize({
+'controlsAuto': true,
+'previewLinksAuto': false,
+'pdfSeparateFragments': false,
+'autoAnimateEasing': "ease",
+'autoAnimateDuration': 1,
+'autoAnimateUnmatched': true,
+'jumpToSlide': true,
+'menu': {"side":"left","useTextContentForMissingTitles":true,"markers":false,"loadIcons":false,"custom":[{"title":"Tools","icon":"<i class=\"fas fa-gear\"></i>","content":"<ul class=\"slide-menu-items\">\n<li class=\"slide-tool-item active\" data-item=\"0\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.fullscreen(event)\"><kbd>f</kbd> Fullscreen</a></li>\n<li class=\"slide-tool-item\" data-item=\"1\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.speakerMode(event)\"><kbd>s</kbd> Speaker View</a></li>\n<li class=\"slide-tool-item\" data-item=\"2\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.overview(event)\"><kbd>o</kbd> Slide Overview</a></li>\n<li class=\"slide-tool-item\" data-item=\"3\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.togglePdfExport(event)\"><kbd>e</kbd> PDF Export Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"4\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleScrollView(event)\"><kbd>r</kbd> Scroll View Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"5\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.keyboardHelp(event)\"><kbd>?</kbd> Keyboard Help</a></li>\n</ul>"}],"openButton":true},
+'smaller': false,
+ 
+        // Display controls in the bottom right corner
+        controls: false,
+
+        // Help the user learn the controls by providing hints, for example by
+        // bouncing the down arrow when they first encounter a vertical slide
+        controlsTutorial: false,
+
+        // Determines where controls appear, "edges" or "bottom-right"
+        controlsLayout: 'edges',
+
+        // Visibility rule for backwards navigation arrows; "faded", "hidden"
+        // or "visible"
+        controlsBackArrows: 'faded',
+
+        // Display a presentation progress bar
+        progress: false,
+
+        // Display the page number of the current slide
+        slideNumber: 'c',
+
+        // 'all', 'print', or 'speaker'
+        showSlideNumber: 'all',
+
+        // Add the current slide number to the URL hash so that reloading the
+        // page/copying the URL will return you to the same slide
+        hash: true,
+
+        // Start with 1 for the hash rather than 0
+        hashOneBasedIndex: false,
+
+        // Flags if we should monitor the hash and change slides accordingly
+        respondToHashChanges: true,
+
+        // Push each slide change to the browser history
+        history: true,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: true,
+
+        // Disables the default reveal.js slide layout (scaling and centering)
+        // so that you can use custom CSS layout
+        disableLayout: false,
+
+        // Vertical centering of slides
+        center: false,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // see https://revealjs.com/vertical-slides/#navigation-mode
+        navigationMode: 'linear',
+
+        // Randomizes the order of slides each time the presentation loads
+        shuffle: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags whether to include the current fragment in the URL,
+        // so that reloading brings you to the same fragment position
+        fragmentInURL: false,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if it should be possible to pause the presentation (blackout)
+        pause: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Global override for autoplaying embedded media (null/true/false)
+        autoPlayMedia: null,
+
+        // Global override for preloading lazy-loaded iframes (null/true/false)
+        preloadIframes: null,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Use this method for navigation when auto-sliding
+        autoSlideMethod: null,
+
+        // Specify the average time in seconds that you think you will spend
+        // presenting each slide. This is used to show a pacing timer in the
+        // speaker view
+        defaultTiming: null,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // The display mode that will be used to show slides
+        display: 'block',
+
+        // Hide cursor if inactive
+        hideInactiveCursor: true,
+
+        // Time before the cursor is hidden (in ms)
+        hideCursorTime: 5000,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style (none/fade/slide/convex/concave/zoom)
+        transition: 'none',
+
+        // Transition speed (default/fast/slow)
+        transitionSpeed: 'default',
+
+        // Transition style for full page slide backgrounds
+        // (none/fade/slide/convex/concave/zoom)
+        backgroundTransition: 'none',
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Number of slides away from the current that are visible on mobile
+        // devices. It is advisable to set this to a lower number than
+        // viewDistance in order to save resources.
+        mobileViewDistance: 2,
+
+        // The "normal" size of the presentation, aspect ratio will be preserved
+        // when the presentation is scaled to fit different resolutions. Can be
+        // specified using percentage units.
+        width: 1280,
+
+        height: 720,
+
+        // Factor of the display size that should remain empty around the content
+        margin: 0.1,
+
+        math: {
+          mathjax: 'https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js',
+          config: 'TeX-AMS_HTML-full',
+          tex2jax: {
+            inlineMath: [['\\(','\\)']],
+            displayMath: [['\\[','\\]']],
+            balanceBraces: true,
+            processEscapes: false,
+            processRefs: true,
+            processEnvironments: true,
+            preview: 'TeX',
+            skipTags: ['script','noscript','style','textarea','pre','code'],
+            ignoreClass: 'tex2jax_ignore',
+            processClass: 'tex2jax_process'
+          },
+        },
+
+        // reveal.js plugins
+        plugins: [QuartoLineHighlight, PdfExport, RevealMenu, QuartoSupport,
+
+          RevealMath,
+          RevealNotes,
+          RevealSearch,
+          RevealZoom
+        ]
+      });
+    </script>
+    <script id="quarto-html-after-body" type="application/javascript">
+      window.document.addEventListener("DOMContentLoaded", function (event) {
+        const tabsets =  window.document.querySelectorAll(".panel-tabset-tabby")
+        tabsets.forEach(function(tabset) {
+          const tabby = new Tabby('#' + tabset.id);
+        });
+        const isCodeAnnotation = (el) => {
+          for (const clz of el.classList) {
+            if (clz.startsWith('code-annotation-')) {                     
+              return true;
+            }
+          }
+          return false;
+        }
+        const onCopySuccess = function(e) {
+          // button target
+          const button = e.trigger;
+          // don't keep focus
+          button.blur();
+          // flash "checked"
+          button.classList.add('code-copy-button-checked');
+          var currentTitle = button.getAttribute("title");
+          button.setAttribute("title", "Copied!");
+          let tooltip;
+          if (window.bootstrap) {
+            button.setAttribute("data-bs-toggle", "tooltip");
+            button.setAttribute("data-bs-placement", "left");
+            button.setAttribute("data-bs-title", "Copied!");
+            tooltip = new bootstrap.Tooltip(button, 
+              { trigger: "manual", 
+                customClass: "code-copy-button-tooltip",
+                offset: [0, -8]});
+            tooltip.show();    
+          }
+          setTimeout(function() {
+            if (tooltip) {
+              tooltip.hide();
+              button.removeAttribute("data-bs-title");
+              button.removeAttribute("data-bs-toggle");
+              button.removeAttribute("data-bs-placement");
+            }
+            button.setAttribute("title", currentTitle);
+            button.classList.remove('code-copy-button-checked');
+          }, 1000);
+          // clear code selection
+          e.clearSelection();
+        }
+        const getTextToCopy = function(trigger) {
+          const outerScaffold = trigger.parentElement.cloneNode(true);
+          const codeEl = outerScaffold.querySelector('code');
+          for (const childEl of codeEl.children) {
+            if (isCodeAnnotation(childEl)) {
+              childEl.remove();
+            }
+          }
+          return codeEl.innerText;
+        }
+        const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+          text: getTextToCopy
+        });
+        clipboard.on('success', onCopySuccess);
+        if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+          const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+            text: getTextToCopy,
+            container: window.document.getElementById('quarto-embedded-source-code-modal')
+          });
+          clipboardModal.on('success', onCopySuccess);
+        }
+          var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+          var mailtoRegex = new RegExp(/^mailto:/);
+            var filterRegex = new RegExp('/' + window.location.host + '/');
+          var isInternal = (href) => {
+              return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+          }
+          // Inspect non-navigation links and adorn them if external
+         var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+          for (var i=0; i<links.length; i++) {
+            const link = links[i];
+            if (!isInternal(link.href)) {
+              // undo the damage that might have been done by quarto-nav.js in the case of
+              // links that we want to consider external
+              if (link.dataset.originalHref !== undefined) {
+                link.href = link.dataset.originalHref;
+              }
+                // target, if specified
+                link.setAttribute("target", "_blank");
+                if (link.getAttribute("rel") === null) {
+                  link.setAttribute("rel", "noopener");
+                }
+            }
+          }
+        function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+          const config = {
+            allowHTML: true,
+            maxWidth: 500,
+            delay: 100,
+            arrow: false,
+            appendTo: function(el) {
+                return el.closest('section.slide') || el.parentElement;
+            },
+            interactive: true,
+            interactiveBorder: 10,
+            theme: 'light-border',
+            placement: 'bottom-start',
+          };
+          if (contentFn) {
+            config.content = contentFn;
+          }
+          if (onTriggerFn) {
+            config.onTrigger = onTriggerFn;
+          }
+          if (onUntriggerFn) {
+            config.onUntrigger = onUntriggerFn;
+          }
+            config['offset'] = [0,0];
+            config['maxWidth'] = 700;
+          window.tippy(el, config); 
+        }
+        const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+        for (var i=0; i<noterefs.length; i++) {
+          const ref = noterefs[i];
+          tippyHover(ref, function() {
+            // use id or data attribute instead here
+            let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+            try { href = new URL(href).hash; } catch {}
+            const id = href.replace(/^#\/?/, "");
+            const note = window.document.getElementById(id);
+            if (note) {
+              return note.innerHTML;
+            } else {
+              return "";
+            }
+          });
+        }
+        const findCites = (el) => {
+          const parentEl = el.parentElement;
+          if (parentEl) {
+            const cites = parentEl.dataset.cites;
+            if (cites) {
+              return {
+                el,
+                cites: cites.split(' ')
+              };
+            } else {
+              return findCites(el.parentElement)
+            }
+          } else {
+            return undefined;
+          }
+        };
+        var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+        for (var i=0; i<bibliorefs.length; i++) {
+          const ref = bibliorefs[i];
+          const citeInfo = findCites(ref);
+          if (citeInfo) {
+            tippyHover(citeInfo.el, function() {
+              var popup = window.document.createElement('div');
+              citeInfo.cites.forEach(function(cite) {
+                var citeDiv = window.document.createElement('div');
+                citeDiv.classList.add('hanging-indent');
+                citeDiv.classList.add('csl-entry');
+                var biblioDiv = window.document.getElementById('ref-' + cite);
+                if (biblioDiv) {
+                  citeDiv.innerHTML = biblioDiv.innerHTML;
+                }
+                popup.appendChild(citeDiv);
+              });
+              return popup.innerHTML;
+            });
+          }
+        }
+      });
+      </script>
+    
+
+</body></html>

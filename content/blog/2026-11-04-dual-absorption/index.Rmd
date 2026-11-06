@@ -69,13 +69,13 @@ The same rules apply to all four:
 - **Every target receives the full amount.**  The directive copies the
   dose; it doesn't divide it.  Without any `f()`, each target gets the
   whole dose.  To divide it, give each target a share with `f()`, for
-  example `f(depot) <- fr` and `f(depot2) <- 1 - fr`.  If you want the
+  example `f(depot) <- fr` and `f(slowdepot) <- 1 - fr`.  If you want the
   shares to add up to one, write them that way.
 
 - **Only one splitting directive is allowed per model.**
 
 - **The source can be one of the targets.**  `splitBolus(depot, depot,
-  depot2)` keeps part of the dose in `depot` and sends a copy to `depot2`.
+  slowdepot)` keeps part of the dose in `depot` and sends a copy to `slowdepot`.
   This is usually what you want: the data says `depot`, and `depot` is
   still one of the absorption routes.  If you leave the source out of the
   target list, the dose doesn't go there at all.  The source is then only a
@@ -83,15 +83,15 @@ The same rules apply to all four:
   enough).  The targets themselves must not repeat.
 
 - **You can split into as many compartments as you need.**
-  `splitBolus(depot, depot, depot1, depot2)` gives the full amount to
-  3 compartments (`depot`, `depot1` and `depot2`) and with an `f()` on
+  `splitBolus(depot, depot, mid, slowdepot)` gives the full amount to
+  3 compartments (`depot`, `mid` and `slowdepot`) and with an `f()` on
   each compartment you could share that amount in any way you want
   with that one dose record.
 
 - **One target moves the dose instead of splitting it.**
-  `splitBolus(depot, depot2)` sends every bolus recorded against `depot`
-  to `depot2`, and `depot` gets nothing, even if it has its own ODE.
-  `splitInfusion(depot, depot2)` does the same for infusions.  This
+  `splitBolus(depot, slowdepot)` sends every bolus recorded against `depot`
+  to `slowdepot`, and `depot` gets nothing, even if it has its own ODE.
+  `splitInfusion(depot, slowdepot)` does the same for infusions.  This
   is useful when the data says `CMT = depot` but the model wants the dose
   somewhere else, such as the start of a transit chain.  No `f()` is
   needed: the target gets the full dose.
@@ -109,7 +109,7 @@ The same rules apply to all four:
 ## Two first-order routes: `splitBolus()`
 
 Here is the classic case: 60% of the dose absorbs quickly and 40% slowly.
-The dose stays in `depot` for the fast route, and a copy goes to `depot2`
+The dose stays in `depot` for the fast route, and a copy goes to `slowdepot`
 for the slow one:
 
 ```{r dual-model}
@@ -132,13 +132,13 @@ dual <- function() {
     cl  <- exp(tcl + eta.cl)
     v   <- exp(tv + eta.v)
 
-    splitBolus(depot, depot, depot2) # one depot dose -> depot + depot2
-    f(depot)  <- fr
-    f(depot2) <- 1 - fr
+    splitBolus(depot, depot, slowdepot) # one depot dose -> depot + slowdepot
+    f(depot)     <- fr
+    f(slowdepot) <- 1 - fr
 
-    d/dt(depot)   <- -ka1 * depot    # fast route
-    d/dt(depot2)  <- -ka2 * depot2   # slow route
-    d/dt(central) <-  ka1 * depot + ka2 * depot2 - cl / v * central
+    d/dt(depot)     <- -ka1 * depot       # fast route
+    d/dt(slowdepot) <- -ka2 * slowdepot   # slow route
+    d/dt(central)   <-  ka1 * depot + ka2 * slowdepot - cl / v * central
     cp <- central / v
     cp ~ prop(prop.sd)
   })
@@ -154,7 +154,7 @@ typical <- rxSolve(dual |> zeroRe(), ev)
 
 typical |>
   as.data.frame() |>
-  select(time, depot, depot2, central) |>
+  select(time, depot, slowdepot, central) |>
   pivot_longer(-time, names_to = "compartment", values_to = "amount") |>
   ggplot(aes(time, amount, color = compartment)) +
   geom_line(linewidth = 1) +
@@ -162,7 +162,7 @@ typical |>
        title = "One 100 mg dose, split 60/40 into a fast and a slow depot")
 ```
 
-`depot` starts at 60 mg and empties within a few hours.  `depot2` starts
+`depot` starts at 60 mg and empties within a few hours.  `slowdepot` starts
 at 40 mg and is still emptying a day later.
 
 To check the result, here is the NONMEM-style approach, with the dose
@@ -178,16 +178,16 @@ twoRecords <- function() {
     v <- 40
   })
   model({
-    f(depot)  <- fr
-    f(depot2) <- 1 - fr
-    d/dt(depot)   <- -ka1 * depot
-    d/dt(depot2)  <- -ka2 * depot2
-    d/dt(central) <-  ka1 * depot + ka2 * depot2 - cl / v * central
+    f(depot)     <- fr
+    f(slowdepot) <- 1 - fr
+    d/dt(depot)     <- -ka1 * depot
+    d/dt(slowdepot) <- -ka2 * slowdepot
+    d/dt(central)   <-  ka1 * depot + ka2 * slowdepot - cl / v * central
     cp <- central / v
   })
 }
 evTwice <- et(amt = 100, cmt = "depot") |>
-  et(amt = 100, cmt = "depot2") |>
+  et(amt = 100, cmt = "slowdepot") |>
   et(seq(0, 36, by = 0.25))
 
 all.equal(typical$cp, rxSolve(twoRecords, evTwice)$cp)
@@ -243,7 +243,7 @@ the same model with the targets listed in the other order: there the
 Both directives take any number of targets, but only **one** of them
 becomes an infusion, and its position is fixed: the first target for
 `splitInfusionBolus()`, the last for `splitBolusInfusion()`.  Every other
-target gets a bolus.  `splitBolusInfusion(depot, depot, depot2, central)`
+target gets a bolus.  `splitBolusInfusion(depot, depot, slowdepot, central)`
 gives two first-order routes plus a zero-order input.  A `dur()` on a
 target in the middle of the list is ignored, and that target silently
 gets a bolus.
@@ -343,13 +343,13 @@ dat <- bind_rows(doses, obs) |> arrange(ID, TIME, desc(EVID))
 head(dat, 4)
 ```
 
-Notice that the dataset never mentions `depot2`.  The
+Notice that the dataset never mentions `slowdepot`.  The
 absorption model is in the model, and only there.
 
 The example builds the dose rows directly rather than taking them from
 `rxSolve(..., addDosing = TRUE)`.  When a model splits its doses, the dose
 rows that `addDosing` returns are the **translated** records, one for
-`depot` and one for `depot2`.  The output then has two dose rows per dose,
+`depot` and one for `slowdepot`.  The output then has two dose rows per dose,
 which is the NONMEM-style data this approach is meant to avoid.
 
 Now fit it with FOCEi and with SAEM.  It's the same model function and
@@ -407,19 +407,19 @@ regimen, and the other post-fit tools: you give them one row per dose.
 The [adaptive dosing post](https://blog.nlmixr2.org/blog/2026-09-09-adaptive-dosing/) showed how a
 model can add doses during the solve with `bolus()` and the other `evid_()`
 helpers.  `splitBolus()` applies to those doses too.  A rescue dose that
-the model adds to `depot` is split between `depot` and `depot2`, just
+the model adds to `depot` is split between `depot` and `slowdepot`, just
 like a dose from the data:
 
 ```{r adaptive}
 rescue <- function() {
   ini({ka1 <- 1.5; ka2 <- 0.15; fr <- 0.6; cl <- 4; v <- 40})
   model({
-    splitBolus(depot, depot, depot2)
-    f(depot)  <- fr
-    f(depot2) <- 1 - fr
-    d/dt(depot)   <- -ka1 * depot
-    d/dt(depot2)  <- -ka2 * depot2
-    d/dt(central) <-  ka1 * depot + ka2 * depot2 - cl / v * central
+    splitBolus(depot, depot, slowdepot)
+    f(depot)     <- fr
+    f(slowdepot) <- 1 - fr
+    d/dt(depot)     <- -ka1 * depot
+    d/dt(slowdepot) <- -ka2 * slowdepot
+    d/dt(central)   <-  ka1 * depot + ka2 * slowdepot - cl / v * central
     cp <- central / v
     # every 24 h, top up if the trough is below 0.5 mg/L
     if (t > 0 && t %% 24 == 0 && cp < 0.5) {
@@ -431,7 +431,7 @@ resc <- rxSolve(rescue, et(amt = 100, cmt = "depot") |> et(seq(0, 96, by = 0.05)
 
 resc |>
   as.data.frame() |>
-  select(time, depot, depot2) |>
+  select(time, depot, slowdepot) |>
   pivot_longer(-time, names_to = "compartment", values_to = "amount") |>
   ggplot(aes(time, amount, color = compartment)) +
   geom_line(linewidth = 1) +
@@ -464,7 +464,7 @@ More detail, including the edge cases, is in `?splitBolus`,
 ```{r featured, include = FALSE}
 p <- typical |>
   as.data.frame() |>
-  select(time, depot, depot2, central) |>
+  select(time, depot, slowdepot, central) |>
   pivot_longer(-time, names_to = "compartment", values_to = "amount") |>
   ggplot(aes(time, amount, color = compartment)) +
   geom_line(linewidth = 1.4) +
