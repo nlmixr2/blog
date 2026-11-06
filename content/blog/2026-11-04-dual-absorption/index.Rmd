@@ -21,6 +21,16 @@ theme_set(theme_bw())
 rxSetProgressBar(FALSE)
 ```
 
+<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;max-width:100%;">
+<iframe src="https://youtube.com/embed/RCjb5hoFFDY"
+        title="Dual absorption with one dose record"
+        style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen></iframe>
+</div>
+
+[Watch on YouTube](https://youtu.be/RCjb5hoFFDY)
+
 Many oral drugs don't always absorb along one neat first-order path.
 Some of the dose absorbs quickly, and the rest absorbs more slowly.
 For example, a modified-release tablet can release part of the dose
@@ -461,15 +471,3 @@ More detail, including the edge cases, is in `?splitBolus`,
 `?splitInfusion`, `` ?`splitInfusionBolus-directive` `` and
 `` ?`splitBolusInfusion-directive` ``.
 
-```{r featured, include = FALSE}
-p <- typical |>
-  as.data.frame() |>
-  select(time, depot, slowdepot, central) |>
-  pivot_longer(-time, names_to = "compartment", values_to = "amount") |>
-  ggplot(aes(time, amount, color = compartment)) +
-  geom_line(linewidth = 1.4) +
-  labs(x = "Time (h)", y = "Amount (mg)", color = NULL,
-       title = "One dose record, two absorption routes") +
-  theme(legend.position = "bottom")
-ggsave("featured.png", p, width = 8, height = 4.5, dpi = 150)
-```
